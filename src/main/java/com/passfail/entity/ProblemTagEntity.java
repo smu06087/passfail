@@ -1,4 +1,4 @@
-package com.passfail.entity.codingtest;
+package com.passfail.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

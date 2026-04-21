@@ -1,40 +1,47 @@
-package com.passfail.entity.member;
+package com.passfail.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import com.passfail.enums.Provider;
+import com.passfail.enums.NotificationType;
 
 import java.time.LocalDateTime;
 
-
 @Entity
-@Table(name = "social_account", uniqueConstraints = { @UniqueConstraint(columnNames = { "member_id", "provider" }) })
+@Table(name = "notification")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SocialAccountEntity {
+public class NotificationEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long socialId;
+    private Long notifId;
 
 	@Column(name = "member_id",nullable = false)
 	private Long memberId;
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "member_id", insertable = false, updatable = false)
-	private MemberEntity members;
+	private MemberEntity member;
 
-    @Column(nullable = false, length = 20)
-    private Provider provider;
+	@Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 40)
+    private NotificationType type;
 
     @Column(nullable = false, length = 100)
-    private String providerId;
+    private String title;
+
+    @Column()
+    private String body;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isRead = false;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    private LocalDateTime linkedAt;
+    private LocalDateTime createdAt;
 }

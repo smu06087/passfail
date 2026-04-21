@@ -1,6 +1,5 @@
-package com.passfail.entity.ranking;
+package com.passfail.entity;
 
-import com.passfail.entity.member.MemberEntity;
 import com.passfail.enums.Tier;
 import jakarta.persistence.*;
 import lombok.*;
@@ -34,6 +33,7 @@ public class UserRankingEntity {
     @Builder.Default
     private Integer totalScore = 0;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private Tier tier = Tier.BRONZE;

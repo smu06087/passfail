@@ -1,25 +1,26 @@
-package com.passfail.entity.ai;
+package com.passfail.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import com.passfail.entity.member.MemberEntity;
+import com.passfail.enums.PaymentMethod;
+import com.passfail.enums.PaymentStatus;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "ai_code_review")
+@Table(name = "payment")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AiCodeReviewEntity {
+public class PaymentEntity {
 
 	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long reviewId;
+    private Long paymentId;
 
 	@Column(name = "member_id",nullable = false)
 	private Long memberId;
@@ -27,25 +28,24 @@ public class AiCodeReviewEntity {
 	@JoinColumn(name = "member_id", insertable = false, updatable = false)
 	private MemberEntity member;
 
-	@Column(name = "session_id",nullable = false)
-	private Long sessionId;
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "session_id", insertable = false, updatable = false)
-	private AiChatSessionEntity session;
-
-	@Lob 
-    @Column(nullable = false)
-    private String reviewContent;
+	@Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private PaymentMethod paymentMethod;
 
     @Column(nullable = false)
-    @Builder.Default
-    private Integer pointUsed = 0;
+    private Integer amount;
 
     @Column(nullable = false)
-    @Builder.Default
-    private Boolean isFree = true;
+    private Integer pointCharged;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private PaymentStatus status;
+
+    @Column(length = 100)
+    private String pgTxnId;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime paidAt;
 }

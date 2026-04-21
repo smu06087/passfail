@@ -1,26 +1,23 @@
-package com.passfail.entity.payment;
+package com.passfail.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import com.passfail.entity.member.MemberEntity;
-import com.passfail.enums.TXN_Type;
-
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "point_transaction")
+@Table(name = "ai_code_review")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PointTransactionEntity {
+public class AiCodeReviewEntity {
 
 	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long txnId;
+    private Long reviewId;
 
 	@Column(name = "member_id",nullable = false)
 	private Long memberId;
@@ -28,14 +25,23 @@ public class PointTransactionEntity {
 	@JoinColumn(name = "member_id", insertable = false, updatable = false)
 	private MemberEntity member;
 
-    @Column(nullable = false, length = 30)
-    private TXN_Type txnType;
+	@Column(name = "session_id",nullable = false)
+	private Long sessionId;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "session_id", insertable = false, updatable = false)
+	private AiChatSessionEntity session;
+
+	@Lob 
+    @Column(nullable = false)
+    private String reviewContent;
 
     @Column(nullable = false)
-    private Integer amount;
+    @Builder.Default
+    private Integer pointUsed = 0;
 
-    @Column(length = 200)
-    private String description;
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isFree = true;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

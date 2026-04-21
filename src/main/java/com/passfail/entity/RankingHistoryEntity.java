@@ -1,6 +1,5 @@
-package com.passfail.entity.ranking;
+package com.passfail.entity;
 
-import com.passfail.entity.member.MemberEntity;
 import com.passfail.enums.Tier;
 import jakarta.persistence.*;
 import lombok.*;
@@ -32,6 +31,7 @@ public class RankingHistoryEntity {
     @Column(nullable = false)
     private Integer scoreSnapshot;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Tier tierSnapshot;
 

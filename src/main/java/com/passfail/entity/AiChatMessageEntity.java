@@ -1,4 +1,4 @@
-package com.passfail.entity.ai;
+package com.passfail.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -28,6 +28,7 @@ public class AiChatMessageEntity {
 	@JoinColumn(name = "session_id", insertable = false, updatable = false)
 	private AiChatSessionEntity session;
 
+	@Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private AiChatRole role; // USER / ASSISTANT
 

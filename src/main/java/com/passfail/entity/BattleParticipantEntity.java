@@ -1,10 +1,9 @@
-package com.passfail.entity.battle;
+package com.passfail.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import com.passfail.entity.member.MemberEntity;
 import com.passfail.enums.BattleParticipantStatus;
 
 import java.time.LocalDateTime;
@@ -34,6 +33,7 @@ public class BattleParticipantEntity {
 	@JoinColumn(name = "member_id", insertable = false, updatable = false)
 	private MemberEntity member;
 
+	@Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private BattleParticipantStatus status = BattleParticipantStatus.WAITING;

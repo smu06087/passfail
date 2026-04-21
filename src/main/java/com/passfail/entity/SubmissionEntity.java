@@ -1,10 +1,9 @@
-package com.passfail.entity.codingtest;
+package com.passfail.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import com.passfail.entity.member.MemberEntity;
 import com.passfail.enums.ProgrammingLanguage;
 import com.passfail.enums.SubmissionStatus;
 
@@ -35,6 +34,7 @@ public class SubmissionEntity {
 	@JoinColumn(name = "problem_id", insertable = false, updatable = false)
 	private ProblemEntity problem;
 
+	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
 	private ProgrammingLanguage language;
 
@@ -42,6 +42,7 @@ public class SubmissionEntity {
 	@Column(nullable = false)
 	private String code;
 
+	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 30)
 	private SubmissionStatus status;
 

@@ -1,4 +1,4 @@
-package com.passfail.entity.codingtest;
+package com.passfail.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -27,6 +27,7 @@ public class RebalanceLogEntity {
 	@JoinColumn(name = "problem_id", insertable = false, updatable = false)
 	private ProblemEntity problem;
 
+	@Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private ActionType actionType;
 

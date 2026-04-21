@@ -1,11 +1,8 @@
-package com.passfail.entity.ai;
+package com.passfail.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-
-import com.passfail.entity.codingtest.ProblemEntity;
-import com.passfail.entity.member.MemberEntity;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

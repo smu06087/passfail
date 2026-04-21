@@ -1,11 +1,10 @@
-package com.passfail.entity.post;
+package com.passfail.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import com.passfail.entity.member.MemberEntity;
 import com.passfail.enums.PostCategory;
 
 import java.time.LocalDateTime;
@@ -29,6 +28,7 @@ public class PostEntity {
 	@JoinColumn(name = "member_id", insertable = false, updatable = false)
 	private MemberEntity member;
 
+	@Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private PostCategory category;
 

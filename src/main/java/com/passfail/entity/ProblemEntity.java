@@ -1,11 +1,10 @@
-package com.passfail.entity.codingtest;
+package com.passfail.entity;
 
 import jakarta.persistence.*;  
 import lombok.*;  
 import org.hibernate.annotations.CreationTimestamp;  
 import org.hibernate.annotations.UpdateTimestamp;
 
-import com.passfail.entity.member.MemberEntity;
 import com.passfail.enums.Difficulty;
 import com.passfail.enums.ProblemStatus;
 
@@ -39,6 +38,7 @@ public class ProblemEntity {
     @Column(nullable = false)
     private String description;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private Difficulty difficulty;
 
@@ -53,6 +53,7 @@ public class ProblemEntity {
     @Builder.Default
     private Integer memoryLimitMb = 256;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private ProblemStatus status = ProblemStatus.DRAFT;

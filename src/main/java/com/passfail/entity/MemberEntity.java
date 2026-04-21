@@ -1,4 +1,4 @@
-package com.passfail.entity.member;
+package com.passfail.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -36,6 +36,7 @@ public class MemberEntity {
     @Column(length = 255)
     private String password;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private Provider provider = Provider.LOCAL;
@@ -43,10 +44,12 @@ public class MemberEntity {
     @Column(length = 100)
     private String providerId;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private Role role = Role.ROLE_USER;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private Tier tier = Tier.BRONZE;
