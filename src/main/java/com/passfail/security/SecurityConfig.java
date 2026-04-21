@@ -9,7 +9,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-import com.passfail.service.auth.CustomOAuth2UserService;
+import com.passfail.auth.service.CustomOAuth2UserService;
 
 @Configuration
 @EnableMethodSecurity
