@@ -5,7 +5,6 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import com.passfail.enums.Provider;
 import com.passfail.enums.Role;
 import com.passfail.enums.Tier;
 
@@ -22,7 +21,6 @@ import java.util.List;
 @Builder
 public class MemberEntity {
 
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long memberId;
@@ -35,14 +33,6 @@ public class MemberEntity {
 
     @Column(length = 255)
     private String password;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    @Builder.Default
-    private Provider provider = Provider.LOCAL;
-
-    @Column(length = 100)
-    private String providerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -64,6 +54,9 @@ public class MemberEntity {
     @Builder.Default
     private Integer pointBalance = 0;
 
+    @Column(length = 500)
+    private String profileImage;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean isActive = true;
@@ -75,6 +68,9 @@ public class MemberEntity {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column
+    private LocalDateTime deletedAt;
     
     @Builder.Default
     @OneToMany(mappedBy = "members", cascade = CascadeType.ALL, orphanRemoval = true)
