@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시판 - Passfail</title>
+
+    <!-- ── index.html과 동일한 의존성 ── -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&display=swap');
+
+        /* ── 전역 ── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Pretendard', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1fdf4 100%);
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+        /* ── index.html 네비게이션 스타일 그대로 ── */
+        .bg-green-grad {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+        .nav-box {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: white;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 50px;
+            width: 140px;
+            cursor: pointer;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .nav-box:hover {
+            border-color: #22c55e;
+            color: #22c55e;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(34,197,94,0.1);
+        }
+        /* 게시판 탭은 항상 active 스타일 */
+        .nav-box.active {
+            border-color: #22c55e;
+            color: #22c55e;
+            background: #f0fdf4;
+        }
+        .nav-item { position: relative; }
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: 55px;
+            left: 0;
+            width: 140px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            z-index: 100;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            padding: 8px;
+        }
+        .nav-item:hover .dropdown { display: block; animation: navFadeIn 0.2s ease-out; }
+        @keyframes navFadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-item {
+            padding: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: #1e293b;
+            text-decoration: none;
+            display: block;
+        }
+        .dropdown-item:hover { background: #f0fdf4; color: #16a34a; }
+
+        /* ── 게시판 본문 영역 ── */
+        .board-container {
+            max-width: 1024px;
+            margin: 36px auto;
+            padding: 0 20px;
+        }
+
+        /* ── 페이지 타이틀 ── */
+        .page-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .page-title span {
+            display: inline-block;
+            width: 6px;
+            height: 24px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-radius: 3px;
+        }
+
+        /* ── 툴바 (카테고리 탭 + 검색) ── */
+        .toolbar-wrap {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .tab-btn {
+            padding: 7px 18px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 20px;
+            background: white;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { border-color: #22c55e; color: #16a34a; }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 10px rgba(34,197,94,0.25);
+        }
+        .search-row {
+            display: flex;
+            gap: 8px;
+        }
+        .search-input-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 0 14px;
+            background: #f8fafc;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .search-input-wrap:focus-within {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
+            background: white;
+        }
+        .search-input-wrap input {
+            flex: 1;
+            padding: 10px 0;
+            font-size: 14px;
+            font-weight: 600;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #1e293b;
+        }
+        .search-input-wrap input::placeholder { color: #94a3b8; font-weight: 400; }
+        .btn-search {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+            white-space: nowrap;
+        }
+        .btn-search:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* ── 글쓰기 버튼 ── */
+        .action-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+        }
+        .btn-write {
+            display: none; /* 로그인 시 JS로 표시 */
+            padding: 9px 22px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(34,197,94,0.25);
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        .btn-write:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* ── 게시글 테이블 ── */
+        .post-table-wrap {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+        }
+        .post-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .post-table thead { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+        .post-table th {
+            padding: 13px 16px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+            letter-spacing: 0.3px;
+        }
+        .post-table td {
+            padding: 13px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        .post-table tbody tr { transition: background 0.15s; cursor: pointer; }
+        .post-table tbody tr:hover { background: #f0fdf4; }
+        .post-table tbody tr:last-child td { border-bottom: none; }
+        .post-table tbody tr.pinned { background: #fffbeb; }
+        .post-table tbody tr.pinned:hover { background: #fef9c3; }
+
+        /* 카테고리 뱃지 */
+        .category-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .cat-FREE   { background: #dcfce7; color: #15803d; }
+        .cat-NOTICE { background: #fee2e2; color: #dc2626; }
+        .cat-QNA    { background: #dbeafe; color: #1d4ed8; }
+        .cat-REVIEW { background: #fef9c3; color: #a16207; }
+
+        /* 핀 뱃지 */
+        .pin-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 5px;
+            font-weight: 700;
+        }
+
+        /* 제목 셀 */
+        .title-cell { max-width: 340px; }
+        .title-text {
+            font-weight: 600;
+            color: #1e293b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+            max-width: 100%;
+        }
+        .title-text:hover { color: #16a34a; }
+
+        /* 통계 */
+        .stat-cell { color: #94a3b8; font-size: 13px; white-space: nowrap; }
+        .stat-cell i { vertical-align: middle; margin-right: 3px; }
+
+        /* ── 빈 상태 / 로딩 ── */
+        .state-row td {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        /* ── 페이지네이션 ── */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 28px;
+            flex-wrap: wrap;
+        }
+        .pagination button {
+            padding: 7px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            transition: all 0.15s;
+        }
+        .pagination button.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 3px 8px rgba(34,197,94,0.3);
+        }
+        .pagination button:hover:not(.active):not(:disabled) {
+            border-color: #22c55e;
+            color: #16a34a;
+        }
+        .pagination button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        /* ── 토스트 ── */
+        #toast {
+            display: none;
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 9999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            animation: toastIn 0.25s ease-out;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+    </style>
+</head>
+<body class="flex flex-col">
+
+<!-- ══════════════════════════════════════════
+     네비게이션 (index.html 디자인 동일)
+══════════════════════════════════════════ -->
+<nav class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 px-6 py-4">
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- 상단: 로고 + 검색 + 로그인/마이페이지 -->
+        <div class="flex items-center justify-between">
+            <div class="text-3xl font-extrabold text-green-600 tracking-tight cursor-pointer"
+                 onclick="location.href='/'">
+                Passfail
+            </div>
+
+            <div class="flex-1 max-w-2xl mx-8 border border-slate-300 rounded-2xl
+                        flex items-center px-4 bg-white
+                        focus-within:border-green-500 focus-within:ring-4
+                        focus-within:ring-green-500/10 transition-all">
+                <i data-lucide="search" size="18" class="text-slate-400 flex-shrink-0"></i>
+                <input type="text" id="globalSearch"
+                       placeholder="검색 기능을 이용해보세요"
+                       class="w-full p-3 bg-transparent outline-none font-semibold text-slate-600"
+                       onkeydown="if(event.key==='Enter') onGlobalSearch()">
+            </div>
+
+            <div class="flex gap-3">
+                <!-- 로그인/로그아웃 버튼 (JS로 동적 처리) -->
+                <button id="navLoginBtn"
+                        onclick="location.href='/login'"
+                        class="px-6 py-2.5 border border-slate-300 rounded-xl
+                               font-bold hover:bg-slate-50 transition-all">
+                    로그인
+                </button>
+                <button onclick="location.href='/mypage'"
+                        class="px-6 py-2.5 bg-green-grad text-white rounded-xl
+                               font-bold shadow-lg shadow-green-500/20">
+                    마이페이지
+                </button>
+            </div>
+        </div>
+
+        <!-- 하단: 드롭다운 네비게이션 (index.html 동일 구조) -->
+        <div id="nav-loop-container" class="flex justify-center gap-5"></div>
+    </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     게시판 본문
+══════════════════════════════════════════ -->
+<main class="flex-1">
+    <div class="board-container">
+
+        <!-- 페이지 타이틀 -->
+        <div class="page-title">
+            <span></span>
+            게시판
+        </div>
+
+        <!-- 툴바: 카테고리 탭 + 검색 -->
+        <div class="toolbar-wrap">
+            <!-- 카테고리 탭 -->
+            <div class="category-tabs">
+                <button class="tab-btn active" data-category="">전체</button>
+                <button class="tab-btn" data-category="FREE">자유</button>
+                <button class="tab-btn" data-category="NOTICE">공지</button>
+                <button class="tab-btn" data-category="QNA">Q&amp;A</button>
+                <button class="tab-btn" data-category="REVIEW">후기</button>
+            </div>
+            <!-- 검색창 -->
+            <div class="search-row">
+                <div class="search-input-wrap">
+                    <i data-lucide="search" size="16" class="text-slate-400 flex-shrink-0"></i>
+                    <input type="text" id="searchInput"
+                           placeholder="제목 또는 내용으로 검색...">
+                </div>
+                <button class="btn-search" onclick="loadPosts(0)">
+                    검색
+                </button>
+            </div>
+        </div>
+
+        <!-- 글쓰기 버튼 -->
+        <div class="action-row">
+            <button class="btn-write" id="writeBtnEl" onclick="goToWrite()">
+                ✏️ 글쓰기
+            </button>
+        </div>
+
+        <!-- 게시글 테이블 -->
+        <div class="post-table-wrap">
+            <table class="post-table">
+                <thead>
+                    <tr>
+                        <th style="width:60px">번호</th>
+                        <th style="width:100px">카테고리</th>
+                        <th>제목</th>
+                        <th style="width:110px">작성자</th>
+                        <th style="width:75px">조회</th>
+                        <th style="width:75px">좋아요</th>
+                        <th style="width:75px">댓글</th>
+                        <th style="width:115px">작성일</th>
+                    </tr>
+                </thead>
+                <tbody id="postTableBody">
+                    <tr class="state-row">
+                        <td colspan="8">⏳ 불러오는 중...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지네이션 -->
+        <div class="pagination" id="pagination"></div>
+
+    </div><!-- /board-container -->
+</main>
+
+<!-- 토스트 알림 -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════
+     JavaScript
+══════════════════════════════════════════ -->
+<script>
+    // ── 네비게이션 데이터 (index.html과 동일) ─────────────────────
+    const navItems = [
+        { title: "문제",  subs: ["최신 문제", "인기 문제", "기초 다지기", "심화 챌린지"] },
+        { title: "게시판", subs: ["커뮤니티", "질문답변", "팁/노하우", "공지사항"], active: true },
+        { title: "대회",  subs: ["현재 진행", "참가 신청", "결과 조회"] },
+        { title: "랭킹",  subs: ["실시간 순위", "명예의 전당", "그룹 랭킹"] }
+    ];
+
+    // ── 네비게이션 렌더링 ─────────────────────────────────────────
+    function initNav() {
+        const navCont = document.getElementById('nav-loop-container');
+        navItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'nav-item';
+            div.innerHTML = `
+                <div class="nav-box ${item.active ? 'active' : ''}">${item.title}</div>
+                <div class="dropdown">
+                    ${item.subs.map(s => `<div class="dropdown-item">${s}</div>`).join('')}
+                </div>`;
+            navCont.appendChild(div);
+        });
+        // 게시판 드롭다운 항목 클릭 시 카테고리 필터 적용
+        const boardDropdown = navCont.querySelectorAll('.nav-item')[1]
+                                     .querySelectorAll('.dropdown-item');
+        const subCategoryMap = {
+            '커뮤니티': 'FREE', '질문답변': 'QNA',
+            '팁/노하우': 'REVIEW', '공지사항': 'NOTICE'
+        };
+        boardDropdown.forEach(el => {
+            el.addEventListener('click', () => {
+                const cat = subCategoryMap[el.textContent] ?? '';
+                setActiveCategory(cat);
+                loadPosts(0);
+            });
+        });
+        lucide.createIcons();
+    }
+
+    // ── 상태 변수 ─────────────────────────────────────────────────
+    // ✅ PostController @RequestMapping("/posts") 와 일치
+    const API_BASE  = '/posts';
+    const PAGE_SIZE = 10;
+    let currentPage = 0;
+    let currentCategory = '';
+
+    // ── 초기화 ───────────────────────────────────────────────────
+    window.onload = function () {
+        initNav();
+        initAuthUI();
+        loadPosts(0);
+        bindEvents();
+    };
+
+    // ── 이벤트 바인딩 ────────────────────────────────────────────
+    function bindEvents() {
+        // 엔터 검색
+        document.getElementById('searchInput')
+            .addEventListener('keydown', e => {
+                if (e.key === 'Enter') loadPosts(0);
+            });
+
+        // 카테고리 탭 클릭
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setActiveCategory(btn.dataset.category);
+                loadPosts(0);
+            });
+        });
+
+        // 글로벌 검색 엔터
+        document.getElementById('globalSearch')
+            .addEventListener('keydown', e => {
+                if (e.key === 'Enter') onGlobalSearch();
+            });
+    }
+
+    // ── 카테고리 탭 활성화 ───────────────────────────────────────
+    function setActiveCategory(cat) {
+        currentCategory = cat;
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.category === cat);
+        });
+        // select 동기화 (없으면 무시)
+        const sel = document.getElementById('categoryFilter');
+        if (sel) sel.value = cat;
+    }
+
+    // ── 글로벌 검색 (nav 검색창) ─────────────────────────────────
+    function onGlobalSearch() {
+        const keyword = document.getElementById('globalSearch').value.trim();
+        document.getElementById('searchInput').value = keyword;
+        loadPosts(0);
+    }
+
+    // ── 로그인 상태 UI ───────────────────────────────────────────
+    function initAuthUI() {
+        const token      = localStorage.getItem('accessToken');
+        const loginBtn   = document.getElementById('navLoginBtn');
+        const writeBtnEl = document.getElementById('writeBtnEl');
+
+        if (token) {
+            loginBtn.textContent = '로그아웃';
+            loginBtn.onclick = logout;
+            writeBtnEl.style.display = 'inline-block';
+        } else {
+            loginBtn.textContent = '로그인';
+            loginBtn.onclick = () => location.href = '/login';
+            writeBtnEl.style.display = 'none';
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('accessToken');
+        showToast('로그아웃 되었습니다.');
+        setTimeout(() => location.reload(), 1200);
+    }
+
+    // ── 게시글 목록 API 호출 ─────────────────────────────────────
+    // ✅ GET /posts?category=FREE&keyword=스프링&page=0&size=10
+    // ✅ @EnableSpringDataWebSupport(VIA_DTO) 응답 구조:
+    //    { "content": [...], "page": { "totalElements", "totalPages", "number", "size" } }
+    async function loadPosts(page) {
+        currentPage = page;
+
+        const category = currentCategory;
+        const keyword  = document.getElementById('searchInput').value.trim();
+
+        let url = `${API_BASE}?page=${page}&size=${PAGE_SIZE}`;
+        if (category) url += `&category=${encodeURIComponent(category)}`;
+        if (keyword)  url += `&keyword=${encodeURIComponent(keyword)}`;
+
+        const tbody = document.getElementById('postTableBody');
+        tbody.innerHTML = '<tr class="state-row"><td colspan="8">⏳ 불러오는 중...</td></tr>';
+
+        try {
+            const res = await fetch(url, { headers: getAuthHeader() });
+
+            if (res.status === 401) {
+                tbody.innerHTML =
+                    '<tr class="state-row"><td colspan="8">🔒 로그인이 필요합니다.</td></tr>';
+                return;
+            }
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            const data = await res.json();
+            renderPostList(data);
+
+        } catch (err) {
+            tbody.innerHTML =
+                '<tr class="state-row"><td colspan="8">⚠️ 데이터를 불러올 수 없습니다.</td></tr>';
+            console.error('[loadPosts] 오류:', err);
+        }
+    }
+
+    // ── 게시글 목록 렌더링 ──────────────────────────────────────
+    // ✅ VIA_DTO 구조: data.page 안에 totalElements, totalPages, number
+    // ✅ null-safe: data, data.page, data.content 모두 null 체크
+    //    → DB 데이터 없을 때 EL1007E 방지
+    function renderPostList(data) {
+        const tbody = document.getElementById('postTableBody');
+
+        // ── null-safe 파싱 ─────────────────────────────────────
+        const posts         = data?.content        ?? [];
+        const pageInfo      = data?.page           ?? {};
+        const totalPages    = pageInfo?.totalPages   ?? 0;
+        const totalElements = pageInfo?.totalElements ?? 0;
+        const currentNum    = pageInfo?.number        ?? 0;
+        // ────────────────────────────────────────────────────────
+
+        if (posts.length === 0) {
+            tbody.innerHTML =
+                '<tr class="state-row"><td colspan="8">📭 게시글이 없습니다.</td></tr>';
+            renderPagination(0, 0);
+            return;
+        }
+
+        tbody.innerHTML = posts.map((post, idx) => {
+            // 내림차순 번호
+            const rowNum   = totalElements - (currentNum * PAGE_SIZE) - idx;
+            const pinBadge = post?.isPinned
+                ? '<span class="pin-badge">📌</span>' : '';
+            const catRaw   = post?.category ?? 'FREE';
+            const catClass = `cat-${catRaw}`;
+            const catLabel = categoryLabel(catRaw);
+            const date     = formatDate(post?.createdAt);
+            const author   = escapeHtml(post?.authorNickname ?? '익명');
+            const title    = escapeHtml(post?.title ?? '(제목 없음)');
+
+            return `
+                <tr class="${post?.isPinned ? 'pinned' : ''}"
+                    onclick="goToDetail(${post?.postId})">
+                    <td style="color:#94a3b8; font-weight:700;">
+                        ${post?.isPinned ? '📌' : rowNum}
+                    </td>
+                    <td>
+                        <span class="category-badge ${catClass}">${catLabel}</span>
+                    </td>
+                    <td class="title-cell">
+                        ${pinBadge}<span class="title-text">${title}</span>
+                    </td>
+                    <td style="font-weight:600; color:#475569;">${author}</td>
+                    <td class="stat-cell">👁 ${post?.viewCount    ?? 0}</td>
+                    <td class="stat-cell">❤️ ${post?.likeCount    ?? 0}</td>
+                    <td class="stat-cell">💬 ${post?.commentCount ?? 0}</td>
+                    <td class="stat-cell">${date}</td>
+                </tr>`;
+        }).join('');
+
+        renderPagination(totalPages, currentNum);
+    }
+
+    // ── 페이지네이션 렌더링 ──────────────────────────────────────
+    function renderPagination(totalPages, currentPageNum) {
+        const pag = document.getElementById('pagination');
+
+        // ✅ null-safe: totalPages가 null/undefined/0 이면 페이지네이션 숨김
+        if (!totalPages || totalPages <= 1) { pag.innerHTML = ''; return; }
+
+        let html = '';
+
+        // 이전 버튼
+        html += `<button onclick="loadPosts(${currentPageNum - 1})"
+                    ${currentPageNum === 0 ? 'disabled' : ''}>◀ 이전</button>`;
+
+        // 페이지 번호 (현재 기준 앞뒤 2개씩 최대 5개)
+        const startPage = Math.max(0, currentPageNum - 2);
+        const endPage   = Math.min(totalPages - 1, currentPageNum + 2);
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<button class="${i === currentPageNum ? 'active' : ''}"
+                        onclick="loadPosts(${i})">${i + 1}</button>`;
+        }
+
+        // 다음 버튼
+        html += `<button onclick="loadPosts(${currentPageNum + 1})"
+                    ${currentPageNum >= totalPages - 1 ? 'disabled' : ''}>다음 ▶</button>`;
+
+        pag.innerHTML = html;
+    }
+
+    // ── 라우팅 ──────────────────────────────────────────────────
+    function goToDetail(postId) {
+        if (!postId) return;
+        window.location.href = `/posts/${postId}/view`;
+    }
+
+    function goToWrite() {
+        window.location.href = '/posts/write';
+    }
+
+    // ── 유틸 ─────────────────────────────────────────────────────
+    function getAuthHeader() {
+        const token = localStorage.getItem('accessToken');
+        return token
+            ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            : { 'Content-Type': 'application/json' };
+    }
+
+    function categoryLabel(cat) {
+        const map = { FREE: '자유', NOTICE: '공지', QNA: 'Q&A', REVIEW: '후기' };
+        return map[cat] ?? cat ?? '-';
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '-';
+        const d    = new Date(dateStr);
+        const now  = new Date();
+        const diff = now - d;
+
+        if (isNaN(diff))          return '-';
+        if (diff < 60_000)        return '방금 전';
+        if (diff < 3_600_000)     return `${Math.floor(diff / 60_000)}분 전`;
+        if (diff < 86_400_000)    return `${Math.floor(diff / 3_600_000)}시간 전`;
+
+        return `${d.getFullYear()}.`
+             + `${String(d.getMonth() + 1).padStart(2, '0')}.`
+             + `${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function showToast(msg) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 2500);
+    }
+</script>
+</body>
+</html>
