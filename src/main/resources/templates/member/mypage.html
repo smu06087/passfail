@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${member.username} + '님의 마이페이지'">My Page</title>
+    <link rel="stylesheet" th:href="@{/css/member/mypage.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="mypage-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-profile">
+            <img th:src="${member.profileImage != null ? member.profileImage : '/image/default_profile.png'}" alt="Profile">
+            <h3 class="username" th:text="${member.username}">Username</h3>
+            <span class="tier-badge" 
+                  th:style="'background-color:' + ${member.tier.colorCode} + '; color: #fff;'" 
+                  th:text="${member.tier}">BRONZE</span>
+            <div class="sidebar-points">
+                <span class="point-value" th:text="${#numbers.formatInteger(member.pointBalance, 0, 'COMMA')}">0</span>
+                <span class="point-label">Points</span>
+            </div>
+        </div>
+
+        <nav class="nav-menu">
+            <div class="nav-item">
+                <button class="nav-link active" data-section="activity">
+                    <span>활동 기록 조회</span>
+                </button>
+            </div>
+            <div class="nav-item" th:if="${member.ownProfile}">
+                <button class="nav-link" data-section="profile">
+                    <span>정보 수정</span>
+                </button>
+            </div>
+            <div class="nav-item" th:if="${member.ownProfile}">
+                <button class="nav-link" data-section="notifications">
+                    <span>알림</span>
+                </button>
+            </div>
+            <div class="nav-item">
+                <button class="nav-link" data-section="help">
+                    <span>도움이 필요하신가요?</span>
+                </button>
+            </div>
+        </nav>
+
+        <div class="sidebar-help">
+            <h4>고객 지원</h4>
+            <p>문제가 발생했나요? <br>고객센터로 문의해주세요.</p>
+            <a href="mailto:smu06089@gmail.com" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 700; margin-top: 8px; display: block;">smu06089@gmail.com</a>
+        </div>
+        
+        <a href="/main" class="btn btn-outline" style="margin-top: 20px; text-align: center;">메인으로 돌아가기</a>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        
+        <!-- Activity Section (Default) -->
+        <section id="activity" class="content-section active">
+            <div class="section-header">
+                <h2>활동 기록</h2>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-value" th:text="${#lists.size(solvedProblems)}">0</span>
+                    <span class="stat-label">해결한 문제</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" th:text="${#lists.size(recentSubmissions)}">0</span>
+                    <span class="stat-label">총 제출 수</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" th:text="${member.globalRank != null ? member.globalRank : '-'}">-</span>
+                    <span class="stat-label">글로벌 랭킹</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top:0; margin-bottom:20px;">해결한 문제 목록</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>문제 제목</th>
+                            <th>난이도</th>
+                            <th>해결 날짜</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="solved : ${solvedProblems}">
+                            <td>
+                                <a th:href="@{/codingtest/{id}(id=${solved.problemId})}" th:text="${solved.problem.title}" style="text-decoration:none; color:var(--primary); font-weight:600;">Problem Title</a>
+                            </td>
+                            <td th:text="${solved.problem.difficulty}">EASY</td>
+                            <td th:text="${#temporals.format(solved.firstSolvedAt, 'yyyy-MM-dd')}">Date</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(solvedProblems)}">
+                            <td colspan="3" style="text-align:center; color:var(--text-muted); padding: 40px;">해결한 문제가 없습니다.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top:0; margin-bottom:20px;">최근 제출 기록</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>문제</th>
+                            <th>상태</th>
+                            <th>언어</th>
+                            <th>제출 시간</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="sub : ${recentSubmissions}">
+                            <td>
+                                <a th:href="@{/codingtest/{id}(id=${sub.problemId})}" th:text="${sub.problem.title}" style="text-decoration:none; color:var(--primary); font-weight:600;">Title</a>
+                            </td>
+                            <td>
+                                <span th:class="'status-badge status-' + ${sub.status}" th:text="${sub.status}">CORRECT</span>
+                            </td>
+                            <td th:text="${sub.language}">JAVA</td>
+                            <td th:text="${#temporals.format(sub.submittedAt, 'MM-dd HH:mm')}">Time</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(recentSubmissions)}">
+                            <td colspan="4" style="text-align:center; color:var(--text-muted); padding: 40px;">제출 기록이 없습니다.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Profile / Info Update Section -->
+        <section id="profile" class="content-section" th:if="${member.ownProfile}">
+            <div class="section-header">
+                <h2>정보 수정</h2>
+            </div>
+
+            <div class="card">
+                <h3>기본 정보 수정</h3>
+                <form th:action="@{/mypage/update}" method="post">
+                    <div class="form-group">
+                        <label>닉네임</label>
+                        <input type="text" name="nickname" th:value="${member.username}" class="input-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">저장하기</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>보안 설정</h3>
+                <p style="font-size:14px; color:var(--text-muted); margin-bottom:20px;">계정의 보안을 위해 주기적으로 비밀번호를 변경해주세요.</p>
+                <a th:href="@{/mypage/change-password}" class="btn btn-outline">비밀번호 변경 페이지로 이동</a>
+            </div>
+
+            <div class="card">
+                <h3>소셜 계정 연동</h3>
+                <div class="social-grid">
+                    <div th:each="p : ${T(com.passfail.enums.Provider).values()}" th:if="${p.name() != 'LOCAL'}" class="social-card">
+                        <span style="font-weight:700; font-size:14px;" th:text="${p}">GOOGLE</span>
+                        <div th:if="${member.socialProviders.contains(p.name())}">
+                            <form th:action="@{/mypage/unlink}" method="post" style="display:inline;">
+                                <input type="hidden" name="provider" th:value="${p.name()}">
+                                <button type="submit" class="btn btn-danger" style="padding:4px 12px; font-size:12px;" onclick="return confirm('연동해제 하시겠습니까?')">해제</button>
+                            </form>
+                        </div>
+                        <a th:unless="${member.socialProviders.contains(p.name())}" th:href="'/oauth2/authorization/' + ${p.name().toLowerCase()}" class="btn btn-primary" style="padding:4px 12px; font-size:12px;">연동</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="border-color: #ffe3e3;">
+                <h3 style="color: #f03e3e;">계정 탈퇴</h3>
+                <p style="font-size: 13px; color: var(--text-muted);">계정을 탈퇴하시면 서비스 이용이 제한됩니다. 탈퇴 후 재로그인 시 복구가 가능합니다.</p>
+                <form th:action="@{/mypage/withdraw}" method="post" onsubmit="return confirm('정말로 탈퇴하시겠습니까?')">
+                    <button type="submit" class="btn btn-danger">계정 탈퇴</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Notifications Section -->
+        <section id="notifications" class="content-section" th:if="${member.ownProfile}">
+            <div class="section-header">
+                <h2>최근 알림</h2>
+            </div>
+            
+            <div th:if="${#lists.isEmpty(notifications)}" class="card" style="text-align:center; padding:60px; color:var(--text-muted);">
+                새로운 알림이 없습니다.
+            </div>
+            
+            <div th:each="notif : ${notifications}" class="notif-item">
+                <div style="font-weight:bold; font-size:15px;" th:text="${notif.title}">Title</div>
+                <div style="font-size:14px; color:#555; margin-top:4px;" th:text="${notif.body}">Body</div>
+                <div class="notif-time" th:text="${#temporals.format(notif.createdAt, 'yyyy-MM-dd HH:mm')}">Time</div>
+            </div>
+        </section>
+
+        <!-- Help Section -->
+        <section id="help" class="content-section">
+            <div class="section-header">
+                <h2>도움말 & FAQ</h2>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top:0;">자주 묻는 질문</h3>
+                <div style="margin-top:20px;">
+                    <div style="margin-bottom:24px;">
+                        <h4 style="margin:0 0 8px; font-size:16px;">Q. 비밀번호를 잊어버렸어요.</h4>
+                        <p style="margin:0; font-size:14px; color:var(--text-muted);">로그인 페이지의 '비밀번호 찾기' 기능을 이용해 이메일로 임시 비밀번호를 발급받으실 수 있습니다.</p>
+                    </div>
+                    <div style="margin-bottom:24px;">
+                        <h4 style="margin:0 0 8px; font-size:16px;">Q. 티어는 어떻게 결정되나요?</h4>
+                        <p style="margin:0; font-size:14px; color:var(--text-muted);">해결한 문제의 난이도와 점수에 따라 브론즈부터 루비까지 실시간으로 반영됩니다.</p>
+                    </div>
+                    <div style="margin-bottom:24px;">
+                        <h4 style="margin:0 0 8px; font-size:16px;">Q. 문제 해결 결과가 반영되지 않아요.</h4>
+                        <p style="margin:0; font-size:14px; color:var(--text-muted);">인터넷 연결 상태를 확인하시고, 새로고침 후에도 문제가 지속되면 고객 지원으로 문의 바랍니다.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>문의하기</h3>
+                <p style="font-size:14px; color:var(--text-muted);">기타 문의사항은 아래 이메일로 보내주시면 영업일 기준 24시간 이내에 답변 드리겠습니다.</p>
+                <p style="font-weight:700; color:var(--primary);">smu06089@gmail.com</p>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('.content-section');
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const sectionId = link.getAttribute('data-section');
+
+                // Update nav links
+                navLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+
+                // Update sections
+                sections.forEach(s => s.classList.remove('active'));
+                document.getElementById(sectionId).classList.add('active');
+                
+                // Update URL hash without jumping
+                history.replaceState(null, null, '#' + sectionId);
+            });
+        });
+
+        // Handle initial hash if present
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            const activeLink = document.querySelector(`.nav-link[data-section="${hash}"]`);
+            if (activeLink) {
+                activeLink.click();
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

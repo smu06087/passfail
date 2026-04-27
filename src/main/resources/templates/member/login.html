@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Passfail - 로그인</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h2 { color: #333; margin-bottom: 30px; }
+        
+        /* 로컬 로그인 폼 */
+        .form-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; color: #666; font-size: 14px; }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .btn-login:hover { background-color: #357ABD; }
+
+        /* 소셜 로그인 섹션 */
+        .social-login { margin-top: 30px; border-top: 1px solid #eee; pt: 20px; }
+        .social-login p { color: #999; font-size: 13px; margin-bottom: 15px; }
+        .social-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        .btn-google { background-color: #fff; }
+        .btn-kakao { background-color: #FEE500; border: none; }
+        .btn-naver { background-color: #03C75A; color: #fff; border: none; }
+        .btn-github { background-color: #333; color: #fff; border: none; }
+
+        /* 하단 링크 */
+        .footer-links { margin-top: 20px; font-size: 13px; color: #666; }
+        .footer-links a { color: #4A90E2; text-decoration: none; margin: 0 5px; }
+        
+        .error-msg { color: #e74c3c; font-size: 13px; margin-bottom: 15px; }
+        .success-msg { color: #27ae60; font-size: 13px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="login-container">
+    <h2>Passfail Login</h2>
+
+    <!-- 에러 메시지 처리 -->
+    <div th:if="${param.error}" class="error-msg">
+        아이디 또는 비밀번호가 일치하지 않습니다.
+    </div>
+    <div th:if="${param.resetSuccess}" class="success-msg">
+        비밀번호가 이메일로 발송되었습니다.
+    </div>
+    <div th:if="${param.signupSuccess}" class="success-msg">
+        회원가입이 완료되었습니다. 로그인해 주세요.
+    </div>
+    <div th:if="${param.withdrawn}" class="success-msg">
+        계정 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.
+    </div>
+
+    <!-- 로컬 로그인 폼 (SecurityConfig 설정과 일치) -->
+    <form th:action="@{/loginProc}" method="post">
+        <div class="form-group">
+            <label>아이디</label>
+            <input type="text" name="username" placeholder="아이디를 입력하세요" required>
+        </div>
+        <div class="form-group">
+            <label>비밀번호</label>
+            <input type="password" name="password" placeholder="비밀번호를 입력하세요" required>
+        </div>
+        <button type="submit" class="btn-login">로그인</button>
+    </form>
+
+    <!-- 소셜 로그인 -->
+    <div class="social-login">
+        <p>또는 소셜 계정으로 로그인</p>
+        <div class="social-buttons">
+            <a href="/oauth2/authorization/google" class="social-btn btn-google">Google</a>
+            <a href="/oauth2/authorization/naver" class="social-btn btn-naver">Naver</a>
+            <a href="/oauth2/authorization/kakao" class="social-btn btn-kakao">Kakao</a>
+            <a href="/oauth2/authorization/github" class="social-btn btn-github">GitHub</a>
+        </div>
+    </div>
+
+    <!-- 하단 부가 기능 -->
+    <div class="footer-links">
+        <a href="/signup">회원가입</a> | 
+        <a href="/forgot-password">비밀번호 찾기</a>
+    </div>
+</div>
+
+</body>
+</html>

@@ -16,10 +16,8 @@ public class TestCaseEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long caseId;
 
-	@Column(name = "problem_id",nullable = false)
-	private Long problemId;
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "problem_id", insertable = false, updatable = false)
+	@JoinColumn(name = "problem_id", nullable = false)
 	private ProblemEntity problem;
 	
 	@Lob 

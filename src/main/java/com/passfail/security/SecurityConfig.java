@@ -9,7 +9,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-import com.passfail.auth.service.CustomOAuth2UserService;
+import com.passfail.member.service.CustomOAuth2UserService;
 
 @Configuration
 @EnableMethodSecurity
@@ -23,9 +23,10 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable());
 
         http.authorizeHttpRequests(config -> config
-            .requestMatchers("/**").permitAll()
-            .requestMatchers("/forgot-password", "/reset-password").permitAll()
+            .requestMatchers("/", "/login", "/signup", "/forgot-password", "/reset-password", "/api/member/**").permitAll()
             .requestMatchers("/css/**", "/js/**", "/image/**").permitAll()
+            .requestMatchers("/main", "/codingtest", "/codingtest/{problemId}").permitAll()
+            .requestMatchers("/mypage/**", "/codingtest/*/run", "/codingtest/*/submit", "/codingtest/*/ai-review").authenticated()
             .anyRequest().authenticated()
         );
 
@@ -35,7 +36,7 @@ public class SecurityConfig {
             .loginProcessingUrl("/loginProc")   // <form action="/loginProc"> 와 일치해야 함
             .usernameParameter("username")      // input name="username"
             .passwordParameter("password")      // input name="password"
-            .defaultSuccessUrl("/home", true)
+            .defaultSuccessUrl("/main", true)
             .permitAll()
         );
 
@@ -43,7 +44,7 @@ public class SecurityConfig {
         http.oauth2Login(oauth -> oauth
             .loginPage("/login")
             .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-            .defaultSuccessUrl("/home", true)
+            .defaultSuccessUrl("/main", true)
         );
 
         http.logout(logout -> logout

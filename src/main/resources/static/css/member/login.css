@@ -1,0 +1,200 @@
+/* ===== 전역 설정 ===== */
+* { 
+  box-sizing: border-box; 
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", Arial, sans-serif;
+  background: #f8f9fa; /* 배경색 살짝 변경하여 몰입감 처리 */
+  color: #111;
+}
+
+.page { 
+  padding: 60px 12px; 
+  display: flex; 
+  justify-content: center; 
+}
+
+.wrap {
+  width: 480px; /* 로그인 폼 가로폭 집중도 향상 */
+  max-width: 100%;
+  border: 1px solid #e6e6e6;
+  padding: 50px 40px;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+h1 { 
+  margin-bottom: 8px; 
+  font-size: 28px; 
+  font-weight: 800; 
+  letter-spacing: -1px; 
+}
+
+.sub { 
+  color: #666; 
+  margin-bottom: 30px; 
+  font-size: 14px; 
+}
+
+/* ===== 로컬 로그인 폼 (Local Login) ===== */
+.local-login { 
+  margin-bottom: 30px; 
+  text-align: left; 
+}
+
+.input-group { 
+  margin-bottom: 15px; 
+}
+
+.input-group label { 
+  display: block; 
+  font-size: 13px; 
+  font-weight: 700; 
+  margin-bottom: 6px; 
+  color: #333; 
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 15px;
+  transition: 0.2s;
+}
+
+.input-group input:focus { 
+  outline: none; 
+  border-color: #0b41ff; 
+  box-shadow: 0 0 0 3px rgba(11,65,255,0.1); 
+}
+
+.btn-login {
+  width: 100%;
+  padding: 14px;
+  background: #0b41ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.btn-login:hover { 
+  background: #002bcc; 
+}
+
+/* ===== 계정 도우미 (회원가입 & 비밀번호 재설정 위아래 배치) ===== */
+.account-helper {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #eee; /* 구분선 */
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* 줄 간격 */
+}
+
+.helper-item {
+  font-size: 14px;
+  color: #555;
+}
+
+.helper-item a {
+  color: #0b41ff;
+  text-decoration: none;
+  font-weight: 700;
+  margin-left: 5px;
+}
+
+.helper-item.secondary {
+  font-size: 13px;
+  color: #888;
+}
+
+.helper-item.secondary a {
+  color: #666;
+  font-weight: 500;
+}
+
+.helper-item a:hover {
+  text-decoration: underline;
+}
+
+/* ===== 구분선 (Divider) ===== */
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 30px 0;
+  color: #aaa;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.divider::before, .divider::after { 
+  content: ""; 
+  flex: 1; 
+  height: 1px; 
+  background: #eee; 
+}
+
+.divider span { 
+  padding: 0 10px; 
+}
+
+/* ===== 소셜 로그인 카드 (Social Login) ===== */
+.login-menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.card {
+  border: 1px solid #eee;
+  padding: 15px;
+  cursor: pointer;
+  transition: 0.2s;
+  background: #fff;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.card:hover { 
+  border-color: #0b41ff; 
+  background: #f0f4ff; 
+}
+
+.card h3 { 
+  margin: 0; 
+  font-size: 14px; 
+  font-weight: 700; 
+  color: #333; 
+}
+
+.card p { 
+  margin-top: 4px; 
+  font-size: 11px; 
+  color: #888; 
+}
+
+/* ===== 푸터 (Footer) ===== */
+.footer { 
+  margin-top: 40px; 
+  font-size: 13px; 
+  color: #999; 
+}
+
+/* ===== 반응형 (Mobile) ===== */
+@media (max-width: 480px) {
+  .login-menu { 
+    grid-template-columns: 1fr; 
+  }
+}

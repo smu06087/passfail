@@ -1,0 +1,124 @@
+* { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", Arial, sans-serif;
+      background: #ffffff;
+      color: #111;
+    }
+
+    /* ===== Layout ===== */
+    .page {
+      padding: 24px 12px;
+      display: flex;
+      justify-content: center;
+    }
+    .wrap {
+      width: 760px;
+      max-width: 100%;
+      border: 1px solid #e6e6e6;
+      padding: 28px 26px 30px;
+      background: #fff;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 32px;
+      font-weight: 800;
+      text-align: center;
+    }
+    .welcome {
+      text-align: center;
+      font-size: 15px;
+      margin-bottom: 18px;
+    }
+    .welcome strong {
+      color: #0b41ff;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #0b41ff;
+      color: #fff;
+      font-weight: 700;
+      padding: 8px 12px;
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+
+    /* ===== Menu Cards ===== */
+    .menu {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 10px;
+    }
+    .card {
+      border: 1px solid #dcdcdc;
+      padding: 18px 16px;
+      cursor: pointer;
+      transition: 0.2s;
+      background: #fff;
+    }
+    .card:hover {
+      border-color: #0b41ff;
+      box-shadow: 0 0 0 3px rgba(11,65,255,0.12);
+    }
+    .card h3 {
+      margin: 0 0 6px;
+      font-size: 17px;
+      font-weight: 800;
+    }
+    .card p {
+      margin: 0;
+      font-size: 14px;
+      color: #555;
+      line-height: 1.4;
+    }
+
+    /* ===== Quick Info ===== */
+    .section-title {
+      display: inline-block;
+      margin: 24px 0 12px;
+      background: #0b41ff;
+      color: #fff;
+      font-weight: 800;
+      padding: 10px 12px;
+      font-size: 15px;
+    }
+
+    .info-box {
+      border: 1px solid #e6e6e6;
+      padding: 16px;
+      background: #f9f9f9;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ===== Buttons ===== */
+    .btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .btn {
+      height: 46px;
+      border: 0;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    .btn-mypage {
+      background: #4b4b4b;
+      color: #fff;
+    }
+    .btn-logout {
+      background: #0b41ff;
+      color: #fff;
+    }
+
+    @media (max-width: 640px) {
+      .menu { grid-template-columns: 1fr; }
+      .btns { grid-template-columns: 1fr; }
+      h1 { font-size: 28px; }
+    }

@@ -25,10 +25,10 @@ public class SolvedProblemEntity {
 	@JoinColumn(name = "member_id", insertable = false, updatable = false)
 	private MemberEntity member;
 	
-	@Column(name = "problem_Id",nullable = false)
+	@Column(name = "problem_id",nullable = false)
 	private Long problemId;
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "problem_Id", insertable = false, updatable = false)
+	@JoinColumn(name = "problem_id", insertable = false, updatable = false)
 	private ProblemEntity problem;
 
 	@Column(nullable = false)
@@ -41,4 +41,11 @@ public class SolvedProblemEntity {
 	@CreationTimestamp
 	@Column(nullable = false, updatable = false)
 	private LocalDateTime firstSolvedAt;
+
+	@PrePersist
+	protected void onCreate() {
+		if (firstSolvedAt == null) {
+			firstSolvedAt = LocalDateTime.now();
+		}
+	}
 }

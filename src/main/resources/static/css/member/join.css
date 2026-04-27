@@ -1,0 +1,102 @@
+* { box-sizing: border-box; }
+body { 
+  margin: 0; 
+  font-family: "Noto Sans KR", sans-serif; 
+  background: #f8f9fa; 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  height: 100vh; 
+}
+.wrap { 
+  width: 400px; 
+  background: #fff; 
+  padding: 40px; 
+  border: 1px solid #e6e6e6; 
+  border-radius: 8px; 
+}
+h1 { text-align: center; font-size: 24px; margin-bottom: 30px; }
+
+/* 폼 그룹 레이아웃 */
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+.form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; }
+
+/* --- 아이디 중복 확인 버튼 가로 배치를 위한 추가 스타일 --- */
+.input-group {
+  display: flex;      /* 가로 배치 */
+  gap: 8px;           /* 입력창과 버튼 사이 간격 */
+  align-items: flex-start; 
+}
+
+.input-group input {
+  flex: 1;            /* 입력창이 왼쪽 공간을 다 차지함 */
+}
+
+.btn-check {
+  width: auto;        /* 필요한 만큼만 너비 차지 */
+  padding: 12px 15px;
+  background: #333;   /* 버튼 색상은 취향에 따라 조절 (다크 그레이) */
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap; /* 버튼 글자 줄바꿈 방지 */
+}
+
+.btn-check:hover {
+  background: #000;
+}
+
+/* 중복 검사 메시지 스타일 */
+.id-msg {
+  display: block;
+  font-size: 12px;
+  margin-top: 5px;
+}
+/* -------------------------------------------------- */
+
+.btn-join { 
+  width: 100%; 
+  padding: 14px; 
+  background: #0b41ff; 
+  color: #fff; 
+  border: none; 
+  border-radius: 4px; 
+  font-weight: 700; 
+  cursor: pointer; 
+  margin-top: 20px; 
+}
+.btn-join:hover { background: #002bcc; }
+.footer { text-align: center; margin-top: 20px; font-size: 13px; color: #777; }
+
+.terms-group {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.term-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+.term-item input {
+    width: auto !important; /* 기존 width 100% 해제 */
+    margin-right: 10px;
+}
+.term-item label {
+    margin-bottom: 0 !important;
+    cursor: pointer;
+}
+.view-link {
+    margin-left: auto;
+    font-size: 11px;
+    color: #999;
+    text-decoration: none;
+}
+hr { border: 0; border-top: 1px solid #eee; margin: 10px 0; }

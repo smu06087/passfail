@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Passfail - Main</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { margin: 0; }
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            font-weight: bold;
+        }
+        .container {
+            padding: 40px;
+            text-align: center;
+        }
+        .welcome-msg {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        .feature-card {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .feature-card h3 { margin-top: 0; color: #4A90E2; }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4A90E2;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        .btn:hover { background-color: #357ABD; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Passfail</h1>
+    <div class="nav-links">
+        <span th:if="${username != null}">반갑습니다, <strong th:text="${username}"></strong>님!</span>
+        <a href="/mypage">마이페이지</a>
+        <a href="/logout">로그아웃</a>
+    </div>
+</div>
+
+<div class="container">
+    <div class="welcome-msg">
+        Passfail에 오신 것을 환영합니다!
+    </div>
+    <p>실력을 검증하고 최고의 개발자로 거듭나세요.</p>
+
+    <div class="features">
+        <div class="feature-card">
+            <h3>코딩테스트 연습</h3>
+            <p>다양한 알고리즘 문제를 풀고 실력을 쌓으세요.</p>
+            <a href="/codingtest" class="btn">문제 풀러 가기</a>
+        </div>
+        <div class="feature-card">
+            <h3>랭킹 시스템</h3>
+            <p>다른 개발자들과 실력을 겨루고 순위를 확인하세요.</p>
+            <a href="/ranking" class="btn">랭킹 보기</a>
+        </div>
+        <div class="feature-card">
+            <h3>내 정보 관리</h3>
+            <p>내 활동 내역과 정보를 관리하세요.</p>
+            <a href="/mypage" class="btn">이동하기</a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
