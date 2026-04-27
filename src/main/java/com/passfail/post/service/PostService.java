@@ -15,33 +15,30 @@ import com.passfail.post.repository.PostLikeRepository;
 import com.passfail.post.repository.PostRepository;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
 public class PostService {
 
-    private final PostRepository     postRepository;
+    private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
-    private final CommentRepository  commentRepository;
-    private final RedisLikeService   redisLikeService;
-    private final RedisViewService   redisViewService;
+    private final CommentRepository commentRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final CommentService commentService;
 
-    // ── 게시글 목록 조회 ──────────────────────────────────────────
- // ✅ null-safe SpEL: DB 데이터 없을 때 pageable.pageNumber NPE 방지
-    @Cacheable(
-        value = "postList",
-        key = "(#category != null ? #category.name() : 'ALL') + '_' + (#pageable != null ? #pageable.pageNumber : 0)"
-    )
+    private static final long VIEW_CACHE_TTL = 24;
+    private static final TimeUnit VIEW_CACHE_UNIT = TimeUnit.HOURS;
+
     @Transactional(readOnly = true)
     public Page<PostListResponseDTO> getPostList(PostCategory category, Pageable pageable) {
         Page<PostEntity> posts = (category == null)
@@ -51,14 +48,10 @@ public class PostService {
         return posts.map(PostListResponseDTO::from);
     }
 
-    // ── 게시글 검색 ────────────────────────────────────────────────
-    // ✅ 수정: isPinned DESC + createdAt DESC 정렬을 PageRequest로 직접 생성
-    // → JPQL ORDER BY를 제거했으므로 여기서 정렬을 명시적으로 제어
     @Transactional(readOnly = true)
     public Page<PostListResponseDTO> searchPosts(
             PostCategory category, String keyword, Pageable pageable) {
 
-        // isPinned 우선 → createdAt 내림차순 정렬 보장
         Pageable sortedPageable = PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
@@ -71,35 +64,23 @@ public class PostService {
 
         return posts.map(PostListResponseDTO::from);
     }
-
-    // ── 게시글 상세 조회 ──────────────────────────────────────────
-    @Transactional
+    
+    
+    @Transactional(readOnly = true)
     public PostDetailResponseDTO getPostDetail(Long postId, Long currentMemberId) {
-        PostEntity post = getActivePost(postId);
-
-        // 중복 조회수 방지: 비로그인 → 항상 증가 / 로그인 → Redis로 24시간 중복 체크
-        if (currentMemberId == null || redisViewService.isNewView(postId, currentMemberId)) {
-            postRepository.incrementViewCount(postId);
-        }
-
-        // ✅ 수정: Redis miss 시 DB fallback → 좋아요 중복/취소 불가 버그 방지
+        PostEntity post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException(postId));
+        
         boolean isLiked = false;
         if (currentMemberId != null) {
-            isLiked = isLikedWithFallback(postId, currentMemberId);
+            isLiked = postLikeRepository.existsByPostIdAndMemberId(postId, currentMemberId);
         }
-
-        List<CommentResponseDTO> comments = commentRepository
-                .findByPostIdAndIsDeletedFalseOrderByCreatedAtAsc(postId)
-                .stream()
-                .map(CommentResponseDTO::from)
-                .toList();
-
-        return PostDetailResponseDTO.from(post, isLiked, comments);
+        
+        List<CommentResponseDTO> comments = commentService.getComments(postId);
+        
+        return PostDetailResponseDTO.from(post, currentMemberId, isLiked, comments);
     }
 
-    // ── 게시글 작성 ────────────────────────────────────────────────
-    // ✅ @CacheEvict: 글 작성 시 postList 캐시 전체 무효화
-    @CacheEvict(value = "postList", allEntries = true)
     @Transactional
     public Long createPost(PostCreateRequestDTO dto, Long memberId) {
         PostEntity post = PostEntity.builder()
@@ -112,9 +93,6 @@ public class PostService {
         return postRepository.save(post).getPostId();
     }
 
-    // ── 게시글 수정 ────────────────────────────────────────────────
-    // ✅ @CacheEvict: 글 수정 시 postList 캐시 전체 무효화
-    @CacheEvict(value = "postList", allEntries = true)
     @Transactional
     public void updatePost(Long postId, PostUpdateRequestDTO dto, Long currentMemberId) {
         PostEntity post = getActivePost(postId);
@@ -122,12 +100,8 @@ public class PostService {
 
         post.setTitle(dto.getTitle());
         post.setContent(dto.getContent());
-        // dirty checking으로 자동 저장
     }
 
-    // ── 게시글 삭제 ────────────────────────────────────────────────
-    // ✅ @CacheEvict: 글 삭제 시 postList 캐시 전체 무효화
-    @CacheEvict(value = "postList", allEntries = true)
     @Transactional
     public void deletePost(Long postId, Long currentMemberId) {
         PostEntity post = getActivePost(postId);
@@ -136,25 +110,20 @@ public class PostService {
         post.setIsDeleted(true);
     }
 
-    // ── 좋아요 토글 ────────────────────────────────────────────────
-    // ✅ 수정: Redis miss 시 DB fallback 포함
     @Transactional
     public boolean toggleLike(Long postId, Long memberId) {
-        getActivePost(postId); // 존재 여부 검증
+        getActivePost(postId);
 
-        // Redis 확인 → Redis에 없으면 DB에서 확인 (fallback)
         boolean alreadyLiked = isLikedWithFallback(postId, memberId);
 
         if (alreadyLiked) {
-            // 좋아요 취소
-            redisLikeService.removeLike(postId, memberId);
+            removeLike(postId, memberId);
             postLikeRepository.findByPostIdAndMemberId(postId, memberId)
                     .ifPresent(postLikeRepository::delete);
             postRepository.decrementLikeCount(postId);
             return false;
         } else {
-            // 좋아요 추가
-            redisLikeService.addLike(postId, memberId);
+            addLike(postId, memberId);
             postLikeRepository.save(PostLikeEntity.builder()
                     .postId(postId)
                     .memberId(memberId)
@@ -164,15 +133,11 @@ public class PostService {
         }
     }
 
-    // ── 고정글 설정 (관리자 전용 - 추후 @PreAuthorize 추가 예정) ────
-    @CacheEvict(value = "postList", allEntries = true)
     @Transactional
     public void togglePin(Long postId) {
         PostEntity post = getActivePost(postId);
         post.setIsPinned(!post.getIsPinned());
     }
-
-    // ── 내부 헬퍼 ──────────────────────────────────────────────────
 
     private PostEntity getActivePost(Long postId) {
         return postRepository.findById(postId)
@@ -186,20 +151,35 @@ public class PostService {
         }
     }
 
-    /**
-     * ✅ Redis miss → DB fallback 로직
-     * Redis에 데이터가 없을 때(재시작/TTL만료) DB에서 확인 후 Redis를 동기화한다.
-     * 이렇게 하면 좋아요 중복 저장 / 취소 불가 버그를 방지할 수 있다.
-     */
-    private boolean isLikedWithFallback(Long postId, Long memberId) {
-        boolean redisResult = redisLikeService.isLiked(postId, memberId);
+    private boolean isNewView(Long postId, Long memberId) {
+        String key = "view:" + postId + ":" + memberId;
+        Boolean exists = redisTemplate.hasKey(key);
+        
+        if (Boolean.FALSE.equals(exists)) {
+            redisTemplate.opsForValue().set(key, "1", VIEW_CACHE_TTL, VIEW_CACHE_UNIT);
+            return true;
+        }
+        return false;
+    }
 
-        if (!redisResult) {
-            // Redis에 없으면 DB 확인
+    private void addLike(Long postId, Long memberId) {
+        String key = "like:" + postId;
+        redisTemplate.opsForSet().add(key, memberId.toString());
+    }
+
+    private void removeLike(Long postId, Long memberId) {
+        String key = "like:" + postId;
+        redisTemplate.opsForSet().remove(key, memberId.toString());
+    }
+
+    private boolean isLikedWithFallback(Long postId, Long memberId) {
+        String key = "like:" + postId;
+        Boolean isInRedis = redisTemplate.opsForSet().isMember(key, memberId.toString());
+
+        if (Boolean.FALSE.equals(isInRedis) || isInRedis == null) {
             boolean dbResult = postLikeRepository.existsByPostIdAndMemberId(postId, memberId);
             if (dbResult) {
-                // DB에 좋아요 있음 → Redis 동기화 (warm-up)
-                redisLikeService.addLike(postId, memberId);
+                addLike(postId, memberId);
             }
             return dbResult;
         }

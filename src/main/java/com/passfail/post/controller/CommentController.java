@@ -1,12 +1,15 @@
 package com.passfail.post.controller;
 
+import com.passfail.entity.MemberEntity;
 import com.passfail.post.dto.CommentCreateRequestDTO;
 import com.passfail.post.dto.CommentUpdateRequestDTO; // ✅ 신규 DTO 사용
+import com.passfail.post.exception.UnauthorizedPostAccessException;
 import com.passfail.post.service.CommentService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,8 +27,9 @@ public class CommentController {
     public ResponseEntity<Void> createComment(
             @PathVariable(name = "postId") Long postId,
             @Valid @RequestBody CommentCreateRequestDTO dto,
-            @AuthenticationPrincipal Long memberId) {
-
+            Authentication authentication) {  // ← 변경
+        
+        Long memberId = extractMemberId(authentication);
         Long commentId = commentService.createComment(postId, dto, memberId);
         return ResponseEntity.created(
                 URI.create("/posts/" + postId + "/comments/" + commentId)).build();
@@ -54,4 +58,27 @@ public class CommentController {
         commentService.deleteComment(commentId, memberId);
         return ResponseEntity.noContent().build();
     }
+    
+ // 헬퍼 메서드 추가
+    private Long extractMemberId(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new UnauthorizedPostAccessException();
+        }
+        
+        Object principal = authentication.getPrincipal();
+        
+        if (principal instanceof MemberEntity) {
+            return ((MemberEntity) principal).getMemberId();
+        } else if (principal instanceof String && !"anonymousUser".equals(principal)) {
+            try {
+                return Long.parseLong((String) principal);
+            } catch (NumberFormatException e) {
+                throw new UnauthorizedPostAccessException();
+            }
+        }
+        
+        throw new UnauthorizedPostAccessException();
+    }
+    
+    
 }

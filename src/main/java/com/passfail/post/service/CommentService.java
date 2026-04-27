@@ -1,12 +1,17 @@
 package com.passfail.post.service;
 
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.passfail.entity.CommentEntity;
 import com.passfail.entity.PostEntity;
 import com.passfail.post.dto.CommentCreateRequestDTO;
+import com.passfail.post.dto.CommentResponseDTO;
 import com.passfail.post.dto.CommentUpdateRequestDTO; // ✅ 신규
 import com.passfail.post.exception.CommentNotFoundException; // ✅ 신규
 import com.passfail.post.exception.PostNotFoundException;
@@ -57,6 +62,7 @@ public class CommentService {
         comment.setIsDeleted(true);
         postRepository.decrementCommentCount(comment.getPostId());
     }
+    
 
     // ── 내부 헬퍼 ──────────────────────────────────────────────────
     private PostEntity getActivePost(Long postId) {
@@ -77,4 +83,13 @@ public class CommentService {
             throw new UnauthorizedPostAccessException();
         }
     }
+    
+    @Transactional(readOnly = true)
+    public List<CommentResponseDTO> getComments(Long postId) {
+        return commentRepository.findByPostIdAndIsDeletedFalseOrderByCreatedAtAsc(postId)
+                .stream()
+                .map(CommentResponseDTO::from)
+                .collect(Collectors.toList());
+    }
+    
 }

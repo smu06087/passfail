@@ -41,7 +41,7 @@ public class PostController {
 
         return ResponseEntity.ok(result);
     }
-
+    
     // GET /posts/{postId}
     @GetMapping("/{postId}")
     public ResponseEntity<PostDetailResponseDTO> getPostDetail(

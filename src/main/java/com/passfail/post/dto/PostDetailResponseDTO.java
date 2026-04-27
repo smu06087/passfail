@@ -15,6 +15,7 @@ public class PostDetailResponseDTO {
 	
 	private Long postId;
     private Long memberId;
+    private String authorName;
     private String authorNickname;  
     private PostCategory category;
     private String title;
@@ -23,18 +24,30 @@ public class PostDetailResponseDTO {
     private Integer likeCount;
     private Integer commentCount;
     private Boolean isPinned;
-    private Boolean isLikedByCurrentUser;   // 현재 로그인 유저의 좋아요 여부
+    private Boolean isLikedByCurrentUser;
+    private Boolean isAuthor;  // ✅ 필드 추가
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CommentResponseDTO> comments;
     
+    // ✅ 기존 메서드 (오버로드 1) - currentMemberId 없이
     public static PostDetailResponseDTO from(PostEntity post,
+            								 boolean isLikedByCurrentUser,
+            								 List<CommentResponseDTO> comments) {
+    	
+    	return from(post, null, isLikedByCurrentUser, comments);
+    }
+    
+    // ✅ 새로운 메서드 (오버로드 2) - currentMemberId 포함
+    public static PostDetailResponseDTO from(PostEntity post,
+            								 Long currentMemberId,
             								 boolean isLikedByCurrentUser,
             								 List<CommentResponseDTO> comments) {
     	
     	return PostDetailResponseDTO.builder()
     			.postId(post.getPostId())
     			.memberId(post.getMemberId())
+    			.authorName(post.getMember() != null ? post.getMember().getUsername() : "알 수 없음")
     			.authorNickname(post.getMember() != null ? post.getMember().getUsername() : "알 수 없음")
     			.category(post.getCategory())
     			.title(post.getTitle())
@@ -44,11 +57,10 @@ public class PostDetailResponseDTO {
                 .commentCount(post.getCommentCount())
                 .isPinned(post.getIsPinned())
                 .isLikedByCurrentUser(isLikedByCurrentUser)
+                .isAuthor(currentMemberId != null && post.getMemberId().equals(currentMemberId))  // ✅ 추가
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .comments(comments)
                 .build();
-    	
     }
-	
 }
