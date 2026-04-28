@@ -124,6 +124,15 @@ public class PostController {
             return member.getMemberId();
         }
 
+        // Case 4: principal이 OAuth2Member (소셜 로그인)
+        if (principal instanceof com.passfail.member.dto.OAuth2Member) {
+            String username = ((com.passfail.member.dto.OAuth2Member) principal).getName();
+            log.info("Case 4: OAuth2Member name = {}", username);
+            return memberRepository.findByUsername(username)
+                    .map(MemberEntity::getMemberId)
+                    .orElse(null);
+        }
+
         // Case 2: principal이 UserDetails (username으로 DB 조회)
         if (principal instanceof UserDetails) {
             String username = ((UserDetails) principal).getUsername();

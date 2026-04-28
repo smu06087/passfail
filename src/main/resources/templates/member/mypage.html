@@ -67,11 +67,11 @@
 
             <div class="stats-grid">
                 <div class="stat-item">
-                    <span class="stat-value" th:text="${#lists.size(solvedProblems)}">0</span>
+                    <span class="stat-value" th:text="${totalSolvedCount}">0</span>
                     <span class="stat-label">해결한 문제</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-value" th:text="${#lists.size(recentSubmissions)}">0</span>
+                    <span class="stat-value" th:text="${totalSubmissionCount}">0</span>
                     <span class="stat-label">총 제출 수</span>
                 </div>
                 <div class="stat-item">
@@ -91,18 +91,41 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr th:each="solved : ${solvedProblems}">
+                        <tr th:each="solved : ${solvedPage.content}">
                             <td>
                                 <a th:href="@{/codingtest/{id}(id=${solved.problemId})}" th:text="${solved.problem.title}" style="text-decoration:none; color:var(--primary); font-weight:600;">Problem Title</a>
                             </td>
                             <td th:text="${solved.problem.difficulty}">EASY</td>
                             <td th:text="${#temporals.format(solved.firstSolvedAt, 'yyyy-MM-dd')}">Date</td>
                         </tr>
-                        <tr th:if="${#lists.isEmpty(solvedProblems)}">
+                        <tr th:if="${solvedPage.empty}">
                             <td colspan="3" style="text-align:center; color:var(--text-muted); padding: 40px;">해결한 문제가 없습니다.</td>
                         </tr>
                     </tbody>
                 </table>
+                
+                <!-- Solved Problems Pagination -->
+                <div class="pagination-container" th:if="${!solvedPage.empty}" 
+                     th:with="start=${(solvedPage.number / 10) * 10 + 1},
+                              end=${((start + 9) < solvedPage.totalPages ? (start + 9) : solvedPage.totalPages)}">
+                    
+                    <a th:href="@{/mypage/{username}(username=${member.username}, solvedPage=0, subPage=${submissionPage.number})}" 
+                       class="pagination-link" th:classappend="${solvedPage.first} ? 'disabled'">처음</a>
+                    
+                    <a th:href="@{/mypage/{username}(username=${member.username}, solvedPage=${solvedPage.number - 1}, subPage=${submissionPage.number})}" 
+                       class="pagination-link" th:classappend="${!solvedPage.hasPrevious()} ? 'disabled'">이전</a>
+                    
+                    <th:block th:each="page : ${#numbers.sequence(start, end)}">
+                        <a th:href="@{/mypage/{username}(username=${member.username}, solvedPage=${page - 1}, subPage=${submissionPage.number})}" 
+                           th:text="${page}" class="pagination-link" th:classappend="${page - 1 == solvedPage.number} ? 'active'">1</a>
+                    </th:block>
+                    
+                    <a th:href="@{/mypage/{username}(username=${member.username}, solvedPage=${solvedPage.number + 1}, subPage=${submissionPage.number})}" 
+                       class="pagination-link" th:classappend="${!solvedPage.hasNext()} ? 'disabled'">다음</a>
+                    
+                    <a th:href="@{/mypage/{username}(username=${member.username}, solvedPage=${solvedPage.totalPages - 1}, subPage=${submissionPage.number})}" 
+                       class="pagination-link" th:classappend="${solvedPage.last} ? 'disabled'">끝</a>
+                </div>
             </div>
 
             <div class="card">
@@ -117,7 +140,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr th:each="sub : ${recentSubmissions}">
+                        <tr th:each="sub : ${submissionPage.content}">
                             <td>
                                 <a th:href="@{/codingtest/{id}(id=${sub.problemId})}" th:text="${sub.problem.title}" style="text-decoration:none; color:var(--primary); font-weight:600;">Title</a>
                             </td>
@@ -127,11 +150,34 @@
                             <td th:text="${sub.language}">JAVA</td>
                             <td th:text="${#temporals.format(sub.submittedAt, 'MM-dd HH:mm')}">Time</td>
                         </tr>
-                        <tr th:if="${#lists.isEmpty(recentSubmissions)}">
+                        <tr th:if="${submissionPage.empty}">
                             <td colspan="4" style="text-align:center; color:var(--text-muted); padding: 40px;">제출 기록이 없습니다.</td>
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- Recent Submissions Pagination -->
+                <div class="pagination-container" th:if="${!submissionPage.empty}" 
+                     th:with="start=${(submissionPage.number / 10) * 10 + 1},
+                              end=${((start + 9) < submissionPage.totalPages ? (start + 9) : submissionPage.totalPages)}">
+                    
+                    <a th:href="@{/mypage/{username}(username=${member.username}, subPage=0, solvedPage=${solvedPage.number})}" 
+                       class="pagination-link" th:classappend="${submissionPage.first} ? 'disabled'">처음</a>
+                    
+                    <a th:href="@{/mypage/{username}(username=${member.username}, subPage=${submissionPage.number - 1}, solvedPage=${solvedPage.number})}" 
+                       class="pagination-link" th:classappend="${!submissionPage.hasPrevious()} ? 'disabled'">이전</a>
+                    
+                    <th:block th:each="page : ${#numbers.sequence(start, (end > 0 ? end : 1))}" th:if="${end > 0}">
+                        <a th:href="@{/mypage/{username}(username=${member.username}, subPage=${page - 1}, solvedPage=${solvedPage.number})}" 
+                           th:text="${page}" class="pagination-link" th:classappend="${page - 1 == submissionPage.number} ? 'active'">1</a>
+                    </th:block>
+                    
+                    <a th:href="@{/mypage/{username}(username=${member.username}, subPage=${submissionPage.number + 1}, solvedPage=${solvedPage.number})}" 
+                       class="pagination-link" th:classappend="${!submissionPage.hasNext()} ? 'disabled'">다음</a>
+                    
+                    <a th:href="@{/mypage/{username}(username=${member.username}, subPage=${submissionPage.totalPages - 1}, solvedPage=${solvedPage.number})}" 
+                       class="pagination-link" th:classappend="${submissionPage.last} ? 'disabled'">끝</a>
+                </div>
             </div>
         </section>
 

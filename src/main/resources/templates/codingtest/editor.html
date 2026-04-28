@@ -356,7 +356,10 @@
             });
             const data = await res.json();
             content.innerHTML = data.review.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        } catch (e) { content.innerHTML = 'AI 리뷰 생성에 실패했습니다.'; }
+        } catch (e) { 
+            console.error(e);
+            content.innerHTML = 'AI 리뷰 생성에 실패했습니다.'; 
+        }
     }
 
     function closeAiReview() { document.getElementById('aiModal').style.display = 'none'; }

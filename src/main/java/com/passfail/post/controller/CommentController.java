@@ -74,6 +74,15 @@ public class CommentController {
             return member.getMemberId();
         }
 
+        // Case 4: OAuth2Member
+        if (principal instanceof com.passfail.member.dto.OAuth2Member) {
+            String username = ((com.passfail.member.dto.OAuth2Member) principal).getName();
+            log.info("Case 4: OAuth2Member name = {}", username);
+            return memberRepository.findByUsername(username)
+                    .map(MemberEntity::getMemberId)
+                    .orElseThrow(UnauthorizedPostAccessException::new);
+        }
+
         // Case 2: UserDetails
         if (principal instanceof UserDetails) {
             String username = ((UserDetails) principal).getUsername();

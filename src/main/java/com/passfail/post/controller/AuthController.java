@@ -12,12 +12,20 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    // GET /api/auth/status → 로그인 여부 반환
+    // GET /api/auth/status → 로그인 여부 및 유저네임 반환
     @GetMapping("/status")
-    public ResponseEntity<Map<String, Boolean>> authStatus(Authentication authentication) {
+    public ResponseEntity<Map<String, Object>> authStatus(Authentication authentication) {
         boolean loggedIn = authentication != null
                 && authentication.isAuthenticated()
                 && !"anonymousUser".equals(String.valueOf(authentication.getPrincipal()));
-        return ResponseEntity.ok(Map.of("loggedIn", loggedIn));
+        
+        if (!loggedIn) {
+            return ResponseEntity.ok(Map.of("loggedIn", false));
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "loggedIn", true,
+            "username", authentication.getName()
+        ));
     }
 }

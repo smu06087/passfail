@@ -18,6 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -46,10 +48,22 @@ public class MypageService {
         return submissionRepository.findByMemberOrderBySubmittedAtDesc(member);
     }
 
+    public Page<SubmissionEntity> getRecentSubmissions(String username, Pageable pageable) {
+        MemberEntity member = memberRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        return submissionRepository.findByMember(member, pageable);
+    }
+
     public List<SolvedProblemEntity> getSolvedProblems(String username) {
         MemberEntity member = memberRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
         return solvedProblemRepository.findByMember(member);
+    }
+
+    public Page<SolvedProblemEntity> getSolvedProblems(String username, Pageable pageable) {
+        MemberEntity member = memberRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        return solvedProblemRepository.findByMember(member, pageable);
     }
 
     public List<NotificationEntity> getNotifications(String username) {

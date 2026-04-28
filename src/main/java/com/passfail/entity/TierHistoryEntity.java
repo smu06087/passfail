@@ -7,7 +7,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import com.passfail.enums.Tier;
 import com.passfail.enums.TierChangeReason;
 import com.passfail.enums.TierType;
-import com.sun.istack.Nullable;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

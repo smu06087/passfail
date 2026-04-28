@@ -8,6 +8,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import java.security.Principal;
 
 @Controller
@@ -24,16 +27,32 @@ public class MypageController {
     }
 
     @GetMapping("/{username}")
-    public String userProfile(@PathVariable("username") String username, Principal principal, Model model) {
+    public String userProfile(@PathVariable("username") String username, 
+                              @RequestParam(value = "solvedPage", defaultValue = "0") int solvedPage,
+                              @RequestParam(value = "subPage", defaultValue = "0") int subPage,
+                              Principal principal, Model model) {
         String loggedInUsername = (principal != null) ? principal.getName() : null;
         
         try {
             MemberInfoResponse memberResponse = mypageService.getMemberInfoResponse(username, loggedInUsername);
             model.addAttribute("member", memberResponse);
             
-            // 활동 데이터 추가
-            model.addAttribute("recentSubmissions", mypageService.getRecentSubmissions(username));
-            model.addAttribute("solvedProblems", mypageService.getSolvedProblems(username));
+            // 페이지당 5개씩
+            int pageSize = 5;
+            
+            // 활동 데이터 추가 (페이징 적용)
+            PageRequest subPageable = PageRequest.of(subPage, pageSize, Sort.by("submittedAt").descending());
+            PageRequest solvedPageable = PageRequest.of(solvedPage, pageSize, Sort.by("firstSolvedAt").descending());
+            
+            Page<com.passfail.entity.SubmissionEntity> submissionPage = mypageService.getRecentSubmissions(username, subPageable);
+            Page<com.passfail.entity.SolvedProblemEntity> solvedPageObj = mypageService.getSolvedProblems(username, solvedPageable);
+            
+            model.addAttribute("submissionPage", submissionPage);
+            model.addAttribute("solvedPage", solvedPageObj);
+            
+            // 통계용 총 개수
+            model.addAttribute("totalSolvedCount", solvedPageObj.getTotalElements());
+            model.addAttribute("totalSubmissionCount", submissionPage.getTotalElements());
             
             // 본인 프로필일 경우에만 알림 추가
             if (memberResponse.isOwnProfile()) {
@@ -42,6 +61,7 @@ public class MypageController {
             
             return "member/mypage";
         } catch (Exception e) {
+            e.printStackTrace();
             return "redirect:/main?error=UserNotFound";
         }
     }

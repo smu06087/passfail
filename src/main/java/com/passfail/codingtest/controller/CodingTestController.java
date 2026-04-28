@@ -36,14 +36,24 @@ public class CodingTestController {
     public Map<String, String> aiReview(@PathVariable("problemId") Long problemId, 
                                         @RequestBody Map<String, Object> payload) {
         String code = (String) payload.get("code");
-        List<Map<String, Object>> rawResults = (List<Map<String, Object>>) payload.get("results");
+        Object resultsObj = payload.get("results");
         
-        List<ExecutionResult> results = rawResults.stream()
-                .map(r -> ExecutionResult.builder()
-                        .executionTime(((Number) r.get("executionTime")).longValue())
-                        .status((String) r.get("status"))
-                        .build())
-                .toList();
+        List<ExecutionResult> results = List.of();
+        if (resultsObj instanceof List) {
+            List<Map<String, Object>> rawResults = (List<Map<String, Object>>) resultsObj;
+            results = rawResults.stream()
+                    .map(r -> {
+                        Object timeObj = r.get("executionTime");
+                        long time = (timeObj instanceof Number) ? ((Number) timeObj).longValue() : 0L;
+                        String status = (String) r.get("status");
+                        return ExecutionResult.builder()
+                                .executionTime(time)
+                                .status(status != null ? status : "UNKNOWN")
+                                .success("CORRECT".equals(status))
+                                .build();
+                    })
+                    .toList();
+        }
 
         String review = aiService.generateReview(code, results);
         return Map.of("review", review);
