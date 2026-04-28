@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index - Passfail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Pretendard', sans-serif; 
+            background: linear-gradient(135deg, #f8fafc 0%, #f1fdf4 100%);
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+        .bg-green-grad {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+
+        .nav-box {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: white;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 50px;
+            width: 140px;
+            cursor: pointer;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .nav-box:hover {
+            border-color: #22c55e;
+            color: #22c55e;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.1);
+        }
+
+        .nav-item { position: relative; }
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: 55px;
+            left: 0;
+            width: 140px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            z-index: 100;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 8px;
+        }
+        .nav-item:hover .dropdown { display: block; animation: fadeIn 0.2s ease-out; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dropdown-item {
+            padding: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .dropdown-item:hover { background: #f0fdf4; color: #16a34a; }
+    </style>
+</head>
+<body class="flex flex-col">
+
+    <nav class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto space-y-6">
+            <div class="flex items-center justify-between">
+                <div class="text-3xl font-extrabold text-green-600 tracking-tight cursor-pointer" onclick="location.href='main.html'">
+                    Passfail
+                </div>
+                
+                <div class="flex-1 max-w-2xl mx-8 border border-slate-300 rounded-2xl flex items-center px-4 bg-white focus-within:border-green-500 focus-within:ring-4 focus-within:ring-green-500/10 transition-all">
+                    <i data-lucide="search" size="18" class="text-slate-400"></i>
+                    <input type="text" placeholder="검색 기능을 이용해보세요" class="w-full p-3 bg-transparent outline-none font-semibold text-slate-600">
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="location.href='login.html'" class="px-6 py-2.5 border border-slate-300 rounded-xl font-bold hover:bg-slate-50 transition-all">로그인</button>
+                    <button onclick="location.href='mypage.html'" class="px-6 py-2.5 bg-green-grad text-white rounded-xl font-bold shadow-lg shadow-green-500/20">마이페이지</button>
+                </div>
+            </div>
+
+            <div id="nav-loop-container" class="flex justify-center gap-5"></div>
+        </div>
+    </nav>
+
+    <main class="flex-1 max-w-6xl mx-auto w-full px-6 py-16">
+        <h1>Welcome to the Index Page</h1>
+    </main>
+
+    <script>
+        const navItems = [
+            { title: "문제", subs: ["최신 문제", "인기 문제", "기초 다지기", "심화 챌린지"] },
+            { title: "게시판", subs: ["커뮤니티", "질문답변", "팁/노하우", "공지사항"] },
+            { title: "대회", subs: ["현재 진행", "참가 신청", "결과 조회"] },
+            { title: "랭킹", subs: ["실시간 순위", "명예의 전당", "그룹 랭킹"] }
+        ];
+
+        function init() {
+            const navCont = document.getElementById('nav-loop-container');
+            navItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "nav-item";
+                div.innerHTML = `<div class="nav-box">${item.title}</div>
+                    <div class="dropdown">${item.subs.map(s => `<div class="dropdown-item">${s}</div>`).join('')}</div>`;
+                navCont.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

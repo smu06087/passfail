@@ -1,98 +1,249 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Passfail - Main</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passfail - 성장을 위한 코딩 학습</title>
+    <!-- Tailwind CSS & Lucide Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 0;
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap');
+        
+        body { 
+            font-family: 'Pretendard', sans-serif; 
+            background: linear-gradient(135deg, #f8fafc 0%, #f1fdf4 100%);
+            color: #1e293b;
+            min-height: 100vh;
         }
-        .header {
-            background-color: #333;
-            color: white;
-            padding: 20px;
+
+        .bg-green-grad { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+
+        /* [Navigation Box] 동엽님이 요청하신 박스형 메뉴 스타일 */
+        .nav-box {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            background: white;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: center;
+            height: 52px;
+            width: 150px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
-        .header h1 { margin: 0; }
-        .nav-links a {
-            color: white;
-            text-decoration: none;
-            margin-left: 20px;
-            font-weight: bold;
+        .nav-box:hover {
+            border-color: #22c55e;
+            color: #22c55e;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.1);
         }
-        .container {
-            padding: 40px;
-            text-align: center;
+
+        /* [Dropdown] 드롭다운 애니메이션 */
+        .nav-item { position: relative; }
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: 58px;
+            left: 0;
+            width: 150px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            z-index: 100;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 10px;
         }
-        .welcome-msg {
-            font-size: 24px;
-            margin-bottom: 20px;
+        .nav-item:hover .dropdown { display: block; animation: fadeIn 0.25s ease-out; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 40px;
+
+        .dropdown-item {
+            padding: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        .feature-card {
-            background-color: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        .dropdown-item:hover { background: #f0fdf4; color: #16a34a; }
+
+        /* [Main UI Components] */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 40px;
         }
-        .feature-card h3 { margin-top: 0; color: #4A90E2; }
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #4A90E2;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            margin-top: 15px;
+        
+        .tab-active { 
+            background: white; 
+            color: #16a34a; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
         }
-        .btn:hover { background-color: #357ABD; }
+
+        .duo-btn {
+            border-bottom: 5px solid rgba(0,0,0,0.2);
+            transition: all 0.1s ease;
+        }
+        .duo-btn:active { transform: translateY(3px); border-bottom-width: 2px; }
+
+        .sidebar-transition { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
-<body>
+<body class="flex flex-col">
 
-<div class="header">
-    <h1>Passfail</h1>
-    <div class="nav-links">
-        <span th:if="${username != null}">반갑습니다, <strong th:text="${username}"></strong>님!</span>
-        <a href="/mypage">마이페이지</a>
-        <a href="/logout">로그아웃</a>
-    </div>
-</div>
+    <!-- 1. 고정 네비게이션 바 (Sticky Header) -->
+    <nav class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 px-8 py-3 text-slate-800">
+        <div class="w-full mx-auto space-y-4">
+            <!-- 상단 로고 및 검색 바 -->
+            <div class="flex items-center justify-between gap-8">
+                <div class="text-3xl font-black text-green-600 tracking-tighter cursor-pointer" onclick="location.reload()">
+                    Passfail
+                </div>
+                
+                <div class="flex-1 max-w-2xl border border-slate-300 rounded-2xl flex items-center px-4 bg-white focus-within:border-green-500 focus-within:ring-4 focus-within:ring-green-500/10 transition-all shadow-inner">
+                    <i data-lucide="search" size="18" class="text-slate-400"></i>
+                    <input type="text" placeholder="검색 기능을 이용해보세요" class="w-full p-3 bg-transparent outline-none font-bold text-slate-600">
+                </div>
 
-<div class="container">
-    <div class="welcome-msg">
-        Passfail에 오신 것을 환영합니다!
-    </div>
-    <p>실력을 검증하고 최고의 개발자로 거듭나세요.</p>
+                <div class="flex items-center gap-4">
+                    <div id="login-section" th:if="${username == null}" class="flex gap-3">
+                        <a href="/login" class="px-6 py-2.5 border border-slate-300 rounded-xl font-black text-sm hover:bg-slate-50 transition-all">로그인</a>
+                    </div>
+                    <div id="member-section" th:if="${username != null}" class="flex items-center gap-5">
+                        <span class="font-black text-sm text-slate-500"><span class="text-green-600" th:text="${username}">동엽</span>님 접속</span>
+                        <a href="/mypage" class="px-6 py-2.5 bg-green-grad text-white rounded-xl font-black text-sm shadow-lg shadow-green-500/20">마이페이지</a>
+                        <a href="/logout" class="text-xs font-bold text-slate-400 hover:text-slate-600">로그아웃</a>
+                    </div>
+                </div>
+            </div>
 
-    <div class="features">
-        <div class="feature-card">
-            <h3>코딩테스트 연습</h3>
-            <p>다양한 알고리즘 문제를 풀고 실력을 쌓으세요.</p>
-            <a href="/codingtest" class="btn">문제 풀러 가기</a>
+            <!-- 하단 카테고리 루프 컨테이너 -->
+            <div id="nav-loop-container" class="flex justify-center gap-6 pb-2">
+                <!-- JavaScript 루프로 생성됨 -->
+            </div>
         </div>
-        <div class="feature-card">
-            <h3>랭킹 시스템</h3>
-            <p>다른 개발자들과 실력을 겨루고 순위를 확인하세요.</p>
-            <a href="/ranking" class="btn">랭킹 보기</a>
-        </div>
-        <div class="feature-card">
-            <h3>내 정보 관리</h3>
-            <p>내 활동 내역과 정보를 관리하세요.</p>
-            <a href="/mypage" class="btn">이동하기</a>
-        </div>
-    </div>
-</div>
+    </nav>
 
+    <!-- 2. 메인 화면 (Main Content) -->
+    <main id="view-main" class="flex-1 max-w-7xl mx-auto w-full px-6 py-20">
+        <div class="text-center mb-20">
+            <h1 class="text-6xl font-black mb-10 tracking-tighter text-slate-800">당신의 성장을 위한 <span class="text-green-600">최적의 경로</span></h1>
+            
+            <div class="inline-flex bg-slate-200/40 p-2.5 rounded-[2.5rem] shadow-inner">
+                <button onclick="switchTab('beginner')" id="tab-beginner" class="tab-active px-20 py-7 rounded-[2rem] text-2xl font-black transition-all">
+                    입문자 시작하기
+                </button>
+                <button onclick="switchTab('jobtest')" id="tab-jobtest" class="px-20 py-7 rounded-[2rem] text-2xl font-black transition-all text-slate-400">
+                    입사 시험 테스트
+                </button>
+            </div>
+        </div>
+        
+        <div id="content-beginner" class="grid grid-cols-1 md:grid-cols-2 gap-12"></div>
+        <div id="content-jobtest" class="hidden grid grid-cols-1 md:grid-cols-2 gap-12"></div>
+    </main>
+
+    <!-- 5. AI 질의응답 사이드바 -->
+    <aside id="ai-sidebar" class="fixed right-0 top-1/2 -translate-y-1/2 z-40 sidebar-transition translate-x-[320px] hover:translate-x-0">
+        <div class="flex items-center">
+            <div class="bg-green-grad text-white p-5 rounded-l-[2.5rem] cursor-pointer flex flex-col items-center gap-3 shadow-2xl">
+                <i data-lucide="sparkles" size="24" class="animate-pulse"></i>
+                <span style="writing-mode: vertical-lr;" class="text-[11px] font-black tracking-widest uppercase">AI Mentor</span>
+            </div>
+            <div class="bg-white/95 backdrop-blur-2xl w-[350px] h-[600px] border-l-4 border-green-500 rounded-l-[2.5rem] p-8 flex flex-col shadow-2xl">
+                <h3 class="font-black text-2xl mb-8 text-slate-800 flex items-center gap-3">
+                    <i data-lucide="bot" class="text-green-500"></i> AI 멘토
+                </h3>
+                <div class="flex-1 bg-slate-50 border border-slate-100 rounded-3xl p-6 text-sm font-bold text-slate-400 overflow-y-auto mb-8 shadow-inner">
+                    <span th:text="${username != null ? username : '게스트'}">동엽</span>님, 알고리즘 풀이 중 막히는 부분이 있나요? 무엇이든 물어보세요!
+                </div>
+                <div class="relative">
+                    <input type="text" placeholder="질문을 입력하세요..." class="w-full border-2 border-slate-100 rounded-2xl p-4 text-sm outline-none focus:border-green-500 transition-all font-bold">
+                    <button class="absolute right-3 top-3 p-2.5 bg-green-grad text-white rounded-xl shadow-lg"><i data-lucide="send" size="18"></i></button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <footer class="py-16 text-center border-t border-slate-200 text-slate-300 font-black text-xs tracking-widest uppercase mt-auto">
+        &copy; 2026 Passfail Learning Platform. All rights reserved.
+    </footer>
+
+    <script>
+        // [Data Architecture]
+        const navItems = [
+            { title: "문제", url: "/codingtest", subs: ["최신 문제", "인기 문제", "기초 다지기", "심화 챌린지"] },
+            { title: "게시판", url: "/board", subs: ["커뮤니티", "질문답변", "팁/노하우", "공지사항"] },
+            { title: "대회", url: "#", subs: ["현재 진행", "참가 신청", "결과 조회"] },
+            { title: "랭킹", url: "#", subs: ["실시간 순위", "명예의 전당", "그룹 랭킹"] }
+        ];
+
+        const cardData = {
+            beginner: [
+                { title: "파이썬 기초 입문", desc: "가장 직관적인 언어로 코딩 세계에 첫 발을 내딛으세요.", icon: "zap", color: "text-amber-500", bg: "bg-amber-50" },
+                { title: "자바 핵심 마스터", desc: "실무 백엔드 개발을 위한 가장 강력한 도구를 익힙니다.", icon: "coffee", color: "text-orange-700", bg: "bg-orange-50" }
+            ],
+            jobtest: [
+                { title: "네이버 실전 코테", desc: "검색 엔진 개발자들이 실제 마주하는 난이도와 유형.", icon: "code", color: "text-green-600", bg: "bg-green-50" },
+                { title: "카카오 테크 챌린지", desc: "창의적이고 복잡한 로직을 해결하는 역량 집중 훈련.", icon: "layout", color: "text-yellow-500", bg: "bg-yellow-50" }
+            ]
+        };
+
+        // [Iteration - Loop Rendering]
+        function init() {
+            // 카테고리 메뉴 생성
+            const navCont = document.getElementById('nav-loop-container');
+            navItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "nav-item";
+                div.innerHTML = `<div class="nav-box" onclick="location.href='${item.url}'">${item.title}</div>
+                    <div class="dropdown">${item.subs.map(s => `<div class="dropdown-item">${s}</div>`).join('')}</div>`;
+                navCont.appendChild(div);
+            });
+
+            // 카드 생성 함수
+            const renderCards = (type, targetId) => {
+                const target = document.getElementById(targetId);
+                cardData[type].forEach(c => {
+                    const card = document.createElement('div');
+                    card.className = "glass-card p-12 hover:scale-[1.03] cursor-pointer transition-all duration-300 shadow-xl group border-2 border-transparent hover:border-green-200";
+                    card.innerHTML = `
+                        <div class="w-20 h-20 ${c.bg} border border-slate-100 rounded-3xl flex items-center justify-center mb-8 ${c.color} group-hover:scale-110 transition-transform">
+                            <i data-lucide="${c.icon}" size="36"></i>
+                        </div>
+                        <h3 class="text-3xl font-black mb-4 text-slate-800">${c.title}</h3>
+                        <p class="font-bold text-slate-400 leading-relaxed text-sm">${c.desc}</p>
+                    `;
+                    target.appendChild(card);
+                });
+            };
+            renderCards('beginner', 'content-beginner');
+            renderCards('jobtest', 'content-jobtest');
+
+            lucide.createIcons();
+        }
+
+        // [Interaction Logic]
+        function switchTab(tab) {
+            const isBeginner = tab === 'beginner';
+            document.getElementById('tab-beginner').classList.toggle('tab-active', isBeginner);
+            document.getElementById('tab-jobtest').classList.toggle('tab-active', !isBeginner);
+            document.getElementById('tab-jobtest').classList.toggle('text-slate-400', isBeginner);
+            document.getElementById('tab-beginner').classList.toggle('text-slate-400', !isBeginner);
+            
+            document.getElementById('content-beginner').classList.toggle('hidden', !isBeginner);
+            document.getElementById('content-jobtest').classList.toggle('hidden', isBeginner);
+        }
+
+        window.onload = init;
+    </script>
 </body>
 </html>

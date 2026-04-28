@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이페이지 - Passfail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;900&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f9fafb; }
+        
+        .duo-btn {
+            border-bottom-width: 4px;
+            transition: all 0.1s;
+        }
+        .duo-btn:active {
+            transform: translateY(3px);
+            border-bottom-width: 1px;
+        }
+        .btn-blue { background-color: #3b82f6; border-color: #2563eb; }
+        .btn-blue:hover { background-color: #2563eb; }
+        
+        .stat-card {
+            background: white;
+            border: 1px solid #f3f4f6;
+            transition: all 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <nav class="bg-white/70 backdrop-blur-md border-b border-green-50 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="text-2xl font-black text-green-600 cursor-pointer flex items-center gap-2" onclick="location.href='/main'">
+                <i data-lucide="check-circle"></i> Passfail
+            </div>
+            <div class="flex items-center gap-6">
+                <button onclick="location.href='/logout'" class="text-sm font-bold text-gray-400 hover:text-red-500 transition-colors">로그아웃</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-6 py-12">
+        <!-- Profile Header -->
+        <div class="bg-white rounded-[3rem] p-10 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-10 mb-12">
+            <div class="w-32 h-32 bg-green-100 rounded-[2.5rem] flex items-center justify-center text-green-600 relative">
+                <i data-lucide="user" size="64"></i>
+                <div class="absolute -bottom-2 -right-2 bg-white p-2 rounded-full shadow-md border border-gray-100 cursor-pointer hover:bg-gray-50">
+                    <i data-lucide="camera" size="16" class="text-gray-400"></i>
+                </div>
+            </div>
+            
+            <div class="flex-1 text-center md:text-left">
+                <div class="flex flex-col md:flex-row items-center gap-4 mb-4">
+                    <h2 class="text-3xl font-black text-gray-900"><span th:text="${sid}">동엽</span>님, 안녕하세요!</h2>
+                    <span class="bg-green-100 text-green-600 px-4 py-1 rounded-full text-xs font-black uppercase">Gold Rank</span>
+                </div>
+                <p class="text-gray-400 font-bold mb-6 italic">"코딩은 습관이다. 매일 한 문제씩!"</p>
+                <div class="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                    <div class="flex items-center gap-2 bg-yellow-50 px-5 py-2.5 rounded-2xl border border-yellow-100">
+                        <i data-lucide="banana" class="text-yellow-500" size="20"></i>
+                        <span class="font-black text-yellow-700">5,000 바나나</span>
+                    </div>
+                    <button class="duo-btn btn-blue text-white px-8 py-2.5 rounded-2xl text-sm font-black shadow-lg shadow-blue-100" 
+                            onclick="location.href='/payment'">
+                        충전하기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <div class="stat-card p-8 rounded-[2.5rem] flex flex-col items-center">
+                <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-6">
+                    <i data-lucide="award" size="32"></i>
+                </div>
+                <p class="text-sm font-bold text-gray-400 mb-2">해결한 문제</p>
+                <h4 class="text-4xl font-black text-gray-900">124개</h4>
+            </div>
+            <div class="stat-card p-8 rounded-[2.5rem] flex flex-col items-center">
+                <div class="w-16 h-16 bg-green-50 text-green-500 rounded-2xl flex items-center justify-center mb-6">
+                    <i data-lucide="flame" size="32"></i>
+                </div>
+                <p class="text-sm font-bold text-gray-400 mb-2">연속 학습일</p>
+                <h4 class="text-4xl font-black text-gray-900">12일</h4>
+            </div>
+            <div class="stat-card p-8 rounded-[2.5rem] flex flex-col items-center">
+                <div class="w-16 h-16 bg-purple-50 text-purple-500 rounded-2xl flex items-center justify-center mb-6">
+                    <i data-lucide="users" size="32"></i>
+                </div>
+                <p class="text-sm font-bold text-gray-400 mb-2">나의 랭킹</p>
+                <h4 class="text-4xl font-black text-gray-900">상위 5%</h4>
+            </div>
+        </div>
+
+        <!-- Content Tabs -->
+        <div class="space-y-8">
+            <div class="flex items-center gap-10 border-b border-gray-100 pb-2">
+                <button class="text-lg font-black text-green-600 border-b-4 border-green-600 pb-2">최근 활동</button>
+                <button class="text-lg font-bold text-gray-300 hover:text-gray-500 pb-2">내가 쓴 글</button>
+                <button class="text-lg font-bold text-gray-300 hover:text-gray-500 pb-2">관심 문제</button>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Activity Item -->
+                <div class="bg-white p-6 rounded-3xl border border-gray-50 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-6">
+                        <div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
+                            <i data-lucide="check-square" size="24"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-black text-gray-900">알고리즘: BFS 기초 문제 해결</h5>
+                            <p class="text-xs font-bold text-gray-400">2시간 전</p>
+                        </div>
+                    </div>
+                    <div class="text-green-500 font-black">+50 XP</div>
+                </div>
+
+                <div class="bg-white p-6 rounded-3xl border border-gray-50 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-6">
+                        <div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
+                            <i data-lucide="message-square" size="24"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-black text-gray-900">자유 게시판: "자바 기초 질문"에 댓글을 남겼습니다</h5>
+                            <p class="text-xs font-bold text-gray-400">어제</p>
+                        </div>
+                    </div>
+                    <div class="text-green-500 font-black">+10 XP</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="py-16 text-center text-gray-300 font-bold text-xs tracking-widest uppercase mt-20">
+        &copy; 2026 Passfail platform. All rights reserved.
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

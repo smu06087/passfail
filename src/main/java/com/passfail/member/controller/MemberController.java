@@ -31,7 +31,7 @@ public class MemberController {
         return "member/login";
     }
 
-    @GetMapping("/main")
+    @GetMapping({"/", "/main"})
     public String mainPage(Authentication authentication, Model model) {
         if (authentication != null) {
             // 비활성 계정 체크 (null-safe)
