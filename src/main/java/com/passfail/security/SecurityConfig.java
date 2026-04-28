@@ -44,7 +44,6 @@ public class SecurityConfig {
             .loginPage("/login")
             .loginProcessingUrl("/loginProc")
             .usernameParameter("username")
-            .usernameParameter("memberId")
             .passwordParameter("password")
             .defaultSuccessUrl("/main", true)
             .permitAll()
