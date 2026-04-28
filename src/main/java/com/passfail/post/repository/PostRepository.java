@@ -1,7 +1,12 @@
 package com.passfail.post.repository;
 
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.Query;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,18 +17,22 @@ import com.passfail.entity.PostEntity;
 import com.passfail.enums.PostCategory;
 
 public interface PostRepository extends JpaRepository<PostEntity, Long> {
+	
+	// ✅ 이 메서드 1개만 추가
+	// member를 JOIN FETCH로 함께 로드 → LazyInitializationException 방지
+	 @Query("SELECT p FROM PostEntity p LEFT JOIN FETCH p.member WHERE p.postId = :postId")
+	    Optional<PostEntity> findByIdWithMember(@Param("postId") Long postId);
 
-    // 카테고리 필터 목록 조회
+    // ✅ 목록 조회 — member JOIN FETCH
+    @EntityGraph(attributePaths = {"member"})
     Page<PostEntity> findByIsDeletedFalseAndCategoryOrderByIsPinnedDescCreatedAtDesc(
             PostCategory category, Pageable pageable);
 
-    // 전체 목록 조회
+    // ✅ 목록 조회 (전체) — member JOIN FETCH
+    @EntityGraph(attributePaths = {"member"})
     Page<PostEntity> findByIsDeletedFalseOrderByIsPinnedDescCreatedAtDesc(Pageable pageable);
 
-    // ── 검색 (전체) ──────────────────────────────────────────────────
-    // ✅ 수정: JPQL의 ORDER BY 제거 → Pageable 정렬과 충돌 방지
-    // PostController의 @PageableDefault(sort="createdAt", direction=DESC)가 정렬 담당
-    // isPinned 우선 정렬이 필요하면 PostService에서 PageRequest.of(page, size, sort) 직접 생성
+    // 검색 (키워드만)
     @Query("SELECT p FROM PostEntity p " +
            "WHERE p.isDeleted = false " +
            "AND (p.title LIKE %:keyword% OR p.content LIKE %:keyword%)")
@@ -31,8 +40,7 @@ public interface PostRepository extends JpaRepository<PostEntity, Long> {
             @Param("keyword") String keyword,
             Pageable pageable);
 
-    // ── 검색 (카테고리 + 키워드) ──────────────────────────────────────
-    // ✅ 수정: 동일하게 ORDER BY 제거
+    // 검색 (카테고리 + 키워드)
     @Query("SELECT p FROM PostEntity p " +
            "WHERE p.isDeleted = false " +
            "AND p.category = :category " +
@@ -41,10 +49,6 @@ public interface PostRepository extends JpaRepository<PostEntity, Long> {
             @Param("category") PostCategory category,
             @Param("keyword")  String keyword,
             Pageable pageable);
-
-    // ── @Modifying 전체 수정 ─────────────────────────────────────────
-    // ✅ clearAutomatically=true : 1차 캐시 자동 초기화 → DB와 영속성 컨텍스트 불일치 방지
-    // ✅ @Transactional 명시    : Repository 레벨에서도 트랜잭션 보장 (서비스가 없을 때 단독 호출 안전)
 
     @Modifying(clearAutomatically = true)
     @Transactional

@@ -8,10 +8,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import com.passfail.entity.MemberEntity;
 import com.passfail.enums.PostCategory;
+import com.passfail.member.repository.MemberRepository;
 import com.passfail.post.dto.PostCreateRequestDTO;
 import com.passfail.post.dto.PostDetailResponseDTO;
 import com.passfail.post.dto.PostListResponseDTO;
@@ -20,15 +23,17 @@ import com.passfail.post.service.PostService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RestController
 @RequestMapping("/posts")
 @RequiredArgsConstructor
 public class PostController {
 
     private final PostService postService;
+    private final MemberRepository memberRepository; // ✅ 추가: username으로 memberId 조회
 
-    // GET /posts?category=FREE&keyword=스프링&page=0&size=10
     @GetMapping
     public ResponseEntity<Page<PostListResponseDTO>> getPostList(
             @RequestParam(name = "category", required = false) PostCategory category,
@@ -38,66 +43,106 @@ public class PostController {
         Page<PostListResponseDTO> result = (keyword != null && !keyword.isBlank())
                 ? postService.searchPosts(category, keyword, pageable)
                 : postService.getPostList(category, pageable);
-
         return ResponseEntity.ok(result);
     }
-    
-    // GET /posts/{postId}
+
     @GetMapping("/{postId}")
     public ResponseEntity<PostDetailResponseDTO> getPostDetail(
             @PathVariable(name = "postId") Long postId,
-            @AuthenticationPrincipal Long currentMemberId) {
+            Authentication authentication) {
+        
+        // ✅ 수정: extractMemberId(Long) 대신 username(String)을 추출해서 전달
+        String currentUsername = (authentication != null && authentication.isAuthenticated()) 
+                                 ? authentication.getName() 
+                                 : null;
 
-        return ResponseEntity.ok(postService.getPostDetail(postId, currentMemberId));
+        return ResponseEntity.ok(postService.getPostDetail(postId, currentUsername));
     }
 
-    // POST /posts
     @PostMapping
     public ResponseEntity<Void> createPost(
             @Valid @RequestBody PostCreateRequestDTO dto,
-            @AuthenticationPrincipal Long memberId) {
-
+            Authentication authentication) {
+        Long memberId = extractMemberId(authentication);
+        if (memberId == null) {
+            return ResponseEntity.status(401).build();
+        }
         Long postId = postService.createPost(dto, memberId);
-        // ✅ 수정: /api/posts → /posts 로 통일 (CommentController와 동일한 prefix 기준)
         return ResponseEntity.created(URI.create("/posts/" + postId)).build();
     }
 
-    // PUT /posts/{postId}
     @PutMapping("/{postId}")
     public ResponseEntity<Void> updatePost(
             @PathVariable(name = "postId") Long postId,
             @Valid @RequestBody PostUpdateRequestDTO dto,
-            @AuthenticationPrincipal Long memberId) {
-
-        postService.updatePost(postId, dto, memberId);
+            Authentication authentication) {
+        postService.updatePost(postId, dto, extractMemberId(authentication));
         return ResponseEntity.noContent().build();
     }
 
-    // DELETE /posts/{postId}
     @DeleteMapping("/{postId}")
     public ResponseEntity<Void> deletePost(
             @PathVariable(name = "postId") Long postId,
-            @AuthenticationPrincipal Long memberId) {
-
-        postService.deletePost(postId, memberId);
+            Authentication authentication) {
+        postService.deletePost(postId, extractMemberId(authentication));
         return ResponseEntity.noContent().build();
     }
 
-    // POST /posts/{postId}/like
     @PostMapping("/{postId}/like")
     public ResponseEntity<Map<String, Boolean>> toggleLike(
             @PathVariable(name = "postId") Long postId,
-            @AuthenticationPrincipal Long memberId) {
-
+            Authentication authentication) {
+        Long memberId = extractMemberId(authentication);
+        if (memberId == null) {
+            return ResponseEntity.status(401).build();
+        }
         boolean liked = postService.toggleLike(postId, memberId);
         return ResponseEntity.ok(Map.of("liked", liked));
     }
 
-    // PATCH /posts/{postId}/pin  ← 관리자 전용 (추후 @PreAuthorize 추가 예정)
     @PatchMapping("/{postId}/pin")
     public ResponseEntity<Void> togglePin(
             @PathVariable(name = "postId") Long postId) {
         postService.togglePin(postId);
         return ResponseEntity.noContent().build();
+    }
+
+    // ✅ 3-case 처리: MemberEntity → UserDetails → String
+    private Long extractMemberId(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            log.warn("extractMemberId: not authenticated");
+            return null;
+        }
+
+        Object principal = authentication.getPrincipal();
+        log.info("extractMemberId: principal type = {}", principal.getClass().getSimpleName());
+
+        // Case 1: principal이 MemberEntity (로컬 로그인)
+        if (principal instanceof MemberEntity) {
+            MemberEntity member = (MemberEntity) principal;
+            log.info("Case 1: MemberEntity → memberId = {}", member.getMemberId());
+            return member.getMemberId();
+        }
+
+        // Case 2: principal이 UserDetails (username으로 DB 조회)
+        if (principal instanceof UserDetails) {
+            String username = ((UserDetails) principal).getUsername();
+            log.info("Case 2: UserDetails username = {}", username);
+            return memberRepository.findByUsername(username)
+                    .map(MemberEntity::getMemberId)
+                    .orElse(null);
+        }
+
+        // Case 3: principal이 String (OAuth2 등)
+        if (principal instanceof String && !"anonymousUser".equals(principal)) {
+            String username = (String) principal;
+            log.info("Case 3: String username = {}", username);
+            return memberRepository.findByUsername(username)
+                    .map(MemberEntity::getMemberId)
+                    .orElse(null);
+        }
+
+        log.warn("extractMemberId: unknown principal type = {}", principal.getClass().getSimpleName());
+        return null;
     }
 }

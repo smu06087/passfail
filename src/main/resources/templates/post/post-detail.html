@@ -335,10 +335,11 @@
                     <span>조회:</span>
                     <strong th:text="${post.viewCount}">0</strong>
                 </div>
-                <div class="meta-item">
-                    <span>좋아요:</span>
-                    <strong th:text="${post.likeCount}">0</strong>
-                </div>
+				<!-- 변경 후 -->
+				<div class="meta-item">
+				    <span>좋아요:</span>
+				    <strong id="likeCount" th:text="${post.likeCount}">0</strong>
+				</div>
             </div>
         </div>
 
@@ -350,8 +351,13 @@
 			</button>
 
             <!-- 수정/삭제 버튼 (작성자만 보임) -->
-            <a href="#" class="btn btn-primary" th:if="${post.isAuthor}">수정</a>
-            <button class="btn btn-danger" id="deleteBtn" th:if="${post.isAuthor}">삭제</button>
+            <!-- <p>작성자 여부: <span th:text="${post.isAuthor}">값 없음</span></p> -->
+
+			<!-- 수정/삭제 버튼 -->
+			<div th:if="${post.isAuthor == true}">
+			    <a th:href="@{/posts/{id}/edit(id=${post.postId})}" class="btn btn-primary">수정</a>
+			    <button class="btn btn-danger" id="deleteBtn">삭제</button>
+			</div>
         </div>
 
         <!-- ── 게시글 본문 ──────────────────────────────────────────── -->
@@ -374,7 +380,7 @@
                 <li th:each="comment : ${post.comments}" class="comment-item" th:data-comment-id="${comment.commentId}">
                     <div class="comment-header">
                         <span>
-                            <span class="comment-author" th:text="${comment.authorName}">작성자</span>
+                            <span class="comment-author" th:text="${comment.authorNickname}">작성자</span>
                             <span style="color: #999; font-size: 12px;">
                                 (<time th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')}">2026-04-27</time>)
                             </span>
@@ -404,100 +410,117 @@
 
     <!-- ── JavaScript ──────────────────────────────────────────── -->
     <script>
-        const postId = window.location.pathname.split('/')[2];
+    const postId = window.location.pathname.split('/')[2];
 
-        // 좋아요 토글
-        document.getElementById('likeBtn').addEventListener('click', async function() {
-            try {
-                const response = await fetch(`/posts/${postId}/like`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+    // ✅ 좋아요 — credentials + 카운트 DOM 업데이트
+    document.getElementById('likeBtn').addEventListener('click', async function () {
+        try {
+            const response = await fetch(`/posts/${postId}/like`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin'
+            });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    const btn = this;
-                    
-                    if (data.liked) {
-                        btn.classList.add('liked');
-                        btn.innerHTML = '❤️ 좋아요 취소';
-                    } else {
-                        btn.classList.remove('liked');
-                        btn.innerHTML = '🤍 좋아요';
-                    }
-                }
-            } catch (error) {
-                console.error('좋아요 오류:', error);
-                alert('좋아요 처리 중 오류가 발생했습니다.');
-            }
-        });
-
-        // 게시글 삭제
-        document.getElementById('deleteBtn')?.addEventListener('click', async function() {
-            if (!confirm('정말 삭제하시겠습니까?')) return;
-
-            try {
-                const response = await fetch(`/posts/${postId}`, {
-                    method: 'DELETE'
-                });
-
-                if (response.ok) {
-                    alert('게시글이 삭제되었습니다.');
-                    window.location.href = '/board';
-                }
-            } catch (error) {
-                console.error('삭제 오류:', error);
-                alert('삭제 중 오류가 발생했습니다.');
-            }
-        });
-
-        // 댓글 작성
-        document.getElementById('commentSubmitBtn').addEventListener('click', async function() {
-            const content = document.getElementById('commentInput').value.trim();
-
-            if (!content) {
-                alert('댓글 내용을 입력해주세요.');
+            if (response.status === 401 || response.status === 403) {
+                alert('로그인이 필요합니다.');
+                location.href = '/login';
                 return;
             }
 
-            try {
-                const response = await fetch(`/posts/${postId}/comments`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content })
-                });
+            if (response.ok) {
+                const data = await response.json();
+                const btn = this;
+                // likeCount id는 아래 HTML 수정에서 추가됨
+                const likeCountEl = document.getElementById('likeCount');
+                let count = parseInt(likeCountEl.textContent) || 0;
 
+                if (data.liked) {
+                    btn.classList.add('liked');
+                    btn.innerHTML = '❤️ 좋아요 취소';
+                    likeCountEl.textContent = count + 1;
+                } else {
+                    btn.classList.remove('liked');
+                    btn.innerHTML = '🤍 좋아요';
+                    likeCountEl.textContent = Math.max(0, count - 1);
+                }
+            }
+        } catch (error) {
+            console.error('좋아요 오류:', error);
+            alert('좋아요 처리 중 오류가 발생했습니다.');
+        }
+    });
+
+    // ✅ 삭제 — credentials 추가
+    document.getElementById('deleteBtn')?.addEventListener('click', async function () {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+        try {
+            const response = await fetch(`/posts/${postId}`, {
+                method: 'DELETE',
+                credentials: 'same-origin'
+            });
+            if (response.ok) {
+                alert('게시글이 삭제되었습니다.');
+                window.location.href = '/board';
+            } else if (response.status === 403) {
+                alert('삭제 권한이 없습니다.');
+            }
+        } catch (error) {
+            console.error('삭제 오류:', error);
+            alert('삭제 중 오류가 발생했습니다.');
+        }
+    });
+
+    // ✅ 댓글 작성 — credentials 추가
+    document.getElementById('commentSubmitBtn').addEventListener('click', async function () {
+        const content = document.getElementById('commentInput').value.trim();
+        if (!content) { alert('댓글 내용을 입력해주세요.'); return; }
+
+        try {
+            const response = await fetch(`/posts/${postId}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ content })
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                alert('로그인이 필요합니다.');
+                location.href = '/login';
+                return;
+            }
+            if (response.ok) {
+                document.getElementById('commentInput').value = '';
+                location.reload();
+            } else {
+                alert('댓글 작성에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('댓글 작성 오류:', error);
+            alert('댓글 작성 중 오류가 발생했습니다.');
+        }
+    });
+
+    // ✅ 댓글 삭제 — credentials 추가
+    document.querySelectorAll('.delete-comment').forEach(btn => {
+        btn.addEventListener('click', async function (e) {
+            e.preventDefault();
+            if (!confirm('댓글을 삭제하시겠습니까?')) return;
+            const commentId = this.closest('.comment-item').dataset.commentId;
+            try {
+                const response = await fetch(`/posts/${postId}/comments/${commentId}`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin'
+                });
                 if (response.ok) {
-                    document.getElementById('commentInput').value = '';
-                    // 페이지 새로고침 (또는 AJAX로 댓글 추가)
                     location.reload();
+                } else if (response.status === 403) {
+                    alert('삭제 권한이 없습니다.');
                 }
             } catch (error) {
-                console.error('댓글 작성 오류:', error);
-                alert('댓글 작성 중 오류가 발생했습니다.');
+                console.error('댓글 삭제 오류:', error);
             }
         });
-
-        // 댓글 삭제
-        document.querySelectorAll('.delete-comment').forEach(btn => {
-            btn.addEventListener('click', async function(e) {
-                e.preventDefault();
-                if (!confirm('댓글을 삭제하시겠습니까?')) return;
-
-                const commentId = this.closest('.comment-item').dataset.commentId;
-                try {
-                    const response = await fetch(`/posts/${postId}/comments/${commentId}`, {
-                        method: 'DELETE'
-                    });
-
-                    if (response.ok) {
-                        location.reload();
-                    }
-                } catch (error) {
-                    console.error('댓글 삭제 오류:', error);
-                }
-            });
-        });
-    </script>
+    });
+</script>
 </body>
 </html>

@@ -23,24 +23,32 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable());
 
         http.authorizeHttpRequests(config -> config
-            .requestMatchers("/", "/login", "/signup", "/forgot-password", "/reset-password", "/api/member/**").permitAll()
+            .requestMatchers(
+                "/", "/login", "/signup", "/forgot-password", "/reset-password",
+                "/api/member/**", "/api/auth/status"
+            ).permitAll()
             .requestMatchers("/css/**", "/js/**", "/image/**").permitAll()
-            .requestMatchers("/main", "/codingtest", "/codingtest/{problemId}").permitAll()
-            .requestMatchers("/mypage/**", "/codingtest/*/run", "/codingtest/*/submit", "/codingtest/*/ai-review").authenticated()
+            .requestMatchers("/main", "/codingtest", "/codingtest/**").permitAll()
+            .requestMatchers("/board", "/posts/**").permitAll()
+            .requestMatchers("/api/posts/**").authenticated()
+            .requestMatchers(
+                "/mypage/**",
+                "/codingtest/run/**",
+                "/codingtest/submit/**",
+                "/codingtest/ai-review/**"
+            ).authenticated()
             .anyRequest().authenticated()
         );
 
-        // 1. 로컬 로그인(폼 로그인) 설정
         http.formLogin(form -> form
-            .loginPage("/login")                // 로그인 페이지 경로
-            .loginProcessingUrl("/loginProc")   // <form action="/loginProc"> 와 일치해야 함
-            .usernameParameter("username")      // input name="username"
-            .passwordParameter("password")      // input name="password"
+            .loginPage("/login")
+            .loginProcessingUrl("/loginProc")
+            .usernameParameter("username")
+            .passwordParameter("password")
             .defaultSuccessUrl("/main", true)
             .permitAll()
         );
 
-        // 2. 소셜 로그인 설정 (기존 유지)
         http.oauth2Login(oauth -> oauth
             .loginPage("/login")
             .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
@@ -48,18 +56,16 @@ public class SecurityConfig {
         );
 
         http.logout(logout -> logout
-            .logoutUrl("/logout") // 로그아웃을 요청할 주소
-            .logoutSuccessUrl("/login") // 로그아웃 성공 후 이동할 페이지
-            .invalidateHttpSession(true) // HTTP 세션 무효화
-            .deleteCookies("JSESSIONID") // 쿠키 삭제
+            .logoutUrl("/logout")
+            .logoutSuccessUrl("/login")
+            .invalidateHttpSession(true)
+            .deleteCookies("JSESSIONID")
             .permitAll()
         );
-        
-        
+
         return http.build();
     }
 
-    // ⭐ 비밀번호 암호화 객체 등록 (로컬 로그인 필수)
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

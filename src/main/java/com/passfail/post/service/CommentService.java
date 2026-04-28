@@ -84,12 +84,20 @@ public class CommentService {
         }
     }
     
+ // ✅ 수정: currentMemberId 파라미터 추가
     @Transactional(readOnly = true)
-    public List<CommentResponseDTO> getComments(Long postId) {
+    public List<CommentResponseDTO> getComments(Long postId, Long currentMemberId) {
         return commentRepository.findByPostIdAndIsDeletedFalseOrderByCreatedAtAsc(postId)
                 .stream()
-                .map(CommentResponseDTO::from)
-                .collect(Collectors.toList());
+                // ✅ from() 메서드에 currentMemberId 전달
+                .map(comment -> CommentResponseDTO.from(comment, currentMemberId))
+                .toList();
+    }
+
+    // ✅ 오버로딩: 기존 코드 호환성을 위해 (필요시)
+    @Transactional(readOnly = true)
+    public List<CommentResponseDTO> getComments(Long postId) {
+        return getComments(postId, null);
     }
     
 }

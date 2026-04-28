@@ -470,7 +470,7 @@
      JavaScript
 ══════════════════════════════════════════ -->
 <script>
-    // ── 네비게이션 데이터 (index.html과 동일) ─────────────────────
+    // ── 네비게이션 데이터 ──────────────────────────────────────
     const navItems = [
         { title: "문제",  subs: ["최신 문제", "인기 문제", "기초 다지기", "심화 챌린지"] },
         { title: "게시판", subs: ["커뮤니티", "질문답변", "팁/노하우", "공지사항"], active: true },
@@ -478,7 +478,7 @@
         { title: "랭킹",  subs: ["실시간 순위", "명예의 전당", "그룹 랭킹"] }
     ];
 
-    // ── 네비게이션 렌더링 ─────────────────────────────────────────
+    // ── 네비게이션 렌더링 ──────────────────────────────────────
     function initNav() {
         const navCont = document.getElementById('nav-loop-container');
         navItems.forEach(item => {
@@ -491,7 +491,6 @@
                 </div>`;
             navCont.appendChild(div);
         });
-        // 게시판 드롭다운 항목 클릭 시 카테고리 필터 적용
         const boardDropdown = navCont.querySelectorAll('.nav-item')[1]
                                      .querySelectorAll('.dropdown-item');
         const subCategoryMap = {
@@ -508,30 +507,27 @@
         lucide.createIcons();
     }
 
-    // ── 상태 변수 ─────────────────────────────────────────────────
-    // ✅ PostController @RequestMapping("/posts") 와 일치
+    // ── 상태 변수 ──────────────────────────────────────────────
     const API_BASE  = '/posts';
     const PAGE_SIZE = 10;
-    let currentPage = 0;
+    let currentPage     = 0;
     let currentCategory = '';
 
-    // ── 초기화 ───────────────────────────────────────────────────
+    // ── 초기화 ─────────────────────────────────────────────────
     window.onload = function () {
         initNav();
-        initAuthUI();
+        initAuthUI();   // ✅ 서버 세션 기반으로 수정됨
         loadPosts(0);
         bindEvents();
     };
 
-    // ── 이벤트 바인딩 ────────────────────────────────────────────
+    // ── 이벤트 바인딩 ──────────────────────────────────────────
     function bindEvents() {
-        // 엔터 검색
         document.getElementById('searchInput')
             .addEventListener('keydown', e => {
                 if (e.key === 'Enter') loadPosts(0);
             });
 
-        // 카테고리 탭 클릭
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 setActiveCategory(btn.dataset.category);
@@ -539,58 +535,63 @@
             });
         });
 
-        // 글로벌 검색 엔터
         document.getElementById('globalSearch')
             .addEventListener('keydown', e => {
                 if (e.key === 'Enter') onGlobalSearch();
             });
     }
 
-    // ── 카테고리 탭 활성화 ───────────────────────────────────────
+    // ── 카테고리 탭 활성화 ────────────────────────────────────
     function setActiveCategory(cat) {
         currentCategory = cat;
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.category === cat);
         });
-        // select 동기화 (없으면 무시)
-        const sel = document.getElementById('categoryFilter');
-        if (sel) sel.value = cat;
     }
 
-    // ── 글로벌 검색 (nav 검색창) ─────────────────────────────────
+    // ── 글로벌 검색 ───────────────────────────────────────────
     function onGlobalSearch() {
         const keyword = document.getElementById('globalSearch').value.trim();
         document.getElementById('searchInput').value = keyword;
         loadPosts(0);
     }
 
-    // ── 로그인 상태 UI ───────────────────────────────────────────
-    function initAuthUI() {
-        const token      = localStorage.getItem('accessToken');
-        const loginBtn   = document.getElementById('navLoginBtn');
-        const writeBtnEl = document.getElementById('writeBtnEl');
+	 // ────────────────────────────────────────────────────────
+	 // ✅ 교체 1: initAuthUI() — localStorage → 서버 API 방식
+	 // ────────────────────────────────────────────────────────
+	 async function initAuthUI() {
+	     const loginBtn   = document.getElementById('navLoginBtn');
+	     const writeBtnEl = document.getElementById('writeBtnEl');
+	
+	     try {
+	         const res  = await fetch('/api/auth/status', { credentials: 'same-origin' });
+	         const data = await res.json();
+	
+	         if (data.loggedIn) {
+	             loginBtn.textContent = '로그아웃';
+	             loginBtn.onclick     = logout;
+	             writeBtnEl.style.display = 'inline-block';
+	         } else {
+	             loginBtn.textContent = '로그인';
+	             loginBtn.onclick     = () => location.href = '/login';
+	             writeBtnEl.style.display = 'none';
+	         }
+	     } catch (e) {
+	         loginBtn.textContent = '로그인';
+	         loginBtn.onclick     = () => location.href = '/login';
+	         writeBtnEl.style.display = 'none';
+	     }
+	 }
 
-        if (token) {
-            loginBtn.textContent = '로그아웃';
-            loginBtn.onclick = logout;
-            writeBtnEl.style.display = 'inline-block';
-        } else {
-            loginBtn.textContent = '로그인';
-            loginBtn.onclick = () => location.href = '/login';
-            writeBtnEl.style.display = 'none';
-        }
-    }
+	// ────────────────────────────────────────────────────────
+	// ✅ 교체 2: logout() — Spring Security 세션 로그아웃
+	// ────────────────────────────────────────────────────────
+	function logout() {
+	    location.href = '/logout';
+	}
 
-    function logout() {
-        localStorage.removeItem('accessToken');
-        showToast('로그아웃 되었습니다.');
-        setTimeout(() => location.reload(), 1200);
-    }
 
-    // ── 게시글 목록 API 호출 ─────────────────────────────────────
-    // ✅ GET /posts?category=FREE&keyword=스프링&page=0&size=10
-    // ✅ @EnableSpringDataWebSupport(VIA_DTO) 응답 구조:
-    //    { "content": [...], "page": { "totalElements", "totalPages", "number", "size" } }
+    // ── 게시글 목록 API 호출 ──────────────────────────────────
     async function loadPosts(page) {
         currentPage = page;
 
@@ -605,7 +606,16 @@
         tbody.innerHTML = '<tr class="state-row"><td colspan="8">⏳ 불러오는 중...</td></tr>';
 
         try {
-            const res = await fetch(url, { headers: getAuthHeader() });
+        	// ────────────────────────────────────────────────────────
+        	// ✅ 교체 3: loadPosts() 안의 fetch 호출 — credentials 추가
+        	// ────────────────────────────────────────────────────────
+        	// 기존:
+        	// const res = await fetch(url, { headers: getAuthHeader() });
+        	// 변경:
+        	const res = await fetch(url, {
+        	    headers: { 'Content-Type': 'application/json' },
+        	    credentials: 'same-origin'
+        	});
 
             if (res.status === 401) {
                 tbody.innerHTML =
@@ -624,20 +634,15 @@
         }
     }
 
-    // ── 게시글 목록 렌더링 ──────────────────────────────────────
-    // ✅ VIA_DTO 구조: data.page 안에 totalElements, totalPages, number
-    // ✅ null-safe: data, data.page, data.content 모두 null 체크
-    //    → DB 데이터 없을 때 EL1007E 방지
+    // ── 게시글 목록 렌더링 ────────────────────────────────────
     function renderPostList(data) {
         const tbody = document.getElementById('postTableBody');
 
-        // ── null-safe 파싱 ─────────────────────────────────────
-        const posts         = data?.content        ?? [];
-        const pageInfo      = data?.page           ?? {};
+        const posts         = data?.content          ?? [];
+        const pageInfo      = data?.page             ?? {};
         const totalPages    = pageInfo?.totalPages   ?? 0;
         const totalElements = pageInfo?.totalElements ?? 0;
         const currentNum    = pageInfo?.number        ?? 0;
-        // ────────────────────────────────────────────────────────
 
         if (posts.length === 0) {
             tbody.innerHTML =
@@ -647,10 +652,8 @@
         }
 
         tbody.innerHTML = posts.map((post, idx) => {
-            // 내림차순 번호
             const rowNum   = totalElements - (currentNum * PAGE_SIZE) - idx;
-            const pinBadge = post?.isPinned
-                ? '<span class="pin-badge">📌</span>' : '';
+            const pinBadge = post?.isPinned ? '<span class="pin-badge">📌</span>' : '';
             const catRaw   = post?.category ?? 'FREE';
             const catClass = `cat-${catRaw}`;
             const catLabel = categoryLabel(catRaw);
@@ -681,20 +684,15 @@
         renderPagination(totalPages, currentNum);
     }
 
-    // ── 페이지네이션 렌더링 ──────────────────────────────────────
+    // ── 페이지네이션 렌더링 ───────────────────────────────────
     function renderPagination(totalPages, currentPageNum) {
         const pag = document.getElementById('pagination');
-
-        // ✅ null-safe: totalPages가 null/undefined/0 이면 페이지네이션 숨김
         if (!totalPages || totalPages <= 1) { pag.innerHTML = ''; return; }
 
         let html = '';
-
-        // 이전 버튼
         html += `<button onclick="loadPosts(${currentPageNum - 1})"
                     ${currentPageNum === 0 ? 'disabled' : ''}>◀ 이전</button>`;
 
-        // 페이지 번호 (현재 기준 앞뒤 2개씩 최대 5개)
         const startPage = Math.max(0, currentPageNum - 2);
         const endPage   = Math.min(totalPages - 1, currentPageNum + 2);
         for (let i = startPage; i <= endPage; i++) {
@@ -702,14 +700,13 @@
                         onclick="loadPosts(${i})">${i + 1}</button>`;
         }
 
-        // 다음 버튼
         html += `<button onclick="loadPosts(${currentPageNum + 1})"
                     ${currentPageNum >= totalPages - 1 ? 'disabled' : ''}>다음 ▶</button>`;
 
         pag.innerHTML = html;
     }
 
-    // ── 라우팅 ──────────────────────────────────────────────────
+    // ── 라우팅 ───────────────────────────────────────────────
     function goToDetail(postId) {
         if (!postId) return;
         window.location.href = `/posts/${postId}/view`;
@@ -719,14 +716,7 @@
         window.location.href = '/posts/write';
     }
 
-    // ── 유틸 ─────────────────────────────────────────────────────
-    function getAuthHeader() {
-        const token = localStorage.getItem('accessToken');
-        return token
-            ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-            : { 'Content-Type': 'application/json' };
-    }
-
+    // ── 유틸 ─────────────────────────────────────────────────
     function categoryLabel(cat) {
         const map = { FREE: '자유', NOTICE: '공지', QNA: 'Q&A', REVIEW: '후기' };
         return map[cat] ?? cat ?? '-';
@@ -738,10 +728,10 @@
         const now  = new Date();
         const diff = now - d;
 
-        if (isNaN(diff))          return '-';
-        if (diff < 60_000)        return '방금 전';
-        if (diff < 3_600_000)     return `${Math.floor(diff / 60_000)}분 전`;
-        if (diff < 86_400_000)    return `${Math.floor(diff / 3_600_000)}시간 전`;
+        if (isNaN(diff))       return '-';
+        if (diff < 60_000)     return '방금 전';
+        if (diff < 3_600_000)  return `${Math.floor(diff / 60_000)}분 전`;
+        if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}시간 전`;
 
         return `${d.getFullYear()}.`
              + `${String(d.getMonth() + 1).padStart(2, '0')}.`
