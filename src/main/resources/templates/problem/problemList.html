@@ -11,12 +11,12 @@
 <body class="flex flex-col">
 <nav class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 px-8 py-2 text-slate-800">
     <div class="w-full mx-auto space-y-3">
-        <div class="topbar-main">
-            <div class="text-3xl font-extrabold text-green-600 tracking-tight cursor-pointer" th:onclick="|location.href='@{/problem/problemList}'|">
+        <div class="topbar-main" style="display: flex; align-items: center; justify-content: space-between; gap: 2rem;">
+            <div class="text-3xl font-extrabold text-green-600 tracking-tight cursor-pointer" th:onclick="|location.href='@{/main}'|">
                 Passfail
             </div>
 
-            <div class="topbar-search border border-slate-300 rounded-2xl flex items-center px-4 bg-white focus-within:border-green-500 focus-within:ring-4 focus-within:ring-green-500/10 transition-all">
+            <div class="topbar-search border border-slate-300 rounded-2xl flex items-center px-4 bg-white focus-within:border-green-500 focus-within:ring-4 focus-within:ring-green-500/10 transition-all" style="flex: 1; max-width: 40rem;">
                 <i data-lucide="search" size="18" class="text-slate-400"></i>
                 <input type="text" id="problemSearchInput" placeholder="문제, 태그, 설명을 검색해 보세요" class="w-full p-3 bg-transparent outline-none font-semibold text-slate-600">
             </div>
@@ -26,13 +26,14 @@
                     id="login-button"
                     type="button"
                     class="px-6 py-2.5 border border-slate-300 rounded-xl font-bold hover:bg-slate-50 transition-all"
+                    th:onclick="|location.href='@{/login}'|"
                     th:classappend="${loggedIn} ? ' hidden' : ''">로그인</button>
                 <div
                     id="member-menu"
                     class="items-center gap-3"
                     th:classappend="${loggedIn} ? ' flex' : ' hidden'">
                     <span class="font-bold text-slate-700" th:text="|${currentUsername}님 환영합니다|">사용자님 환영합니다</span>
-                    <button type="button" class="px-6 py-2.5 bg-green-grad text-white rounded-xl font-bold shadow-lg shadow-green-500/20">마이페이지</button>
+                    <button type="button" class="px-6 py-2.5 bg-green-grad text-white rounded-xl font-bold shadow-lg shadow-green-500/20" th:onclick="|location.href='/mypage/' + '${currentUsername}'|">마이페이지</button>
                 </div>
             </div>
         </div>
@@ -291,6 +292,6 @@
     </main>
 </div>
 
-<script th:src="@{/js/problem/problemList.js}" src="/js/problem/problemList.js"></script>
+<script th:src="@{/js/problem/problemList.js}"></script>
 </body>
 </html>

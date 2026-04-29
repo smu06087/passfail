@@ -82,7 +82,7 @@
 </div>
 
 <div class="top-nav">
-    <h1>Passfail <span class="problem-title" th:text="${problem.title}">Title</span></h1>
+    <h1><a href="/main" style="color: inherit; text-decoration: none;">Passfail</a> <span class="problem-title" th:text="${problem.title}">Title</span></h1>
     <div style="display:flex; align-items:center; gap:15px;">
         <button onclick="toggleTheme()" id="themeBtn" style="background:none; border:none; color:white; cursor:pointer; font-size:18px; outline:none;">🌙</button>
     </div>
@@ -110,7 +110,7 @@
 </div>
 
 <div class="bottom-bar">
-    <a href="/codingtest" class="btn-pg btn-outline" style="text-decoration:none; margin-right:auto; display:flex; align-items:center; justify-content:center;">나가기</a>
+    <a href="/problem/problemList" class="btn-pg btn-outline" style="text-decoration:none; margin-right:auto; display:flex; align-items:center; justify-content:center;">나가기</a>
     <button id="aiReviewBtn" class="btn-pg btn-ai" onclick="openAiReview()">AI 코드 리뷰</button>
     <button id="runBtn" class="btn-pg btn-outline" onclick="runCode()">코드 실행</button>
     <button id="submitBtn" class="btn-pg btn-blue" onclick="submitCode()">제출 후 채점</button>

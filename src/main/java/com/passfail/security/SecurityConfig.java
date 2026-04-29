@@ -28,7 +28,7 @@ public class SecurityConfig {
                 "/api/member/**", "/api/auth/status"
             ).permitAll()
             .requestMatchers("/css/**", "/js/**", "/image/**").permitAll()
-            .requestMatchers("/main", "/codingtest", "/codingtest/**").permitAll()
+            .requestMatchers("/main", "/codingtest/**").permitAll()
             .requestMatchers("/board", "/posts/**").permitAll()
             .requestMatchers("/api/posts/**").authenticated()
             .requestMatchers(

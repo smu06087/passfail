@@ -39,26 +39,6 @@ public class ProblemController {
         return "problem/problemList";
     }
 
-    @GetMapping("/{id}")
-    public String problemDetail(@PathVariable("id") Long id, Model model) {
-        ProblemResponse problem = problemService.getProblemResponse(id);
-        model.addAttribute("problem", problem);
-        return "codingtest/editor";
-    }
-
-    @PostMapping("/{id}/submit")
-    public String submitSolution(@PathVariable("id") Long id,
-                                 @RequestParam("code") String code,
-                                 @RequestParam("language") ProgrammingLanguage language,
-                                 Authentication authentication,
-                                 Model model) {
-        if (authentication == null) return "redirect:/login";
-
-        SubmissionEntity submission = problemService.submitSolution(authentication.getName(), id, code, language);
-        model.addAttribute("submission", submission);
-        return "problem/problemList"; // Adjusting result to list for now or you might have a result page
-    }
-
     // --- Methods from ProblemController1 (Admin / Problem Management) ---
 
     @GetMapping("/problemList")

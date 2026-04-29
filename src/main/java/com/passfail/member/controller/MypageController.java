@@ -2,6 +2,8 @@ package com.passfail.member.controller;
 
 import com.passfail.member.dto.MemberInfoResponse;
 import com.passfail.member.service.MypageService;
+import com.passfail.member.repository.MemberRepository;
+import com.passfail.entity.MemberEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -19,11 +21,20 @@ import java.security.Principal;
 public class MypageController {
 
     private final MypageService mypageService;
+    private final MemberRepository memberRepository;
 
     @GetMapping
     public String myPage(Principal principal) {
         if (principal == null) return "redirect:/login";
-        return "redirect:/mypage/" + principal.getName();
+        
+        // Find the actual username (nickname) from DB because principal.getName() 
+        // might return a provider-specific unique ID for social accounts.
+        String username = memberRepository.findByUsername(principal.getName())
+                .map(com.passfail.entity.MemberEntity::getUsername)
+                .orElse(principal.getName());
+                
+        // Use an absolute redirect path
+        return "redirect:/mypage/" + username;
     }
 
     @GetMapping("/{username}")

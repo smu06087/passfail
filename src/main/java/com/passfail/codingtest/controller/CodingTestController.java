@@ -24,13 +24,6 @@ public class CodingTestController {
     private final CodeExecutionService executionService;
     private final com.passfail.ai.service.AiCodeReviewService aiService;
 
-    @GetMapping
-    public String problemListPage(Model model) {
-        List<ProblemResponse> problems = problemService.getActiveProblems();
-        model.addAttribute("problems", problems);
-        return "codingtest/list";
-    }
-
     @PostMapping("/{problemId}/ai-review")
     @ResponseBody
     public Map<String, String> aiReview(@PathVariable("problemId") Long problemId, 

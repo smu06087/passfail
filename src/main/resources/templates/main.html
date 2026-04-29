@@ -19,7 +19,6 @@
 
         .bg-green-grad { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
 
-        /* [Navigation Box] 동엽님이 요청하신 박스형 메뉴 스타일 */
         .nav-box {
             border: 1px solid #e2e8f0;
             border-radius: 14px;
@@ -42,7 +41,6 @@
             box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.1);
         }
 
-        /* [Dropdown] 드롭다운 애니메이션 */
         .nav-item { position: relative; }
         .dropdown {
             display: none;
@@ -74,7 +72,6 @@
         }
         .dropdown-item:hover { background: #f0fdf4; color: #16a34a; }
 
-        /* [Main UI Components] */
         .glass-card {
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(14px);
@@ -104,7 +101,7 @@
         <div class="w-full mx-auto space-y-4">
             <!-- 상단 로고 및 검색 바 -->
             <div class="flex items-center justify-between gap-8">
-                <div class="text-3xl font-black text-green-600 tracking-tighter cursor-pointer" onclick="location.reload()">
+                <div class="text-3xl font-black text-green-600 tracking-tighter cursor-pointer" onclick="location.href='/main'">
                     Passfail
                 </div>
                 
@@ -119,7 +116,7 @@
                     </div>
                     <div id="member-section" th:if="${username != null}" class="flex items-center gap-5">
                         <span class="font-black text-sm text-slate-500"><span class="text-green-600" th:text="${username}">동엽</span>님 접속</span>
-                        <a href="/mypage" class="px-6 py-2.5 bg-green-grad text-white rounded-xl font-black text-sm shadow-lg shadow-green-500/20">마이페이지</a>
+                        <a th:href="@{/mypage/{name}(name=${currentUsername})}" class="px-6 py-2.5 bg-green-grad text-white rounded-xl font-black text-sm shadow-lg shadow-green-500/20">마이페이지</a>
                         <a href="/logout" class="text-xs font-bold text-slate-400 hover:text-slate-600">로그아웃</a>
                     </div>
                 </div>
@@ -151,7 +148,7 @@
         <div id="content-jobtest" class="hidden grid grid-cols-1 md:grid-cols-2 gap-12"></div>
     </main>
 
-    <!-- 5. AI 질의응답 사이드바 -->
+    <!-- AI 질의응답 사이드바 -->
     <aside id="ai-sidebar" class="fixed right-0 top-1/2 -translate-y-1/2 z-40 sidebar-transition translate-x-[320px] hover:translate-x-0">
         <div class="flex items-center">
             <div class="bg-green-grad text-white p-5 rounded-l-[2.5rem] cursor-pointer flex flex-col items-center gap-3 shadow-2xl">
@@ -178,7 +175,6 @@
     </footer>
 
     <script>
-        // [Data Architecture]
         const navItems = [
             { title: "문제", url: "/problem/problemList", subs: ["최신 문제", "인기 문제", "기초 다지기", "심화 챌린지"] },
             { title: "게시판", url: "/board", subs: ["커뮤니티", "질문답변", "팁/노하우", "공지사항"] },
@@ -197,9 +193,7 @@
             ]
         };
 
-        // [Iteration - Loop Rendering]
         function init() {
-            // 카테고리 메뉴 생성
             const navCont = document.getElementById('nav-loop-container');
             navItems.forEach(item => {
                 const div = document.createElement('div');
@@ -209,7 +203,6 @@
                 navCont.appendChild(div);
             });
 
-            // 카드 생성 함수
             const renderCards = (type, targetId) => {
                 const target = document.getElementById(targetId);
                 cardData[type].forEach(c => {
@@ -232,7 +225,6 @@
             lucide.createIcons();
         }
 
-        // [Interaction Logic]
         function switchTab(tab) {
             const isBeginner = tab === 'beginner';
             document.getElementById('tab-beginner').classList.toggle('tab-active', isBeginner);

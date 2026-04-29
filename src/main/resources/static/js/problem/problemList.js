@@ -111,7 +111,7 @@ function enterProblem() {
     if (!currentProblemId || currentProblemId === "-") {
         return;
     }
-    location.href = '/problem/' + currentProblemId;
+    location.href = '/codingtest/' + currentProblemId;
 }
 
 function syncFilterGroup(group) {
