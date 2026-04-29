@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${formMode == 'edit' ? '문제 수정' : '문제 등록'}">문제 등록</title>
+    <link rel="stylesheet" th:href="@{/css/problem/problemCreate.css}" href="/css/problem/problemCreate.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="topbar-left">
+        <div class="logo">
+            <div class="logo-icon">&lt;/&gt;</div>
+            <div>Passfail Admin</div>
+        </div>
+
+        <nav class="admin-menu">
+            <a th:href="@{/problem/problemList}" href="/problem/problemList">문제 목록</a>
+            <a th:href="@{/problem/problemCreate}" href="/problem/problemCreate" th:classappend="${formMode == 'create'} ? ' active' : ''">문제 등록</a>
+            <a th:if="${formMode == 'edit'}" class="active">문제 수정</a>
+        </nav>
+    </div>
+
+    <div class="topbar-right">
+        <div class="admin-name">
+            <div class="admin-face">A</div>
+            <div th:text="${currentUsername != null ? currentUsername : '관리자'}">관리자</div>
+        </div>
+        <button type="button" class="logout-btn" onclick="location.href='/logout'">로그아웃</button>
+    </div>
+</header>
+
+<div class="page">
+    <aside class="side-card">
+        <div class="side-title">
+            <div class="circle-icon">i</div>
+            <div th:text="${formMode == 'edit' ? '수정 가이드' : '등록 가이드'}">등록 가이드</div>
+        </div>
+
+        <div class="guide-box">
+            <h4>작성 순서</h4>
+            <div class="guide-step"><span class="step-num">1</span><span>기본 정보 입력</span></div>
+            <div class="guide-step"><span class="step-num">2</span><span>문제 설명 작성</span></div>
+            <div class="guide-step"><span class="step-num">3</span><span>태그 추가</span></div>
+            <div class="guide-step"><span class="step-num">4</span><span>예제 입출력 작성</span></div>
+            <div class="guide-step"><span class="step-num">5</span><span>테스트케이스 작성</span></div>
+        </div>
+
+        <div class="tip-box">
+            <div class="tip-title">작성 팁</div>
+            <div class="tip-text">
+                제목은 짧고 명확하게, 설명은 입력과 출력 형식을 빠짐없이 적는 편이 좋습니다.
+                예제 입력과 출력은 최소 1개 이상 등록해 주세요.
+            </div>
+        </div>
+    </aside>
+
+    <div class="content">
+        <section class="main-card">
+            <div class="main-header">
+                <div class="header-left">
+                    <div class="header-face">P</div>
+                    <div class="header-text">
+                        <h1 th:text="${formMode == 'edit' ? '문제 수정' : '문제 등록'}">문제 등록</h1>
+                        <p th:text="${formMode == 'edit' ? '기존 문제 정보를 불러와 수정한 뒤 바로 반영할 수 있습니다.' : '새 문제를 등록하고 미리보기로 내용을 바로 확인할 수 있습니다.'}">
+                            새 문제를 등록하고 미리보기로 내용을 바로 확인할 수 있습니다.
+                        </p>
+                    </div>
+                </div>
+                <div class="status-badge" id="modeBadge">임시 작성 중</div>
+            </div>
+
+            <form id="problemForm">
+                <div class="section">
+                    <div class="section-title">
+                        <div class="section-badge">1</div>
+                        <div>기본 정보</div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="title">문제 제목</label>
+                            <input type="text" id="title" class="form-control" placeholder="예: 배열 합 구하기">
+                        </div>
+                        <div class="form-group">
+                            <label for="category">카테고리</label>
+                            <input type="text" id="category" class="form-control" placeholder="예: 구현 / 문자열 / 그래프">
+                        </div>
+                    </div>
+
+                    <div class="grid-3">
+                        <div class="form-group">
+                            <label for="difficulty">난이도</label>
+                            <select id="difficulty" class="form-select">
+                                <option value="EASY">EASY</option>
+                                <option value="MEDIUM">MEDIUM</option>
+                                <option value="HARD">HARD</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="timeLimit">시간 제한</label>
+                            <input type="text" id="timeLimit" class="form-control" value="2000" placeholder="밀리초 단위">
+                        </div>
+                        <div class="form-group">
+                            <label for="memoryLimit">메모리 제한</label>
+                            <input type="text" id="memoryLimit" class="form-control" value="256" placeholder="MB 단위">
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="status">문제 상태</label>
+                            <select id="status" class="form-select">
+                                <option value="DRAFT">임시 저장</option>
+                                <option value="PUBLISHED">공개</option>
+                                <option value="ARCHIVED">보관</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="acceptRate">초기 정답률</label>
+                            <input type="text" id="acceptRate" class="form-control" value="0">
+                            <div class="help-text">처음 등록 시 0으로 저장하고 이후 실제 제출 결과에 따라 변경할 수 있습니다.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">
+                        <div class="section-badge">2</div>
+                        <div>문제 설명</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="shortDesc">간단 설명</label>
+                        <input type="text" id="shortDesc" class="form-control" placeholder="예: N개의 정수를 입력받아 합을 출력하는 기본 문제">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">상세 설명</label>
+                        <textarea id="description" class="form-textarea long-textarea" placeholder="문제 설명을 입력해 주세요."></textarea>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">
+                        <div class="section-badge">3</div>
+                        <div>태그 추가</div>
+                    </div>
+
+                    <div class="tag-row">
+                        <input type="text" id="tagInput" class="form-control" placeholder="예: 구현, 문자열, BFS">
+                        <button type="button" class="tag-add-btn" onclick="addTag()">추가</button>
+                    </div>
+
+                    <div class="tag-list" id="tagList"></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">
+                        <div class="section-badge">4</div>
+                        <div>예제 입출력</div>
+                    </div>
+
+                    <div id="sampleContainer"></div>
+
+                    <button type="button" class="sample-add" onclick="addSample()">+ 예제 추가</button>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">
+                        <div class="section-badge">5</div>
+                        <div>테스트케이스</div>
+                    </div>
+
+                    <div class="help-text">실제 채점에 사용할 숨김 테스트 입력과 기대 출력입니다.</div>
+
+                    <div id="testCaseContainer"></div>
+
+                    <button type="button" class="sample-add test-case-add" onclick="addTestCase()">+ 테스트케이스 추가</button>
+                </div>
+
+                <div class="action-row">
+                    <button type="button" class="btn btn-reset" onclick="resetForm()">초기화</button>
+                    <button type="button" class="btn btn-save" onclick="saveDraft()">임시 저장</button>
+                    <button type="button" class="btn btn-submit" id="submitButton" onclick="submitProblem()">문제 등록</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="preview-card">
+            <div class="preview-title">
+                <div class="circle-icon">P</div>
+                <div>미리보기</div>
+            </div>
+
+            <div class="preview-box">
+                <div class="preview-star">*</div>
+                <div class="preview-content">
+                    <h3 id="previewTitle">문제 제목을 입력해 주세요.</h3>
+                    <div class="preview-meta">
+                        <span class="preview-difficulty easy" id="previewDifficulty">EASY</span>
+                        <span class="preview-rate" id="previewRate">정답률 0%</span>
+                    </div>
+                    <p id="previewText">등록 버튼을 누르기 전에 여기에 내용을 확인할 수 있습니다.</p>
+                    <div class="preview-tags" id="previewTags">
+                        <span class="preview-tag">태그 없음</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    window.problemFormConfig = {
+        mode: [[${formMode}]],
+        submitUrl: [[${formMode == 'edit' && problemData != null ? '/problem/api/problems/' + problemData.problemId : '/problem/api/problems'}]],
+        problemListUrl: [[@{/problem/problemList}]],
+        editMethod: [[${formMode == 'edit' ? 'PUT' : 'POST'}]],
+        initialProblem: [[${problemData}]]
+    };
+</script>
+<script th:src="@{/js/problem/problemCreate.js}" src="/js/problem/problemCreate.js"></script>
+</body>
+</html>

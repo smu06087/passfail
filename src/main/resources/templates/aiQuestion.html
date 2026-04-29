@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="aiQuestion">
+    <link rel="stylesheet" th:href="@{/css/aiQuestion.css}" href="/css/aiQuestion.css">
+
+    <div class="ai-chat-widget" id="aiChatWidget" data-session-id="">
+        <button type="button" class="ai-chat-fab" id="aiChatFab" aria-label="Open AI chat">
+            <span class="ai-chat-fab-label">AI</span>
+        </button>
+
+        <section class="ai-chat-panel" id="aiChatPanel" aria-hidden="true">
+            <header class="ai-chat-header">
+                <div>
+                    <strong class="ai-chat-title">AI Assistant</strong>
+                    <p class="ai-chat-subtitle">Ask questions and get quick help.</p>
+                </div>
+                <button type="button" class="ai-chat-close" id="aiChatClose" aria-label="Close AI chat">x</button>
+            </header>
+
+            <div class="ai-chat-messages" id="aiChatMessages">
+                <article class="ai-chat-message ai-chat-message-assistant">
+                    <p>Hello. Ask your question and I will respond here.</p>
+                </article>
+            </div>
+
+            <form class="ai-chat-form" id="aiChatForm">
+                <label class="ai-chat-label" for="aiChatInput">Message</label>
+                <textarea
+                    id="aiChatInput"
+                    class="ai-chat-input"
+                    name="message"
+                    rows="3"
+                    placeholder="Type your question"
+                    maxlength="1000"
+                    required
+                ></textarea>
+                <div class="ai-chat-actions">
+                    <span class="ai-chat-status" id="aiChatStatus"></span>
+                    <button type="submit" class="ai-chat-submit" id="aiChatSubmit">Send</button>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <script th:src="@{/js/aiQuestion.js}" src="/js/aiQuestion.js"></script>
+</th:block>
+</body>
+</html>

@@ -180,7 +180,7 @@
     <script>
         // [Data Architecture]
         const navItems = [
-            { title: "문제", url: "/codingtest", subs: ["최신 문제", "인기 문제", "기초 다지기", "심화 챌린지"] },
+            { title: "문제", url: "/problem/problemList", subs: ["최신 문제", "인기 문제", "기초 다지기", "심화 챌린지"] },
             { title: "게시판", url: "/board", subs: ["커뮤니티", "질문답변", "팁/노하우", "공지사항"] },
             { title: "대회", url: "#", subs: ["현재 진행", "참가 신청", "결과 조회"] },
             { title: "랭킹", url: "#", subs: ["실시간 순위", "명예의 전당", "그룹 랭킹"] }
@@ -215,6 +215,7 @@
                 cardData[type].forEach(c => {
                     const card = document.createElement('div');
                     card.className = "glass-card p-12 hover:scale-[1.03] cursor-pointer transition-all duration-300 shadow-xl group border-2 border-transparent hover:border-green-200";
+                    card.onclick = () => location.href = '/problem/problemList';
                     card.innerHTML = `
                         <div class="w-20 h-20 ${c.bg} border border-slate-100 rounded-3xl flex items-center justify-center mb-8 ${c.color} group-hover:scale-110 transition-transform">
                             <i data-lucide="${c.icon}" size="36"></i>
