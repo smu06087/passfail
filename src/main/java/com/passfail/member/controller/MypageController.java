@@ -33,8 +33,9 @@ public class MypageController {
                 .map(com.passfail.entity.MemberEntity::getUsername)
                 .orElse(principal.getName());
                 
-        // Use an absolute redirect path
-        return "redirect:/mypage/" + username;
+        // Encode for URL safety (Korean characters)
+        String encodedUsername = java.net.URLEncoder.encode(username, java.nio.charset.StandardCharsets.UTF_8);
+        return "redirect:/mypage/" + encodedUsername;
     }
 
     @GetMapping("/{username}")
@@ -103,7 +104,8 @@ public class MypageController {
         
         try {
             mypageService.updateNickname(principal.getName(), nickname);
-            return "redirect:/mypage/" + nickname + "?updateSuccess";
+            String encodedNickname = java.net.URLEncoder.encode(nickname, java.nio.charset.StandardCharsets.UTF_8);
+            return "redirect:/mypage/" + encodedNickname + "?updateSuccess";
         } catch (Exception e) {
             String encodedMessage = java.net.URLEncoder.encode(e.getMessage(), java.nio.charset.StandardCharsets.UTF_8);
             return "redirect:/mypage?error=" + encodedMessage;
