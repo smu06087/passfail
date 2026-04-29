@@ -25,7 +25,7 @@ public class RedisViewService {
      *         false → 24시간 내 중복 조회 (카운트 증가 불필요)
      */
     public boolean isNewView(Long postId, Long memberId) {
-        String key = VIEW_KEY_PREFIX + postId + ":" + memberId;
+        String key = VIEW_KEY_PREFIX + postId + ":" + memberId; //"post:view:44:null"
         Boolean isNew = redisTemplate.opsForValue().setIfAbsent(key, "1", VIEW_TTL);
         return Boolean.TRUE.equals(isNew);
     }

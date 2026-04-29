@@ -3,6 +3,7 @@ package com.passfail.post.service;
 import com.passfail.entity.PostEntity;
 import com.passfail.entity.PostLikeEntity;
 import com.passfail.enums.PostCategory;
+import com.passfail.member.repository.MemberRepository;
 import com.passfail.post.dto.CommentResponseDTO;
 import com.passfail.post.dto.PostCreateRequestDTO;
 import com.passfail.post.dto.PostDetailResponseDTO;
@@ -35,6 +36,9 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final RedisTemplate<String, Object> redisTemplate;
     private final CommentService commentService;
+    private final MemberRepository memberRepository;
+    private final RedisViewService redisViewService;
+    private final RedisLikeService redisLikeService;
 
     private static final long VIEW_CACHE_TTL = 24;
     private static final TimeUnit VIEW_CACHE_UNIT = TimeUnit.HOURS;
@@ -65,20 +69,43 @@ public class PostService {
     }
 
  // ── 게시글 상세 조회 ──────────────────────────────────────────────
-    @Transactional(readOnly = true) // ✅ 읽기 전용 트랜잭션 시작
+    @Transactional // ✅ 조회수 업데이트를 위해 readOnly 제거
     public PostDetailResponseDTO getPostDetail(Long postId, String currentUsername) {
         
-        // ✅ 수정: findById -> findByIdWithMember 사용
+        // 1. 게시글 조회 (Fetch Join으로 Member까지 한 번에 로드)
         PostEntity post = postRepository.findByIdWithMember(postId)
-                .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
+                .orElseThrow(() -> new PostNotFoundException(postId));
 
-        // 댓글 목록 가져오기
-        List<CommentResponseDTO> comments = commentService.getComments(postId);
+        boolean isLiked = false;
+        Long currentMemberId = null;
 
-        // 좋아요 여부 (기존 로직 유지)
-        boolean isLiked = false; 
+        // 2. 로그인 사용자 처리 (조회수 중복 방지 + 좋아요 여부 확인)
+        if (currentUsername != null) {
+            // username으로 memberId 조회
+            var member = memberRepository.findByUsername(currentUsername)
+                    .orElse(null);
 
-        // DTO 변환 (이제 post.getMember()가 이미 로딩되어 있어 에러가 나지 않음)
+            if (member != null) {
+                currentMemberId = member.getMemberId();
+
+                // [A] 조회수 중복 방지 (Redis 활용)
+                if (redisViewService.isNewView(postId, currentMemberId)) {
+                    postRepository.incrementViewCount(postId);
+                    // JPA 1차 캐시 수동 동기화 (화면 표시용)
+                    post.setViewCount(post.getViewCount() + 1);
+                }
+
+                // [B] 좋아요 여부 확인 (기존 RedisLikeService 활용)
+                // 서비스 클래스 상단에 RedisLikeService 주입 확인 필요!
+                isLiked = redisLikeService.isLiked(postId, currentMemberId);
+            }
+        }
+
+        // 3. 댓글 목록 가져오기 (CommentService 활용)
+        // 현재 접속자 ID를 넘겨야 댓글 작성자 본인 확인(isAuthor)이 가능합니다.
+        List<CommentResponseDTO> comments = commentService.getComments(postId, currentMemberId);
+
+        // 4. DTO 변환 및 반환
         return PostDetailResponseDTO.from(post, currentUsername, isLiked, comments);
     }
 
