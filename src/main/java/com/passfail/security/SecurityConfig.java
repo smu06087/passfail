@@ -11,6 +11,8 @@ import org.springframework.security.web.SecurityFilterChain;
 
 import com.passfail.member.service.CustomOAuth2UserService;
 
+import jakarta.servlet.DispatcherType;
+
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
@@ -23,16 +25,23 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable());
 
         http.authorizeHttpRequests(config -> config
+        	.dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
+        		// 2. 관리자(ADMIN)만 접근 가능한 경로
             .requestMatchers(
+                "/ranking/update" // 🏆 랭킹 전체 갱신 API는 관리자 전용
+            ).hasRole("ADMIN")
+        	.requestMatchers(
                 "/", "/login", "/signup", "/forgot-password", "/reset-password",
-                "/api/member/**", "/api/auth/status"
+                "/api/member/**", "/api/auth/status", "/ranking", "/ranking/top"
             ).permitAll()
             .requestMatchers("/css/**", "/js/**", "/image/**").permitAll()
             .requestMatchers("/main", "/codingtest/**").permitAll()
             .requestMatchers("/board", "/posts/**").permitAll()
+            .requestMatchers("/ranking/**", "/ranking-list").permitAll() // 🏆 랭킹 경로 추가 (누구나 볼 수 있게)
             .requestMatchers("/api/posts/**").authenticated()
             .requestMatchers(
-                "/mypage/**",
+            	"/ranking/me/**", // 🏆 내 랭킹 확인은 본인(로그인 유저)만
+            	"/mypage/**",
                 "/codingtest/run/**",
                 "/codingtest/submit/**",
                 "/codingtest/ai-review/**"
