@@ -140,8 +140,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             memberRepository.save(finalMember);
         }
 
-        // 사용자 닉네임을 포함한 커스텀 OAuth2User 반환
-        return new OAuth2Member(oAuth2User, finalMember.getUsername());
+        // 사용자 닉네임과 DB 권한을 포함한 커스텀 OAuth2User 반환
+        java.util.List<org.springframework.security.core.GrantedAuthority> authorities = 
+            org.springframework.security.core.authority.AuthorityUtils.createAuthorityList(finalMember.getRole().name());
+        
+        return new OAuth2Member(oAuth2User, finalMember.getUsername(), authorities);
     }
 
     /**

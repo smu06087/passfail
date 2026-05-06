@@ -392,7 +392,9 @@ public class ProblemService {
 
     private Long resolveCreatedBy(Long createdBy) {
         if (createdBy != null) return createdBy;
-        List<?> rows = entityManager.createNativeQuery("select member_id from members order by member_id limit 1").getResultList();
+        List<?> rows = entityManager.createNativeQuery("select member_id from members order by member_id")
+                .setMaxResults(1)
+                .getResultList();
         if (rows.isEmpty()) throw new IllegalStateException("문제를 등록할 회원 데이터가 없습니다.");
         return toLong(rows.get(0));
     }
@@ -428,9 +430,16 @@ public class ProblemService {
     }
 
     private Long findMemberIdByLoginName(String loginName) {
-        List<?> rows = entityManager.createNativeQuery("select member_id from members where username = :loginName limit 1").setParameter("loginName", loginName).getResultList();
+        List<?> rows = entityManager.createNativeQuery("select member_id from members where username = :loginName")
+                .setParameter("loginName", loginName)
+                .setMaxResults(1)
+                .getResultList();
         if (!rows.isEmpty()) return toLong(rows.get(0));
-        rows = entityManager.createNativeQuery("select member_id from members where email = :loginName limit 1").setParameter("loginName", loginName).getResultList();
+        
+        rows = entityManager.createNativeQuery("select member_id from members where email = :loginName")
+                .setParameter("loginName", loginName)
+                .setMaxResults(1)
+                .getResultList();
         if (!rows.isEmpty()) return toLong(rows.get(0));
         return null;
     }

@@ -171,7 +171,7 @@ public class MypageController {
             
             if (oauthUser instanceof OAuth2Member) {
                 OAuth2Member oldMember = (OAuth2Member) oauthUser;
-                OAuth2Member newMember = new OAuth2Member(oldMember.getOriginalUser(), newNickname);
+                OAuth2Member newMember = new OAuth2Member(oldMember.getOriginalUser(), newNickname, auth.getAuthorities());
                 
                 Authentication newAuth = new OAuth2AuthenticationToken(
                         newMember, 
