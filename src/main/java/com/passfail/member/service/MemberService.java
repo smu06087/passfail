@@ -26,6 +26,10 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * 회원 관련 비즈니스 로직을 처리하는 서비스 클래스
+ * 회원가입, 인증, 비밀번호 관리 및 Spring Security의 UserDetailsService 구현을 담당합니다.
+ */
 @Service
 @RequiredArgsConstructor
 public class MemberService implements UserDetailsService {
@@ -36,6 +40,14 @@ public class MemberService implements UserDetailsService {
     private final PasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender;
 
+    @org.springframework.beans.factory.annotation.Value("${spring.mail.username}")
+    private String fromEmail;
+
+    /**
+     * Spring Security에서 사용자 정보를 로드하는 메서드
+     * @param username 사용자 식별자 (ID)
+     * @return UserDetails 객체
+     */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         MemberEntity member = memberRepository.findByUsername(username)
@@ -48,6 +60,11 @@ public class MemberService implements UserDetailsService {
         );
     }
 
+    /**
+     * 아이디 사용 가능 여부 확인
+     * @param username 확인할 아이디
+     * @return 사용 가능 여부 (7자 이상이고 중복되지 않아야 함)
+     */
     public boolean isUsernameAvailable(String username) {
         if (username == null || username.length() < 7) {
             return false;
@@ -55,6 +72,10 @@ public class MemberService implements UserDetailsService {
         return memberRepository.findByUsername(username).isEmpty();
     }
 
+    /**
+     * 비밀번호 규칙 검증
+     * @param password 검증할 비밀번호
+     */
     public void validatePassword(String password) {
         if (password == null || password.length() < 8) {
             throw new IllegalArgumentException("비밀번호는 8글자 이상이어야 합니다.");
@@ -65,25 +86,37 @@ public class MemberService implements UserDetailsService {
         }
     }
 
+    /**
+     * 이메일 인증 코드 발송
+     * @param email 수신 이메일 주소
+     */
     @Transactional
     public void sendVerificationEmail(String email) {
+        // 6자리 대문자 랜덤 코드 생성
         String code = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         EmailVerificationEntity verification = EmailVerificationEntity.builder()
                 .email(email)
                 .verificationCode(code)
-                .expiryDate(LocalDateTime.now().plusMinutes(5))
+                .expiryDate(LocalDateTime.now().plusMinutes(5)) // 5분 만료
                 .isVerified(false)
                 .build();
         
         emailVerificationRepository.save(verification);
 
         SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail); // 발신자 설정 추가
         message.setTo(email);
         message.setSubject("[Passfail] 이메일 인증 코드");
         message.setText("인증 코드는 [" + code + "] 입니다. 5분 이내에 입력해 주세요.");
         mailSender.send(message);
     }
 
+    /**
+     * 이메일 인증 코드 확인
+     * @param email 인증할 이메일
+     * @param code 입력한 인증 코드
+     * @return 인증 성공 여부
+     */
     @Transactional
     public boolean verifyEmail(String email, String code) {
         EmailVerificationEntity verification = emailVerificationRepository
@@ -101,6 +134,10 @@ public class MemberService implements UserDetailsService {
         return false;
     }
 
+    /**
+     * 회원 가입 및 계정 통합 처리
+     * @param request 가입 요청 DTO
+     */
     @Transactional
     public void register(MemberJoinRequest request) {
         // 1. 아이디 중복 확인 (본인 이메일의 기존 아이디가 아니라면 중복 처리)
@@ -127,7 +164,7 @@ public class MemberService implements UserDetailsService {
             throw new IllegalArgumentException("개인정보 수집 및 이용에 동의해야 합니다.");
         }
 
-        // 4. 이메일로 기존 회원 조회 (소셜 계정 여부 확인)
+        // 4. 이메일로 기존 회원 조회 (소셜 계정 여부 확인 및 통합)
         Optional<MemberEntity> existingMember = memberRepository.findByEmail(request.getEmail());
         MemberEntity member;
 
@@ -137,7 +174,7 @@ public class MemberService implements UserDetailsService {
             if (member.getPassword() != null && !member.getPassword().isEmpty()) {
                 throw new IllegalArgumentException("이미 해당 이메일로 가입된 로컬 계정이 존재합니다. 로그인을 시도해 주세요.");
             }
-            // 소셜 계정에 아이디와 비밀번호를 추가하여 로컬 계정 통합
+            // 기존 소셜 계정에 아이디와 비밀번호를 추가하여 통합
             member.setUsername(request.getUsername());
             member.setPassword(passwordEncoder.encode(request.getPassword()));
             member.setIsActive(true);
@@ -165,6 +202,10 @@ public class MemberService implements UserDetailsService {
         termsConsentRepository.save(consent);
     }
 
+    /**
+     * 비밀번호 재설정 (임시 비밀번호 발급)
+     * @param email 비밀번호를 재설정할 이메일
+     */
     @Transactional
     public void resetPassword(String email) {
         MemberEntity member = memberRepository.findByEmail(email)
@@ -179,6 +220,7 @@ public class MemberService implements UserDetailsService {
 
         // 3. 이메일 발송
         SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail); // 발신자 설정 추가
         message.setTo(email);
         message.setSubject("[Passfail] 임시 비밀번호 안내");
         message.setText("안녕하세요. 요청하신 임시 비밀번호는 [" + tempPassword + "] 입니다.\n" +
@@ -186,6 +228,10 @@ public class MemberService implements UserDetailsService {
         mailSender.send(message);
     }
 
+    /**
+     * 탈퇴한 계정 재활성화
+     * @param username 재활성화할 사용자 ID
+     */
     @Transactional
     public void reactivate(String username) {
         MemberEntity member = memberRepository.findByUsername(username)
