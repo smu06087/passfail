@@ -39,7 +39,7 @@
         </button>
     </div>
 
-    <!-- ✅ 로딩 상태 표시 -->
+    <!-- 로딩 상태 표시 -->
     <div id="loadingSpinner" class="text-center">
         <div class="spinner-border" role="status">
             <span class="visually-hidden">Loading...</span>
@@ -47,11 +47,12 @@
         <p>랭킹 데이터를 불러오는 중...</p>
     </div>
 
-    <!-- ✅ 에러 메시지 표시 -->
+    <!-- 에러 메시지 표시 -->
     <div id="errorAlert" class="alert alert-danger d-none" role="alert">
         <strong>오류 발생!</strong> <span id="errorMsg"></span>
     </div>
 
+    <!-- 랭킹 테이블 -->
     <table class="table table-hover text-center">
         <thead class="table-dark">
             <tr>
@@ -68,7 +69,7 @@
 </div>
 
 <script>
-    // 1️⃣ 페이지 로드 시 랭킹 데이터 가져오기
+    // 페이지 로드 시 랭킹 데이터 가져오기
     document.addEventListener('DOMContentLoaded', () => {
         loadRankingData();
     });
@@ -78,7 +79,6 @@
         const spinner = document.getElementById('loadingSpinner');
         const errorAlert = document.getElementById('errorAlert');
 
-        // 로딩 상태 표시
         spinner.style.display = 'block';
         errorAlert.classList.add('d-none');
         tbody.innerHTML = '';
@@ -103,7 +103,6 @@
                     return;
                 }
 
-                // ✅ 수정: nickname → username 사용
                 data.forEach(user => {
                     let rowClass = '';
                     if (user.currentRank === 1) rowClass = 'rank-1';
@@ -143,7 +142,7 @@
             });
     }
 
-    // 2️⃣ 관리자용 업데이트 버튼
+    // 관리자용 업데이트 버튼
     document.getElementById('updateBtn').addEventListener('click', () => {
         if (!confirm('⚠️ 전체 사용자의 순위를 재계산하시겠습니까?')) return;
 
@@ -154,13 +153,13 @@
             .then(res => {
                 if (res.ok) {
                     alert('✅ 랭킹이 성공적으로 업데이트되었습니다.');
-                    loadRankingData();  // 데이터 다시 로드
+                    location.reload();
                 } else {
-                    alert('❌ 권한이 없거나 오류가 발생했습니다. (관리자만 가능)');
+                    alert('❌ 권한이 없거나 오류가 발생했습니다.');
                 }
             })
             .catch(err => {
-                alert('❌ 오류가 발생했습니다: ' + err.message);
+                alert('❌ 오류: ' + err.message);
             })
             .finally(() => {
                 document.getElementById('updateBtn').disabled = false;
@@ -168,7 +167,7 @@
             });
     });
 
-    // XSS 방지를 위한 HTML 이스케이프
+    // XSS 방지
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
