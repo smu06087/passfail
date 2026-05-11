@@ -7,12 +7,10 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" th:href="@{/css/member/join.css}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body class="pt-20">
-    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+<body>
     <div class="wrap">
-        <h1>회원가입</h1>
+        <h1 onclick="location.href='/main'" style="cursor:pointer;">회원가입</h1>
         <div th:if="${param.error}" class="id-msg" style="color: red; text-align: center; margin-bottom: 10px;" th:text="${param.error}"></div>
         <form id="signupForm" th:action="@{/signup}" method="post">
             <div class="form-group">
@@ -60,7 +58,6 @@
             이미 계정이 있으신가요? <a th:href="@{/login}">로그인</a>
         </div>
     </div>
-    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
     <script th:src="@{/js/member/signup.js}"></script>
 </body>
 </html>

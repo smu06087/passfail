@@ -20,16 +20,12 @@ public class OAuth2Member implements OAuth2User {
     private final Map<String, Object> attributes;
     private final Collection<? extends GrantedAuthority> authorities;
 
-<<<<<<< HEAD
     public OAuth2Member(OAuth2User oauth2User, String customName, Role role) {
-=======
-    public OAuth2Member(OAuth2User oauth2User, String customName, Collection<? extends GrantedAuthority> authorities) {
->>>>>>> 0008cc0d756cead770e15ffbea97496d853c5abf
         this.oauth2User = oauth2User;
         this.customName = customName;
         this.role = role;
         this.attributes = oauth2User.getAttributes();
-        this.authorities = authorities;
+        this.authorities = Collections.singleton(new SimpleGrantedAuthority(role.name()));
     }
 
     @Override
@@ -42,11 +38,7 @@ public class OAuth2Member implements OAuth2User {
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-<<<<<<< HEAD
-        return Collections.singleton(new SimpleGrantedAuthority(role.name()));
-=======
         return authorities;
->>>>>>> 0008cc0d756cead770e15ffbea97496d853c5abf
     }
 
     /**

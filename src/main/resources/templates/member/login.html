@@ -78,13 +78,11 @@
         .error-msg { color: #e74c3c; font-size: 13px; margin-bottom: 15px; }
         .success-msg { color: #27ae60; font-size: 13px; margin-bottom: 15px; }
     </style>
-    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body class="pt-20">
-    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+<body>
 
 <div class="login-container">
-    <h2>Passfail Login</h2>
+    <h2 onclick="location.href='/main'" style="cursor:pointer;">Passfail Login</h2>
 
     <!-- 에러 메시지 처리 -->
     <div th:if="${param.error}" class="error-msg">
@@ -131,6 +129,5 @@
     </div>
 </div>
 
-    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>
 </html>

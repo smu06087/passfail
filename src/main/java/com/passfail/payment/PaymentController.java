@@ -14,7 +14,7 @@ public class PaymentController {
 
     @GetMapping("/payment")
     public String paymentPage() {
-        return "payment";
+        return "payment/payment";
     }
 
     @PostMapping("/api/hint/{problemId}")
@@ -28,7 +28,7 @@ public class PaymentController {
 
     @GetMapping("/payment/success")
     public String success() {
-        return "success";
+        return "payment/success";
     }
 
     @GetMapping("/payment/cancel")

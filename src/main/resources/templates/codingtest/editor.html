@@ -31,9 +31,6 @@
 
         body, html { margin: 0; height: 100vh; width: 100vw; overflow: hidden; background-color: var(--pg-bg); color: var(--pg-text); font-family: "Pretendard", -apple-system, sans-serif; display: flex; flex-direction: column; }
         
-        /* Fixed Navbar Padding Adjustment */
-        body.pt-20 { padding-top: 5rem; }
-
         .top-nav { height: 50px; background-color: var(--pg-navy); color: var(--nav-text); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
         .top-nav h1 { font-size: 15px; margin: 0; font-weight: 500; }
         .top-nav .problem-title { color: #8c9eb3; margin-left: 10px; font-weight: 400; }
@@ -73,7 +70,7 @@
     </style>
     <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body class="pt-20">
+<body>
     <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
 
 <div id="problem-data" style="display:none;" 

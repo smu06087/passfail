@@ -1,40 +1,3 @@
-function initPassfailTopbar() {
-    const navItems = [
-        { title: "문제", subs: ["최신 문제", "인기 문제", "기초 다지기", "심화 챌린지"] },
-        { title: "게시판", subs: ["커뮤니티", "질문답변", "자유게시판", "공지사항"] },
-        { title: "대회", subs: ["현재 진행", "참가 요청", "결과 조회"] },
-        { title: "랭킹", subs: ["실시간 순위", "명예의 전당", "그룹 랭킹"] }
-    ];
-
-    const navCont = document.getElementById("nav-loop-container");
-    const loginButton = document.getElementById("login-button");
-    const memberMenu = document.getElementById("member-menu");
-
-    if (loginButton && memberMenu) {
-        loginButton.addEventListener("click", function() {
-            loginButton.classList.add("hidden");
-            memberMenu.classList.remove("hidden");
-            memberMenu.classList.add("flex");
-        });
-    }
-
-    if (navCont) {
-        navItems.forEach(function(item) {
-            const div = document.createElement("div");
-            div.className = "nav-item";
-            div.innerHTML = `<div class="nav-box">${item.title}</div>
-                <div class="dropdown">${item.subs.map(function(sub) {
-                    return `<div class="dropdown-item">${sub}</div>`;
-                }).join("")}</div>`;
-            navCont.appendChild(div);
-        });
-    }
-
-    if (window.lucide) {
-        lucide.createIcons();
-    }
-}
-
 let currentProblemId = "";
 let currentSearchKeywords = [];
 let searchDebounceTimer = null;
@@ -611,7 +574,6 @@ function escapeHtml(value) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    initPassfailTopbar();
     initFilterGroups();
     initFilterReset();
     initViewSwitch();

@@ -13,12 +13,10 @@
         .btn-recover { width: 100%; padding: 12px; background-color: #4A90E2; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
         .btn-recover:hover { background-color: #357ABD; }
     </style>
-    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body class="pt-20">
-    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+<body>
     <div class="wrap">
-        <h1>계정 복구</h1>
+        <h1 onclick="location.href='/main'" style="cursor:pointer;">계정 복구</h1>
         <div class="recovery-box">
             <p>
                 안녕하세요, <strong th:text="${username}">user</strong>님.<br>
@@ -33,6 +31,5 @@
             </div>
         </div>
     </div>
-    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>
 </html>

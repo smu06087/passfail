@@ -68,7 +68,7 @@ public class OrderController {
             // 📄 [영수증 준비] 결제가 잘 됐으니 화면(HTML)에 보여줄 정보를 모델에 담아요.
             model.addAttribute("info", response);
             
-            return "success"; // 🎉 [성공 화면] success.html(영수증 화면)을 보여줘요!
+            return "payment/success"; // 🎉 [성공 화면] success.html(영수증 화면)을 보여줘요!
             
         } catch (Exception e) {
             // 😭 [결제 실패] 돈이 부족하거나 다른 이유로 실패하면 에러 페이지로 가요.
@@ -83,7 +83,7 @@ public class OrderController {
      */
     @GetMapping("/pay/form")
     public String pay () {
-        return "orderform"; // 📝 주문 양식(orderform.html)으로 이동!
+        return "payment/orderform"; // 📝 주문 양식(orderform.html)으로 이동!
     }
     
     /**
@@ -91,6 +91,6 @@ public class OrderController {
      */
     @GetMapping("/completed")
     public String pa () {
-        return "orderform"; // (참고: 여기는 보통 결제 완료 페이지로 연결해야 해요!)
+        return "payment/orderform"; // (참고: 여기는 보통 결제 완료 페이지로 연결해야 해요!)
     }
 }

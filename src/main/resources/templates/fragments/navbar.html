@@ -75,11 +75,11 @@
             </div>
 
             <div class="flex items-center gap-4">
-                <div id="login-section" th:if="${username == null}" class="flex gap-3">
+                <div id="login-section" th:if="${currentUsername == null}" class="flex gap-3">
                     <a href="/login" class="px-6 py-2.5 border border-slate-300 rounded-xl font-black text-sm hover:bg-slate-50 transition-all">로그인</a>
                 </div>
-                <div id="member-section" th:if="${username != null}" class="flex items-center gap-5">
-                    <span class="font-black text-sm text-slate-500"><span class="text-green-600" th:text="${username}">동엽</span>님 접속</span>
+                <div id="member-section" th:if="${currentUsername != null}" class="flex items-center gap-5">
+                    <span class="font-black text-sm text-slate-500"><span class="text-green-600" th:text="${currentUsername}">동엽</span>님 접속</span>
                     <a th:href="@{/mypage/{name}(name=${currentUsername})}" class="px-6 py-2.5 bg-green-grad text-white rounded-xl font-black text-sm shadow-lg shadow-green-500/20">마이페이지</a>
                     <a href="/logout" class="text-xs font-bold text-slate-400 hover:text-slate-600">로그아웃</a>
                 </div>
@@ -93,13 +93,21 @@
     </div>
 </nav>
 
-<script th:fragment="navbarScript">
+<script th:fragment="navbarScript" th:inline="javascript">
+    /*<![CDATA[*/
+    const isAdmin = /*[[${isAdmin}]]*/ false;
+    const currentUsername = /*[[${currentUsername}]]*/ null;
+
     const navItems = [
+        { title: "메인", url: "/main", subs: ["홈으로", "최신 소식", "이용 가이드"] },
         { title: "문제", url: "/problem/problemList", subs: ["최신 문제", "인기 문제", "기초 다지기", "심화 챌린지"] },
         { title: "게시판", url: "/board", subs: ["커뮤니티", "질문답변", "팁/노하우", "공지사항"] },
-        { title: "대회", url: "#", subs: ["현재 진행", "참가 신청", "결과 조회"] },
-        { title: "랭킹", url: "#", subs: ["실시간 순위", "명예의 전당", "그룹 랭킹"] }
+        { title: "랭킹", url: "/ranking", subs: ["실시간 순위", "명예의 전당", "그룹 랭킹"] }
     ];
+ 
+    if (isAdmin) {
+        navItems.push({ title: "관리자", url: "/admin", subs: ["대시보드", "유저 관리", "문제 관리", "시스템 로그"] });
+    }
 
     function renderNavbar() {
         const navCont = document.getElementById('nav-loop-container');
@@ -107,7 +115,6 @@
         
         navCont.innerHTML = ''; // 기존 내용 초기화
         
-        // 반드시 forEach 루프를 사용하여 메뉴 생성
         navItems.forEach(item => {
             const navItemDiv = document.createElement('div');
             navItemDiv.className = "nav-item";
@@ -120,7 +127,6 @@
             const dropdown = document.createElement('div');
             dropdown.className = "dropdown";
             
-            // 서브 메뉴 생성
             item.subs.forEach(sub => {
                 const dropdownItem = document.createElement('div');
                 dropdownItem.className = "dropdown-item";
@@ -138,12 +144,12 @@
         }
     }
 
-    // DOM 로드 완료 후 실행
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', renderNavbar);
     } else {
         renderNavbar();
     }
+    /*]]>*/
 </script>
 
 </body>
