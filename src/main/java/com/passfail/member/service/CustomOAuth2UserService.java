@@ -125,7 +125,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             memberRepository.save(finalMember);
         }
 
-        return new OAuth2Member(oAuth2User, finalMember.getUsername());
+        return new OAuth2Member(oAuth2User, finalMember.getUsername(), finalMember.getRole());
     }
 
     private void ensureBaseMemberExists(String nickname, String profileImage, Provider provider, String providerId) {

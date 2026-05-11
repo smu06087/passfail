@@ -76,3 +76,5 @@ public class MemberEntity {
     @OneToMany(mappedBy = "members", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SocialAccountEntity> social_accounts = new ArrayList<>();
 }
+
+

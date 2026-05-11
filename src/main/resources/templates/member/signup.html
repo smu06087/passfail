@@ -1,12 +1,16 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>회원가입 - Passfail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" th:href="@{/css/member/join.css}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body>
+<body class="pt-20">
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
     <div class="wrap">
         <h1>회원가입</h1>
         <div th:if="${param.error}" class="id-msg" style="color: red; text-align: center; margin-bottom: 10px;" th:text="${param.error}"></div>
@@ -56,6 +60,7 @@
             이미 계정이 있으신가요? <a th:href="@{/login}">로그인</a>
         </div>
     </div>
+    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
     <script th:src="@{/js/member/signup.js}"></script>
 </body>
 </html>

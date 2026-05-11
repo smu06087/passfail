@@ -23,6 +23,7 @@ public class AiChatSessionEntity {
 
 	@Column(name = "member_id", nullable = false)
 	private Long memberId;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "member_id", insertable = false, updatable = false)
 	private MemberEntity member;

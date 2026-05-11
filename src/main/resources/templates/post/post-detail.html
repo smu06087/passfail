@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${post.title}">게시글 제목</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         * {
             margin: 0;
@@ -305,8 +307,10 @@
             color: #999;
         }
     </style>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body>
+<body class="pt-20">
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
     <div class="container">
         <!-- ── 게시글 헤더 ──────────────────────────────────────────── -->
         <div class="post-header">
@@ -522,5 +526,6 @@
         });
     });
 </script>
+<script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>
 </html>

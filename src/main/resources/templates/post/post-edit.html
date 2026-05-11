@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>게시글 수정 - Passfail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -11,9 +13,8 @@
             background: linear-gradient(135deg, #f8fafc 0%, #f1fdf4 100%);
             color: #1e293b;
             min-height: 100vh;
-            padding: 40px 20px;
         }
-        .container { max-width: 800px; margin: 0 auto; }
+        .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
         .write-box {
             background: white;
             border-radius: 16px;
@@ -78,8 +79,10 @@
         }
         .btn-cancel { background: #f1f5f9; color: #64748b; }
     </style>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body>
+<body class="pt-20">
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
     <div class="container">
         <div class="write-box">
             <h2>📝 게시글 수정</h2>
@@ -148,5 +151,6 @@
             }
         }
     </script>
+    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>
 </html>

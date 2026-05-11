@@ -6,53 +6,21 @@
     <title th:text="${title}">Passfail</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" th:href="@{/css/navbar.css}">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap');
         body { font-family: 'Pretendard', sans-serif; }
     </style>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body>
+<body class="flex flex-col pt-20">
 
-    <!-- Shared Navigation Fragment -->
-    <nav th:fragment="navbar" class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 px-8 py-3 text-slate-800">
-        <div class="w-full mx-auto space-y-4">
-            <!-- 상단 로고 및 검색 바 -->
-            <div class="flex items-center justify-between gap-8">
-                <div class="text-3xl font-black text-green-600 tracking-tighter cursor-pointer" onclick="location.href='/main'">
-                    Passfail
-                </div>
-                
-                <div class="flex-1 max-w-2xl border border-slate-300 rounded-2xl flex items-center px-4 bg-white focus-within:border-green-500 focus-within:ring-4 focus-within:ring-green-500/10 transition-all shadow-inner">
-                    <i data-lucide="search" size="18" class="text-slate-400"></i>
-                    <input type="text" placeholder="검색 기능을 이용해보세요" class="w-full p-3 bg-transparent outline-none font-bold text-slate-600">
-                </div>
-
-                <div class="flex items-center gap-4">
-                    <!-- Updated to use variables provided by ProblemController or global interceptors -->
-                    <div id="login-section" th:if="${loggedIn == null or !loggedIn}" class="flex gap-3">
-                        <a href="/login" class="px-6 py-2.5 border border-slate-300 rounded-xl font-black text-sm hover:bg-slate-50 transition-all">로그인</a>
-                    </div>
-                    <div id="member-section" th:if="${loggedIn != null and loggedIn}" class="flex items-center gap-5">
-                        <span class="font-black text-sm text-slate-500"><span class="text-green-600" th:text="${currentUsername}">사용자</span>님 접속</span>
-                        <a href="/mypage" class="px-6 py-2.5 bg-green-grad text-white rounded-xl font-black text-sm shadow-lg shadow-green-500/20">마이페이지</a>
-                        <a href="/logout" class="text-xs font-bold text-slate-400 hover:text-slate-600">로그아웃</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 하단 카테고리 루프 컨테이너 -->
-            <div id="nav-loop-container" class="flex justify-center gap-6 pb-2">
-                <!-- navbar.js에 의해 채워짐 -->
-            </div>
-        </div>
-        <script th:src="@{/js/navbar.js}"></script>
-    </nav>
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
 
     <main class="flex-1 max-w-6xl mx-auto w-full px-6 py-16">
         <h1 class="text-4xl font-black">Welcome to Passfail</h1>
         <p class="mt-4">Please use the navigation above to explore.</p>
     </main>
 
+    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>
 </html>

@@ -4,21 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>포인트 충전</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body {
             font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
             background-color: #fff;
+            min-height: 100vh;
         }
         .container {
             width: 100%;
             max-width: 500px;
             padding: 20px;
             box-sizing: border-box;
-            margin-top: 20px;
+            margin: 20px auto;
         }
         .header {
             display: flex;
@@ -141,8 +142,11 @@
             box-shadow: 0 0 0 #4c8a13;
         }
     </style>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body>
+<body class="pt-20">
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+
     <div class="container">
         <!-- 헤더 -->
         <div class="header">
@@ -266,5 +270,6 @@
             }
         }
     </script>
+    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>
 </html>

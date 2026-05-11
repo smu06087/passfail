@@ -77,6 +77,9 @@ public class ProblemEntity {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(length = 1000)
+    private String hint;
     
     @Builder.Default
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -37,6 +37,7 @@ public class SecurityConfig {
                 "/codingtest/submit/**",
                 "/codingtest/ai-review/**"
             ).authenticated()
+            .requestMatchers("/admin/**", "/api/admin/**").permitAll()
             .anyRequest().authenticated()
         );
 

@@ -2,7 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>결제 완료</title>
+    <title>결제 성공</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .container { width: 500px; margin: 50px auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px; }
         .title { text-align: center; color: #333; }
@@ -10,48 +12,51 @@
         .label { font-weight: bold; color: #666; }
         .amount { color: #e74c3c; font-weight: bold; }
     </style>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body>
+<body class="pt-20">
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
 
-<div class="container">
-    <h2 class="title">🎉 결제가 완료되었습니다!</h2>
-    <hr>
+    <div class="container">
+        <h2 class="title">방금 결제하신 내역입니다</h2>
+        <hr>
 
-    <div class="info-row">
-        <span class="label">상품명</span>
-        <span th:text="${info.item_name}">바나나</span>
-    </div>
-    <div class="info-row">
-        <span class="label">결제 일시</span>
-        <span th:text="${#strings.replace(info.approved_at, 'T', ' ')}">2026-04-27 17:31:59</span>
-    </div>
-    <div class="info-row">
-        <span class="label">결제 수단</span>
-        <span th:text="${info.payment_method_type}">MONEY</span>
+        <div class="info-row">
+            <span class="label">상품명</span>
+            <span th:text="${info.item_name}">바나나</span>
+        </div>
+        <div class="info-row">
+            <span class="label">결제 일시</span>
+            <span th:text="${#strings.replace(info.approved_at, 'T', ' ')}">2026-04-27 17:31:59</span>
+        </div>
+        <div class="info-row">
+            <span class="label">결제 수단</span>
+            <span th:text="${info.payment_method_type}">MONEY</span>
+        </div>
+
+        <div class="info-row">
+            <span class="label">결제 금액</span>
+            <span class="amount" th:text="${#numbers.formatInteger(info.amount.total, 3, 'COMMA') + '원'}">20,000원</span>
+        </div>
+        <div class="info-row">
+            <span class="label">수량</span>
+            <span th:text="${info.quantity + '개'}">1개</span>
+        </div>
+
+        <div class="info-row">
+            <span class="label">가맹점 주문번호</span>
+            <span th:text="${info.partner_order_id}">donation_001</span>
+        </div>
+        <div class="info-row" style="font-size: 0.8em; color: #999;">
+            <span class="label">TID</span>
+            <span th:text="${info.tid}">T9ef1e...</span>
+        </div>
+
+        <div style="margin-top: 20px; text-align: center;">
+            <a href="/" class="text-blue-500 hover:underline">홈으로 이동</a>
+        </div>
     </div>
 
-    <div class="info-row">
-        <span class="label">결제 금액</span>
-        <span class="amount" th:text="${#numbers.formatInteger(info.amount.total, 3, 'COMMA') + '원'}">20,000원</span>
-    </div>
-    <div class="info-row">
-        <span class="label">수량</span>
-        <span th:text="${info.quantity + '개'}">1개</span>
-    </div>
-
-    <div class="info-row">
-        <span class="label">주문 번호</span>
-        <span th:text="${info.partner_order_id}">donation_001</span>
-    </div>
-    <div class="info-row" style="font-size: 0.8em; color: #999;">
-        <span class="label">TID</span>
-        <span th:text="${info.tid}">T9ef1e...</span>
-    </div>
-
-    <div style="margin-top: 20px; text-align: center;">
-        <a href="/">홈으로 돌아가기</a>
-    </div>
-</div>
-
+    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>
 </html>

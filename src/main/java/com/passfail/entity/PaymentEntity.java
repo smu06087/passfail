@@ -29,8 +29,8 @@ public class PaymentEntity {
 	private MemberEntity member;
 
 	@Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private PaymentMethod paymentMethod;
+    @Column(name = "method", nullable = false, length = 30)
+    private PaymentMethod method;
 
     @Column(nullable = false)
     private Integer amount;

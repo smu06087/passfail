@@ -4,31 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${formMode == 'edit' ? '문제 수정' : '문제 등록'}">문제 등록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" th:href="@{/css/problem/problemCreate.css}" href="/css/problem/problemCreate.css">
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body>
-<header class="topbar">
-    <div class="topbar-left">
-        <div class="logo">
-            <div class="logo-icon">&lt;/&gt;</div>
-            <div>Passfail Admin</div>
-        </div>
-
-        <nav class="admin-menu">
-            <a th:href="@{/problem/problemList}" href="/problem/problemList">문제 목록</a>
-            <a th:href="@{/problem/problemCreate}" href="/problem/problemCreate" th:classappend="${formMode == 'create'} ? ' active' : ''">문제 등록</a>
-            <a th:if="${formMode == 'edit'}" class="active">문제 수정</a>
-        </nav>
-    </div>
-
-    <div class="topbar-right">
-        <div class="admin-name">
-            <div class="admin-face">A</div>
-            <div th:text="${currentUsername != null ? currentUsername : '관리자'}">관리자</div>
-        </div>
-        <button type="button" class="logout-btn" onclick="location.href='/logout'">로그아웃</button>
-    </div>
-</header>
+<body class="pt-20">
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
 
 <div class="page">
     <aside class="side-card">
@@ -220,6 +202,7 @@
         initialProblem: [[${problemData}]]
     };
 </script>
+<script th:replace="~{fragments/navbar :: navbarScript}"></script>
 <script th:src="@{/js/problem/problemCreate.js}"></script>
 </body>
 </html>

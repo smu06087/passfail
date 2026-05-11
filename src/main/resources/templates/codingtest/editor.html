@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>Passfail - Coding Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" th:href="@{/css/home.css}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
     <style>
@@ -29,6 +31,9 @@
 
         body, html { margin: 0; height: 100vh; width: 100vw; overflow: hidden; background-color: var(--pg-bg); color: var(--pg-text); font-family: "Pretendard", -apple-system, sans-serif; display: flex; flex-direction: column; }
         
+        /* Fixed Navbar Padding Adjustment */
+        body.pt-20 { padding-top: 5rem; }
+
         .top-nav { height: 50px; background-color: var(--pg-navy); color: var(--nav-text); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
         .top-nav h1 { font-size: 15px; margin: 0; font-weight: 500; }
         .top-nav .problem-title { color: #8c9eb3; margin-left: 10px; font-weight: 400; }
@@ -66,8 +71,10 @@
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
         .modal-content { background: var(--white); color: var(--pg-text); margin: 5% auto; padding: 30px; border-radius: 8px; width: 60%; max-height: 80%; overflow-y: auto; }
     </style>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body>
+<body class="pt-20">
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
 
 <div id="problem-data" style="display:none;" 
      th:attr="data-desc=${problem.description}, 
@@ -363,7 +370,36 @@
     }
 
     function closeAiReview() { document.getElementById('aiModal').style.display = 'none'; }
+
+    async function showHint() {
+        if (dataEl.getAttribute('data-is-logged-in') !== 'true') {
+            if (confirm('힌트 보기는 로그인이 필요한 서비스입니다. 로그인 하시겠습니까?')) {
+                window.location.href = '/login';
+            }
+            return;
+        }
+
+        if (confirm('힌트를 보시겠습니까? (500 바나나 소모)\n이미 구매한 힌트는 추가 비용 없이 볼 수 있습니다.')) {
+            try {
+                const res = await fetch(`/api/hint/${problemId}`, {
+                    method: 'POST'
+                });
+                
+                if (res.ok) {
+                    const hintText = await res.text();
+                    alert('💡 힌트: ' + hintText);
+                } else {
+                    const errorMsg = await res.text();
+                    alert('❌ 실패: ' + (errorMsg || '잔액이 부족하거나 오류가 발생했습니다.'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('힌트를 불러오는 중 오류가 발생했습니다.');
+            }
+        }
+    }
 </script>
 
+<script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>
 </html>

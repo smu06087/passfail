@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>결제 페이지</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f4f9; min-height: 100vh; }
+        .payment-container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; margin: auto; }
+        h2 { text-align: center; color: #333; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: .5rem; color: #666; }
+        input[type="number"], select { width: 100%; padding: .75rem; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: .75rem; background-color: #ffeb00; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 1rem; }
+        button:hover { background-color: #f7e100; }
+        .main-wrapper { display: flex; justify-content: center; align-items: center; min-height: calc(100vh - 80px); }
+    </style>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
+</head>
+<body class="pt-20">
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+
+    <div class="main-wrapper">
+        <div class="payment-container">
+            <h2>결제하기</h2>
+            <form id="payment-form">
+                <div class="form-group">
+                    <label for="amount">결제 금액 (원)</label>
+                    <input type="number" id="amount" name="amount" value="1000" min="100">
+                </div>
+                <div class="form-group">
+                    <label for="method">결제 수단</label>
+                    <select id="method" name="method">
+                        <option value="KAKAO_PAY">카카오페이</option>
+                    </select>
+                </div>
+                <button type="button" onclick="requestPayment()">결제 요청</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        async function requestPayment() {
+            const amount = document.getElementById('amount').value;
+            
+            // 기존 OrderController의 /order/kakaoPayReady를 활용하는 방식 예시
+            try {
+                const response = await fetch('/order/kakaoPayReady', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.next_redirect_pc_url) {
+                    location.href = data.next_redirect_pc_url;
+                } else {
+                    alert('결제 준비 중 오류가 발생했습니다.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('서버와 통신 중 에러가 발생했습니다.');
+            }
+        }
+    </script>
+    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
+</body>
+</html>

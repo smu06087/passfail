@@ -1,13 +1,17 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${member.username} + '님의 마이페이지'">My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" th:href="@{/css/member/mypage.css}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body>
+<body class="pt-20">
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
 
 <div class="mypage-container">
     <!-- Sidebar -->
@@ -52,8 +56,6 @@
             <p>문제가 발생했나요? <br>고객센터로 문의해주세요.</p>
             <a href="mailto:smu06089@gmail.com" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 700; margin-top: 8px; display: block;">smu06089@gmail.com</a>
         </div>
-        
-        <a href="/main" class="btn btn-outline" style="margin-top: 20px; text-align: center;">메인으로 돌아가기</a>
     </aside>
 
     <!-- Main Content -->
@@ -313,5 +315,6 @@
     });
 </script>
 
+<script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>
 </html>

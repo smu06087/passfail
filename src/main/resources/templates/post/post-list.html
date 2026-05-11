@@ -344,53 +344,10 @@
             to   { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
     </style>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body class="flex flex-col">
-
-<!-- ══════════════════════════════════════════
-     네비게이션 (index.html 디자인 동일)
-══════════════════════════════════════════ -->
-<nav class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 px-6 py-4">
-    <div class="max-w-7xl mx-auto space-y-6">
-
-        <!-- 상단: 로고 + 검색 + 로그인/마이페이지 -->
-        <div class="flex items-center justify-between">
-            <div class="text-3xl font-extrabold text-green-600 tracking-tight cursor-pointer"
-                 onclick="location.href='/'">
-                Passfail
-            </div>
-
-            <div class="flex-1 max-w-2xl mx-8 border border-slate-300 rounded-2xl
-                        flex items-center px-4 bg-white
-                        focus-within:border-green-500 focus-within:ring-4
-                        focus-within:ring-green-500/10 transition-all">
-                <i data-lucide="search" size="18" class="text-slate-400 flex-shrink-0"></i>
-                <input type="text" id="globalSearch"
-                       placeholder="검색 기능을 이용해보세요"
-                       class="w-full p-3 bg-transparent outline-none font-semibold text-slate-600"
-                       onkeydown="if(event.key==='Enter') onGlobalSearch()">
-            </div>
-
-            <div class="flex gap-3">
-                <!-- 로그인/로그아웃 버튼 (JS로 동적 처리) -->
-                <button id="navLoginBtn"
-                        onclick="location.href='/login'"
-                        class="px-6 py-2.5 border border-slate-300 rounded-xl
-                               font-bold hover:bg-slate-50 transition-all">
-                    로그인
-                </button>
-                <button onclick="location.href='/mypage'"
-                        class="px-6 py-2.5 bg-green-grad text-white rounded-xl
-                               font-bold shadow-lg shadow-green-500/20">
-                    마이페이지
-                </button>
-            </div>
-        </div>
-
-        <!-- 하단: 드롭다운 네비게이션 (index.html 동일 구조) -->
-        <div id="nav-loop-container" class="flex justify-center gap-5"></div>
-    </div>
-</nav>
+<body class="flex flex-col pt-20">
+<div th:replace="~{fragments/navbar :: mainNavbar}"></div>
 
 <!-- ══════════════════════════════════════════
      게시판 본문
@@ -481,6 +438,8 @@
     // ── 네비게이션 렌더링 ──────────────────────────────────────
     function initNav() {
         const navCont = document.getElementById('nav-loop-container');
+        if (!navCont) return; // Navbar fragment already handles its own structure
+        
         navItems.forEach(item => {
             const div = document.createElement('div');
             div.className = 'nav-item';
@@ -535,10 +494,12 @@
             });
         });
 
-        document.getElementById('globalSearch')
-            .addEventListener('keydown', e => {
+        const globalSearch = document.getElementById('globalSearch');
+        if (globalSearch) {
+            globalSearch.addEventListener('keydown', e => {
                 if (e.key === 'Enter') onGlobalSearch();
             });
+        }
     }
 
     // ── 카테고리 탭 활성화 ────────────────────────────────────
@@ -551,7 +512,9 @@
 
     // ── 글로벌 검색 ───────────────────────────────────────────
     function onGlobalSearch() {
-        const keyword = document.getElementById('globalSearch').value.trim();
+        const globalSearch = document.getElementById('globalSearch');
+        if (!globalSearch) return;
+        const keyword = globalSearch.value.trim();
         document.getElementById('searchInput').value = keyword;
         loadPosts(0);
     }
@@ -568,18 +531,24 @@
 	         const data = await res.json();
 	
 	         if (data.loggedIn) {
-	             loginBtn.textContent = '로그아웃';
-	             loginBtn.onclick     = logout;
-	             writeBtnEl.style.display = 'inline-block';
+                 if (loginBtn) {
+	                loginBtn.textContent = '로그아웃';
+	                loginBtn.onclick     = logout;
+                 }
+	             if (writeBtnEl) writeBtnEl.style.display = 'inline-block';
 	         } else {
-	             loginBtn.textContent = '로그인';
-	             loginBtn.onclick     = () => location.href = '/login';
-	             writeBtnEl.style.display = 'none';
+                 if (loginBtn) {
+	                loginBtn.textContent = '로그인';
+	                loginBtn.onclick     = () => location.href = '/login';
+                 }
+	             if (writeBtnEl) writeBtnEl.style.display = 'none';
 	         }
 	     } catch (e) {
-	         loginBtn.textContent = '로그인';
-	         loginBtn.onclick     = () => location.href = '/login';
-	         writeBtnEl.style.display = 'none';
+             if (loginBtn) {
+	            loginBtn.textContent = '로그인';
+	            loginBtn.onclick     = () => location.href = '/login';
+             }
+	         if (writeBtnEl) writeBtnEl.style.display = 'none';
 	     }
 	 }
 
@@ -749,10 +718,12 @@
 
     function showToast(msg) {
         const el = document.getElementById('toast');
+        if (!el) return;
         el.textContent = msg;
         el.style.display = 'block';
         setTimeout(() => { el.style.display = 'none'; }, 2500);
     }
 </script>
+<script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>
 </html>
