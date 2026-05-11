@@ -22,6 +22,10 @@ import java.util.Optional;
 
 import com.passfail.member.dto.OAuth2Member;
 
+/**
+ * OAuth2 소셜 로그인을 처리하는 서비스 클래스
+ * 카카오, 구글, 네이버, 깃허브 등 외부 서비스의 사용자 정보를 기반으로 로그인 및 회원 연동을 담당합니다.
+ */
 @Service
 @Slf4j
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
@@ -32,6 +36,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     @Autowired
     private SocialAccountRepository socialAccountRepository;
 
+    /**
+     * 소셜 서비스로부터 사용자 정보를 가져온 후 후속 처리를 수행
+     */
     @Override
     @Transactional
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -45,24 +52,31 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         }
     }
 
+    /**
+     * 소셜 사용자 정보 처리 핵심 로직
+     * 1. 소셜 데이터 추출
+     * 2. 기존 연동 여부 확인
+     * 3. 자동 계정 통합 또는 신규 가입 처리
+     */
     private OAuth2User processOAuth2User(OAuth2UserRequest userRequest, OAuth2User oAuth2User) {
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         Provider provider = Provider.valueOf(registrationId.toUpperCase());
         
-        // 1. 소셜 데이터 추출
+        // 1. 소셜 데이터 추출 (제공자별 상이한 구조 처리)
         Map<String, Object> attributes = oAuth2User.getAttributes();
         String providerId = getProviderId(registrationId, attributes);
         String nickname = getNickname(registrationId, attributes);
         String email = getEmail(registrationId, attributes);
         String profileImage = getProfileImage(registrationId, attributes);
 
+        // 닉네임이 없는 경우 기본값 설정
         if (nickname == null || nickname.isEmpty()) nickname = registrationId + "_" + providerId;
         
         final String nicknameForLambda = nickname;
         final String emailForLambda = email;
         final String profileImageForLambda = profileImage;
 
-        // 2. 현재 로그인된 유저(연동 주체) 확인
+        // 2. 현재 로그인된 유저(연동 주체) 확인 (마이페이지에서 추가 연동하는 경우)
         MemberEntity currentMember = getCurrentLoggedInMember();
 
         // 3. 소셜 정보로 기존 연동 이력 조회
@@ -76,6 +90,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             
             if (socialOpt.isPresent()) {
                 SocialAccountEntity existingSocial = socialOpt.get();
+                // 이미 연동된 정보가 다른 유저의 것이라면 현재 유저로 소유권 이전
                 if (!existingSocial.getMemberId().equals(currentMember.getMemberId())) {
                     log.info("Social account {} ownership transferred to {}", provider, currentMember.getMemberId());
                     existingSocial.setMemberId(currentMember.getMemberId());
@@ -83,7 +98,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     socialAccountRepository.save(existingSocial);
                 }
             } else {
-                // 처음 연동하는 소셜 계정: 해제 시 돌아갈 "베이스 멤버"가 있는지 확인 후 생성
+                // 처음 연동하는 소셜 계정: 해제 시 돌아갈 "베이스 멤버" 생성 후 현재 유저와 연동
                 ensureBaseMemberExists(nicknameForLambda, profileImageForLambda, provider, providerId);
                 saveSocialAccount(currentMember, provider, providerId);
             }
@@ -94,11 +109,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 finalMember = socialOpt.get().getMembers();
             } else {
                 // 신규 소셜 접근
-                // 1. members 테이블에 이 소셜 계정 고유의 레코드(Base Member)를 먼저 생성 (연동 해제 대비)
+                // 1. members 테이블에 이 소셜 계정 고유의 레코드(Base Member)를 먼저 생성 (연동 해제 시 자생을 위함)
                 String baseEmail = provider.name().toLowerCase() + "_" + providerId + "@passfail.com";
                 MemberEntity baseMember = createNewMember(nicknameForLambda, baseEmail, profileImageForLambda);
                 
-                // 2. 소셜 계정의 실제 이메일과 동일한 로컬 계정이 있는지 확인
+                // 2. 소셜 계정의 실제 이메일과 동일한 로컬 계정이 있는지 확인 (자동 통합)
                 String actualEmail = (emailForLambda != null) ? emailForLambda : baseEmail;
                 Optional<MemberEntity> existingMemberOpt = memberRepository.findByEmail(actualEmail);
                 
@@ -114,20 +129,31 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     }
                     finalMember = baseMember;
                 }
-                // social_account 테이블에 연동 정보 저장
+                // social_account 테이블에 최종 연동 정보 저장
                 saveSocialAccount(finalMember, provider, providerId);
             }
         }
 
-        // 공통: 프로필 이미지가 없는 경우에만 소셜 프로필로 설정 (최초 로그인 시의 프로필 유지)
+        // 공통: 프로필 이미지가 없는 경우에만 소셜 프로필로 설정
         if (profileImage != null && (finalMember.getProfileImage() == null || finalMember.getProfileImage().isEmpty())) {
             finalMember.setProfileImage(profileImage);
             memberRepository.save(finalMember);
         }
 
+<<<<<<< HEAD
         return new OAuth2Member(oAuth2User, finalMember.getUsername(), finalMember.getRole());
+=======
+        // 사용자 닉네임과 DB 권한을 포함한 커스텀 OAuth2User 반환
+        java.util.List<org.springframework.security.core.GrantedAuthority> authorities = 
+            org.springframework.security.core.authority.AuthorityUtils.createAuthorityList(finalMember.getRole().name());
+        
+        return new OAuth2Member(oAuth2User, finalMember.getUsername(), authorities);
+>>>>>>> 0008cc0d756cead770e15ffbea97496d853c5abf
     }
 
+    /**
+     * 연동 해제를 대비한 소셜 계정 고유의 '베이스 멤버' 존재 여부 확인 및 생성
+     */
     private void ensureBaseMemberExists(String nickname, String profileImage, Provider provider, String providerId) {
         if (socialAccountRepository.findByProviderAndProviderId(provider, providerId).isEmpty()) {
             String baseEmail = provider.name().toLowerCase() + "_" + providerId + "@passfail.com";
@@ -135,6 +161,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         }
     }
 
+    /**
+     * 현재 시큐리티 컨텍스트에서 로그인된 사용자 정보를 가져옴
+     */
     private MemberEntity getCurrentLoggedInMember() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || (auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)) {
@@ -143,6 +172,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return memberRepository.findByUsername(auth.getName()).orElse(null);
     }
 
+    /**
+     * 서비스 제공자별 고유 ID 추출
+     */
     private String getProviderId(String regId, Map<String, Object> attr) {
         if ("kakao".equals(regId)) return attr.get("id").toString();
         if ("google".equals(regId)) return (String) attr.get("sub");
@@ -151,6 +183,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return "";
     }
 
+    /**
+     * 서비스 제공자별 닉네임 추출
+     */
     private String getNickname(String regId, Map<String, Object> attr) {
         if ("kakao".equals(regId)) {
             Map properties = (Map) attr.get("properties");
@@ -162,6 +197,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return null;
     }
 
+    /**
+     * 서비스 제공자별 이메일 추출
+     */
     private String getEmail(String regId, Map<String, Object> attr) {
         if ("kakao".equals(regId)) {
             Map account = (Map) attr.get("kakao_account");
@@ -173,6 +211,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return null;
     }
 
+    /**
+     * 서비스 제공자별 프로필 이미지 URL 추출
+     */
     private String getProfileImage(String regId, Map<String, Object> attr) {
         if ("kakao".equals(regId)) {
             Map properties = (Map) attr.get("properties");
@@ -184,6 +225,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return null;
     }
 
+    /**
+     * 소셜 연동 정보 저장
+     */
     private void saveSocialAccount(MemberEntity member, Provider provider, String providerId) {
         SocialAccountEntity socialAccount = SocialAccountEntity.builder()
                 .memberId(member.getMemberId())
@@ -194,6 +238,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         socialAccountRepository.saveAndFlush(socialAccount);
     }
 
+    /**
+     * 신규 회원(Base Member) 생성 (닉네임 중복 시 접미사 추가)
+     */
     private MemberEntity createNewMember(String nickname, String email, String profileImage) {
         String uniqueUsername = nickname;
         int count = 0;

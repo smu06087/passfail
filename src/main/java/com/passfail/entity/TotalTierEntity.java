@@ -7,24 +7,61 @@ import lombok.*;
 
 @Entity
 @Table(name = "total_tier")
-@Getter // 중요: 여기서 getTier() 메서드를 자동으로 생성함
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class TotalTierEntity {
-    @Id
-    private Long memberId;
+    
+	@Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "TOTAL_TIER_ID")
+    private Long totalTierId;
 
-    @OneToOne
-    @MapsId
-    @JoinColumn(name = "member_id")
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MEMBER_ID", nullable = false)
     private MemberEntity member;
 
-    private Integer totalScore;
-    private Integer currentRank;
+    @Column(name = "TOTAL_SCORE", nullable = false)
+    @Builder.Default
+    private Integer totalScore = 0;
     
-    @Enumerated(EnumType.STRING)
-    private Tier tier; // 필드 이름을 'tier'로 확정
+    @Column(name = "CURRENT_RANK", nullable = false)
+    @Builder.Default
+    private Integer currentRank = 0;
 
-    private LocalDateTime lastUpdatedAt;
+    @Column(name = "TIER", nullable = false, length = 255)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private Tier tier = Tier.BRONZE;
+
+    @Column(name = "LAST_UPDATED_AT")
+    @Builder.Default
+    private LocalDateTime lastUpdatedAt = LocalDateTime.now();
+    
+    // 비즈니스 로직
+    public void updateRankAndTier(Integer rank, Tier newTier) {
+        this.currentRank = rank;
+        this.tier = newTier;
+        this.lastUpdatedAt = LocalDateTime.now();
+    }
+    
+    public void addProblemScore(Integer addScore) {
+        if (this.totalScore == null) {
+            this.totalScore = 0;
+        }
+        this.totalScore += addScore;
+        this.tier = Tier.fromScore(this.totalScore);
+        this.lastUpdatedAt = LocalDateTime.now();
+    }
+    
+    public void addGameScore(Integer gameScore) {
+        if (this.totalScore == null) {
+            this.totalScore = 0;
+        }
+        this.totalScore += gameScore;
+        this.tier = Tier.fromScore(this.totalScore);
+        this.lastUpdatedAt = LocalDateTime.now();
+    }
 }
