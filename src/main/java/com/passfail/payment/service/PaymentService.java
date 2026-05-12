@@ -26,6 +26,11 @@ public class PaymentService {
     private final PaymentHistoryRepository paymentHistoryRepository;
     private final PaymentRepository paymentRepository;
 
+    public java.util.Optional<Integer> getMemberPoints(String username) {
+        return memberRepository.findByUsername(username)
+                .map(MemberEntity::getPointBalance);
+    }
+
     @Transactional
     public void savePayment(PaymentRequestDto dto) {
         MemberEntity member = memberRepository.findByUsername(dto.getUsername())

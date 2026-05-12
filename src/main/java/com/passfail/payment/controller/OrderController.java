@@ -80,11 +80,30 @@ public class OrderController {
             Map<String, Object> response = kakaoPayService.kakaoPayApprove(tid, pgToken, partnerOrderId, partnerUserId);
             
             // 💾 [DB 저장] 결제 정보를 DB에 저장하고 포인트를 지급해요.
+            int pointCharged = amount;
+            if (amount == 11000) pointCharged = 10500; // 10,000 + 500
+            else if (amount == 33000) pointCharged = 32000; // 30,000 + 2,000
+            else if (amount == 55000) pointCharged = 55000; // 50,000 + 5,000 (Wait, amount is 55k including VAT)
+            
+            // Correction: The user said 5k, 10k, 30k, 50k. 
+            // Usually these are the "product price" and they pay 10% VAT on top.
+            // Let's refine the logic based on the UI prices:
+            // 5,500 KRW -> 5,000 P
+            // 11,000 KRW -> 10,500 P (+500 Bonus)
+            // 33,000 KRW -> 32,000 P (+2,000 Bonus)
+            // 55,000 KRW -> 55,000 P (+5,000 Bonus)
+            
+            if (amount == 5500) pointCharged = 5000;
+            else if (amount == 11000) pointCharged = 10500;
+            else if (amount == 33000) pointCharged = 32000;
+            else if (amount == 55000) pointCharged = 55000;
+            else pointCharged = (int)(amount / 1.1); // Manual input, base points only
+
             PaymentRequestDto paymentDto = PaymentRequestDto.builder()
                     .username(partnerUserId)
                     .method(PaymentMethod.KAKAO_PAY)
                     .amount(amount)
-                    .pointCharged(amount) // 1원당 1포인트 가정
+                    .pointCharged(pointCharged)
                     .status(PaymentStatus.SUCCESS)
                     .pgTxnId(tid)
                     .build();

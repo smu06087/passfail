@@ -14,7 +14,11 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @GetMapping("/payment")
-    public String paymentPage() {
+    public String paymentPage(Principal principal, org.springframework.ui.Model model) {
+        if (principal != null) {
+            paymentService.getMemberPoints(principal.getName())
+                    .ifPresent(points -> model.addAttribute("currentPoints", points));
+        }
         return "payment/payment";
     }
 
