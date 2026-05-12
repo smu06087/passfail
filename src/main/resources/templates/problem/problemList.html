@@ -10,7 +10,49 @@
     <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
 <body class="flex flex-col">
-<div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+<nav class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 px-8 py-2 text-slate-800">
+    <div class="w-full mx-auto space-y-3">
+        <div class="topbar-main" style="display: flex; align-items: center; justify-content: space-between; gap: 2rem;">
+            <div class="text-3xl font-extrabold text-green-600 tracking-tight cursor-pointer" th:onclick="|location.href='@{/main}'|">
+                Passfail
+            </div>
+
+            <div class="topbar-search border border-slate-300 rounded-2xl flex items-center px-4 bg-white focus-within:border-green-500 focus-within:ring-4 focus-within:ring-green-500/10 transition-all" style="flex: 1; max-width: 40rem;">
+                <i data-lucide="search" size="18" class="text-slate-400"></i>
+                <input
+                    type="text"
+                    id="problemSearchInput"
+                    placeholder="문제, 태그, 설명으로 검색해 보세요"
+                    class="w-full p-3 bg-transparent outline-none font-semibold text-slate-600">
+            </div>
+
+            <div class="topbar-actions flex items-center gap-3">
+                <a
+                    id="login-button"
+                    th:href="@{/login}"
+                    class="px-6 py-2.5 border border-slate-300 rounded-xl font-bold hover:bg-slate-50 transition-all text-center"
+                    style="text-decoration: none; color: inherit;"
+                    th:classappend="${loggedIn} ? ' hidden' : ''">로그인</a>
+                <div
+                    id="member-menu"
+                    class="items-center gap-3"
+                    th:classappend="${loggedIn} ? ' flex' : ' hidden'">
+                    <span class="font-bold text-slate-700" th:text="|${currentUsername}님 환영합니다|">사용자님 환영합니다</span>
+                    <a
+                        th:href="@{/mypage}"
+                        class="px-6 py-2.5 bg-green-grad text-white rounded-xl font-bold shadow-lg shadow-green-500/20 text-center"
+                        style="text-decoration: none;">마이페이지</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="nav-loop-container" class="flex justify-center gap-5"></div>
+        <div class="search-related" id="searchRelatedBox">
+            <span class="search-related-label">연관 검색어</span>
+            <div class="search-related-keywords" id="searchRelatedKeywords"></div>
+        </div>
+    </div>
+</nav>
 
 <div class="app">
     <main class="page">
@@ -29,7 +71,7 @@
             </div>
 
             <div class="filter-group">
-                <div class="filter-title">알고리즘 분류</div>
+                <div class="filter-title">카테고리</div>
                 <select>
                     <option>전체</option>
                     <option>구현</option>
@@ -40,7 +82,7 @@
             </div>
 
             <div class="filter-group">
-                <div class="filter-title">문제 상태</div>
+                <div class="filter-title">상태</div>
                 <label class="check-item"><input type="checkbox" checked> <span>전체</span></label>
                 <label class="check-item"><input type="checkbox" checked> <span>미해결</span></label>
                 <label class="check-item"><input type="checkbox" checked> <span>해결</span></label>
@@ -124,10 +166,10 @@
                         data-correct="0"
                         data-my-submit="-"
                         data-my-rate="-"
-                        data-desc="문제를 등록하면 이 목록에 표시됩니다.">
+                        data-desc="문제를 등록하면 목록에 표시됩니다.">
                         <div class="problem-number">-</div>
                         <div class="card-star-wrap">
-                            <div class="card-star gray">☆</div>
+                            <div class="card-star gray">*</div>
                         </div>
                         <div class="card-title">등록된 문제가 없습니다</div>
                         <div class="mini-difficulty easy">EASY</div>
@@ -154,7 +196,7 @@
                         onclick="selectProblem(this)">
                         <div class="problem-number" th:text="${problem.problemId}">1</div>
                         <div class="card-star-wrap">
-                            <div class="card-star gray">☆</div>
+                            <div class="card-star gray">*</div>
                         </div>
                         <div class="card-title" th:text="${problem.title}">문제 제목</div>
                         <div class="mini-difficulty"
@@ -164,7 +206,7 @@
                 </div>
             </div>
 
-            <div class="panel-arrow">›</div>
+            <div class="panel-arrow">v</div>
 
             <section class="detail-panel">
                 <div class="detail-left">
@@ -180,11 +222,11 @@
                             id="detailDifficulty"
                             th:classappend="${selectedProblem != null ? #strings.toLowerCase(selectedProblem.difficulty) : 'easy'}"
                             th:text="${selectedProblem != null ? selectedProblem.difficulty : 'EASY'}">EASY</span>
-                        <span class="detail-id">문제번호 <span id="detailId" th:text="${selectedProblem != null ? selectedProblem.problemId : '-'}">-</span></span>
+                        <span class="detail-id">문제 번호 <span id="detailId" th:text="${selectedProblem != null ? selectedProblem.problemId : '-'}">-</span></span>
                     </div>
 
                     <div class="detail-info-grid">
-                        <div class="detail-label">알고리즘 분류</div>
+                        <div class="detail-label">카테고리</div>
                         <div class="detail-value">
                             <div class="tag-list" id="detailCategoryTags">
                                 <span class="tag-chip" th:text="${selectedProblem != null ? selectedProblem.category : '-'}">구현</span>
@@ -259,6 +301,6 @@
 </div>
 
 <script th:replace="~{fragments/navbar :: navbarScript}"></script>
-<script th:src="@{/js/problem/problemList.js}"></script>
+<script th:src="@{/js/problem/problemList.js}" src="/js/problem/problemList.js"></script>
 </body>
 </html>

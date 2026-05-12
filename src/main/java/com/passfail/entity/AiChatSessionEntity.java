@@ -21,7 +21,7 @@ public class AiChatSessionEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long sessionId;
 
-	@Column(name = "member_id", nullable = false)
+	@Column(name = "member_id")
 	private Long memberId;
 
 	@ManyToOne(fetch = FetchType.LAZY)
