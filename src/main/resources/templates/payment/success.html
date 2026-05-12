@@ -2,61 +2,112 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>결제 성공</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passfail | 결제 완료</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        .container { width: 500px; margin: 50px auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px; }
-        .title { text-align: center; color: #333; }
-        .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .label { font-weight: bold; color: #666; }
-        .amount { color: #e74c3c; font-weight: bold; }
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #f8fafc;
+        }
+        .bg-green-grad { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+        .receipt-container {
+            position: relative;
+        }
+        .receipt-container::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: linear-gradient(-45deg, transparent 10px, white 10px), linear-gradient(45deg, transparent 10px, white 10px);
+            background-size: 20px 20px;
+            background-repeat: repeat-x;
+        }
     </style>
     <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
-<body>
+<body class="min-h-screen flex flex-col">
     <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
 
-    <div class="container">
-        <h2 class="title">방금 결제하신 내역입니다</h2>
-        <hr>
+    <main class="flex-grow flex items-center justify-center p-4 py-20">
+        <div class="w-full max-w-lg">
+            <!-- Success Icon -->
+            <div class="flex justify-center mb-8">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center shadow-lg shadow-green-500/20">
+                    <i data-lucide="check" class="text-green-600" size="40"></i>
+                </div>
+            </div>
 
-        <div class="info-row">
-            <span class="label">상품명</span>
-            <span th:text="${info.item_name}">바나나</span>
-        </div>
-        <div class="info-row">
-            <span class="label">결제 일시</span>
-            <span th:text="${#strings.replace(info.approved_at, 'T', ' ')}">2026-04-27 17:31:59</span>
-        </div>
-        <div class="info-row">
-            <span class="label">결제 수단</span>
-            <span th:text="${info.payment_method_type}">MONEY</span>
-        </div>
+            <!-- Receipt Card -->
+            <div class="bg-white rounded-3xl shadow-2xl overflow-hidden receipt-container">
+                <div class="p-8 pb-0 text-center">
+                    <h1 class="text-2xl font-black text-slate-900 mb-2">결제가 완료되었습니다!</h1>
+                    <p class="text-slate-500 font-bold">소중한 바나나가 성공적으로 충전되었습니다.</p>
+                </div>
 
-        <div class="info-row">
-            <span class="label">결제 금액</span>
-            <span class="amount" th:text="${#numbers.formatInteger(info.amount.total, 3, 'COMMA') + '원'}">20,000원</span>
-        </div>
-        <div class="info-row">
-            <span class="label">수량</span>
-            <span th:text="${info.quantity + '개'}">1개</span>
-        </div>
+                <div class="p-8 space-y-6">
+                    <div class="h-px bg-slate-100 w-full"></div>
 
-        <div class="info-row">
-            <span class="label">가맹점 주문번호</span>
-            <span th:text="${info.partner_order_id}">donation_001</span>
-        </div>
-        <div class="info-row" style="font-size: 0.8em; color: #999;">
-            <span class="label">TID</span>
-            <span th:text="${info.tid}">T9ef1e...</span>
-        </div>
+                    <!-- Details -->
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400 font-bold text-sm">상품명</span>
+                            <span class="text-slate-900 font-black" th:text="${info.item_name}">바나나 10,000개</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400 font-bold text-sm">결제 일시</span>
+                            <span class="text-slate-900 font-bold text-sm" th:text="${#strings.replace(info.approved_at, 'T', ' ')}">2026-04-27 17:31:59</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400 font-bold text-sm">결제 수단</span>
+                            <span class="text-slate-900 font-bold text-sm flex items-center gap-2">
+                                <i data-lucide="wallet" size="14"></i>
+                                <span th:text="${info.payment_method_type}">카카오페이</span>
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400 font-bold text-sm">주문 번호</span>
+                            <span class="text-slate-900 font-bold text-sm" th:text="${info.partner_order_id}">ORD_123456789</span>
+                        </div>
+                    </div>
 
-        <div style="margin-top: 20px; text-align: center;">
-            <a href="/" class="text-blue-500 hover:underline">홈으로 이동</a>
-        </div>
-    </div>
+                    <div class="h-px bg-slate-100 w-full"></div>
 
+                    <!-- Total -->
+                    <div class="flex justify-between items-center py-2">
+                        <span class="text-lg font-black text-slate-900">최종 결제 금액</span>
+                        <span class="text-2xl font-black text-green-600" th:text="${#numbers.formatInteger(info.amount.total, 0, 'COMMA') + '원'}">11,000원</span>
+                    </div>
+                </div>
+
+                <!-- Footer Action -->
+                <div class="p-8 pt-0 flex flex-col gap-3">
+                    <button onclick="location.href='/main'" class="w-full py-4 bg-green-grad text-white rounded-2xl font-black text-lg shadow-lg shadow-green-500/30 transition-all active:scale-[0.98]">
+                        메인으로 가기
+                    </button>
+                    <button onclick="location.href='/mypage/' + /*[[${currentUsername}]]*/ ''" class="w-full py-4 bg-slate-50 text-slate-500 rounded-2xl font-black text-sm hover:bg-slate-100 transition-all">
+                        내 충전 내역 보기
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hint -->
+            <p class="mt-8 text-center text-slate-400 text-xs font-medium">
+                결제 관련 문의는 고객센터(support@passfail.com)로 연락주시기 바랍니다.
+            </p>
+        </div>
+    </main>
+
+    <script th:inline="javascript">
+        // Initialize icons
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+    </script>
     <script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>
 </html>

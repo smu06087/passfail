@@ -26,6 +26,11 @@ public class PaymentService {
     private final PaymentHistoryRepository paymentHistoryRepository;
     private final PaymentRepository paymentRepository;
 
+    public java.util.Optional<Integer> getMemberPoints(String username) {
+        return memberRepository.findByUsername(username)
+                .map(MemberEntity::getPointBalance);
+    }
+
     @Transactional
     public void savePayment(PaymentRequestDto dto) {
         MemberEntity member = memberRepository.findByUsername(dto.getUsername())
@@ -97,6 +102,48 @@ public class PaymentService {
         hintUsageRepository.save(hintUsage);
 
         return getHintText(problemId);
+    }
+
+    @Transactional
+    public void useReviewPoints(String username) {
+        MemberEntity member = memberRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
+
+        if (member.getPointBalance() < 300) {
+            throw new RuntimeException("잔액이 부족합니다. (300 바나나 필요)");
+        }
+
+        member.setPointBalance(member.getPointBalance() - 300);
+        memberRepository.save(member);
+
+        PaymentHistory history = PaymentHistory.builder()
+                .memberId(member.getMemberId())
+                .amount(300L)
+                .txnType(TXN_Type.USE_REVIEW)
+                .paymentDate(LocalDateTime.now())
+                .build();
+        paymentHistoryRepository.save(history);
+    }
+
+    @Transactional
+    public void useDownloadPoints(String username) {
+        MemberEntity member = memberRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
+
+        if (member.getPointBalance() < 1000) {
+            throw new RuntimeException("잔액이 부족합니다. (1,000 바나나 필요)");
+        }
+
+        member.setPointBalance(member.getPointBalance() - 1000);
+        memberRepository.save(member);
+
+        PaymentHistory history = PaymentHistory.builder()
+                .memberId(member.getMemberId())
+                .amount(1000L)
+                .txnType(TXN_Type.USE_DOWNLOAD)
+                .paymentDate(LocalDateTime.now())
+                .build();
+        paymentHistoryRepository.save(history);
     }
 
     private String getHintText(Long problemId) {

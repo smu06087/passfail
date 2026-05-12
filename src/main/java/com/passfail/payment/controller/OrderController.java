@@ -80,11 +80,16 @@ public class OrderController {
             Map<String, Object> response = kakaoPayService.kakaoPayApprove(tid, pgToken, partnerOrderId, partnerUserId);
             
             // 💾 [DB 저장] 결제 정보를 DB에 저장하고 포인트를 지급해요.
+            // 규칙: 만원 단위(공급가액 기준)로 천원 뽀너스 추가
+            int productPrice = (int) Math.round(amount / 1.1); // 부가세 제외 공급가액
+            int bonus = (productPrice / 10000) * 1000;      // 만원당 천원 보너스
+            int pointCharged = productPrice + bonus;        // 최종 지급 포인트
+
             PaymentRequestDto paymentDto = PaymentRequestDto.builder()
                     .username(partnerUserId)
                     .method(PaymentMethod.KAKAO_PAY)
                     .amount(amount)
-                    .pointCharged(amount) // 1원당 1포인트 가정
+                    .pointCharged(pointCharged)
                     .status(PaymentStatus.SUCCESS)
                     .pgTxnId(tid)
                     .build();

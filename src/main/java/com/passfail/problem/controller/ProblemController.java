@@ -1,13 +1,14 @@
 package com.passfail.problem.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.passfail.problem.dto.ProblemDTO;
-import com.passfail.problem.service.ProblemService;
-import lombok.RequiredArgsConstructor;
+import java.security.Principal;
+import java.util.List;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -16,20 +17,71 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.security.Principal;
-import java.util.List;
-import java.util.Map;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.passfail.payment.service.PaymentService;
+import com.passfail.problem.dto.ProblemDTO;
+import com.passfail.problem.dto.ProblemResponse;
+import com.passfail.problem.service.ProblemPdfService;
+import com.passfail.problem.service.ProblemService;
 
 @Controller
 @RequestMapping("/problem")
-@RequiredArgsConstructor
 public class ProblemController {
 
     private static final Logger log = LoggerFactory.getLogger(ProblemController.class);
+
     private final ProblemService problemService;
     private final ObjectMapper objectMapper;
+    private final PaymentService paymentService;
+    private final ProblemPdfService pdfService;
+
+    public ProblemController(
+        ProblemService problemService,
+        ObjectMapper objectMapper,
+        PaymentService paymentService,
+        ProblemPdfService pdfService
+    ) {
+        this.problemService = problemService;
+        this.objectMapper = objectMapper;
+        this.paymentService = paymentService;
+        this.pdfService = pdfService;
+    }
+
+    @GetMapping("/{problemId}/download")
+    public ResponseEntity<byte[]> downloadProblemPdf(@PathVariable("problemId") Long problemId, Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            paymentService.useDownloadPoints(principal.getName());
+            ProblemResponse problem = problemService.getProblemResponse(problemId);
+            byte[] pdfBytes = pdfService.generateProblemPdf(problem);
+
+            String filename = "Problem_" + problemId + ".pdf";
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
+        } catch (RuntimeException ex) {
+            log.error("Failed to download PDF due to payment or logic error", ex);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception ex) {
+            log.error("Internal error during PDF generation", ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
     @GetMapping
     public String problemList(Authentication authentication, Model model) {

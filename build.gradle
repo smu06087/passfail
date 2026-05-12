@@ -35,6 +35,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     
+    // PDF generation (Upgraded to v8 for Spring Boot 3 compatibility)
+    implementation 'com.itextpdf:itext-core:8.0.2'
+    implementation 'com.itextpdf:font-asian:8.0.2'
+    
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     
     compileOnly 'org.projectlombok:lombok'
