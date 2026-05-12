@@ -27,6 +27,7 @@ public class CodingTestController {
     private final ProblemService problemService;
     private final CodeExecutionService executionService;
     private final com.passfail.ai.service.AiCodeReviewService aiService;
+    private final com.passfail.payment.service.PaymentService paymentService;
 
     /**
      * 작성한 코드에 대해 AI 코드 리뷰를 요청하는 API
@@ -37,30 +38,43 @@ public class CodingTestController {
     @PostMapping("/{problemId}/ai-review")
     @ResponseBody
     public Map<String, String> aiReview(@PathVariable("problemId") Long problemId, 
-                                        @RequestBody Map<String, Object> payload) {
-        String code = (String) payload.get("code");
-        Object resultsObj = payload.get("results");
-        
-        List<ExecutionResult> results = List.of();
-        if (resultsObj instanceof List) {
-            List<Map<String, Object>> rawResults = (List<Map<String, Object>>) resultsObj;
-            results = rawResults.stream()
-                    .map(r -> {
-                        Object timeObj = r.get("executionTime");
-                        long time = (timeObj instanceof Number) ? ((Number) timeObj).longValue() : 0L;
-                        String status = (String) r.get("status");
-                        return ExecutionResult.builder()
-                                .executionTime(time)
-                                .status(status != null ? status : "UNKNOWN")
-                                .success("CORRECT".equals(status))
-                                .build();
-                    })
-                    .toList();
+                                        @RequestBody Map<String, Object> payload,
+                                        Principal principal) {
+        if (principal == null) {
+            return Map.of("review", "❌ 로그인이 필요합니다.");
         }
 
-        // AI 서비스를 통해 리뷰 메시지 생성
-        String review = aiService.generateReview(code, results);
-        return Map.of("review", review);
+        try {
+            // 1. 포인트 소모 (300 바나나)
+            paymentService.useReviewPoints(principal.getName());
+            
+            // 2. 리뷰 생성 로직 시작
+            String code = (String) payload.get("code");
+            Object resultsObj = payload.get("results");
+            
+            List<ExecutionResult> results = List.of();
+            if (resultsObj instanceof List) {
+                List<Map<String, Object>> rawResults = (List<Map<String, Object>>) resultsObj;
+                results = rawResults.stream()
+                        .map(r -> {
+                            Object timeObj = r.get("executionTime");
+                            long time = (timeObj instanceof Number) ? ((Number) timeObj).longValue() : 0L;
+                            String status = (String) r.get("status");
+                            return ExecutionResult.builder()
+                                    .executionTime(time)
+                                    .status(status != null ? status : "UNKNOWN")
+                                    .success("CORRECT".equals(status))
+                                    .build();
+                        })
+                        .toList();
+            }
+
+            // AI 서비스를 통해 리뷰 메시지 생성
+            String review = aiService.generateReview(code, results);
+            return Map.of("review", review);
+        } catch (RuntimeException e) {
+            return Map.of("review", "❌ 오류: " + e.getMessage());
+        }
     }
 
     /**

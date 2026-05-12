@@ -29,8 +29,42 @@ public class ProblemController {
 
     private static final Logger log = LoggerFactory.getLogger(ProblemController.class);
     private final ProblemService problemService;
+    private final com.passfail.payment.service.PaymentService paymentService;
+    private final com.passfail.problem.service.ProblemPdfService pdfService;
 
     // --- Methods from original ProblemController (User interaction) ---
+
+    @GetMapping("/{problemId}/download")
+    public ResponseEntity<byte[]> downloadProblemPdf(@PathVariable("problemId") Long problemId, Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            // 1. 포인트 소모 (1,000 바나나)
+            paymentService.useDownloadPoints(principal.getName());
+
+            // 2. 문제 정보 가져오기
+            ProblemResponse problem = problemService.getProblemResponse(problemId);
+
+            // 3. PDF 생성
+            byte[] pdfBytes = pdfService.generateProblemPdf(problem);
+
+            // 4. 응답 구성
+            String filename = "Problem_" + problemId + ".pdf";
+            return ResponseEntity.ok()
+                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                    .body(pdfBytes);
+
+        } catch (RuntimeException e) {
+            log.error("Failed to download PDF due to payment or logic error", e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            log.error("Internal error during PDF generation", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
     @GetMapping
     public String problemList(Model model) {
@@ -70,7 +104,7 @@ public class ProblemController {
     }
 
     @GetMapping("/problemEdit/{problemId}")
-    public String edit(@PathVariable Long problemId, Authentication authentication, Model model) {
+    public String edit(@PathVariable("problemId") Long problemId, Authentication authentication, Model model) {
         populateFormModel(model, authentication, "edit", problemService.getProblemDetail(problemId));
         return "problem/problemCreate";
     }
@@ -114,7 +148,7 @@ public class ProblemController {
 
     @PutMapping("/api/problems/{problemId}")
     public ResponseEntity<Map<String, Object>> updateProblem(
-        @PathVariable Long problemId,
+        @PathVariable("problemId") Long problemId,
         @RequestBody ProblemDTO problemDTO
     ) {
         try {

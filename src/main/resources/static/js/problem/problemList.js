@@ -573,6 +573,23 @@ function escapeHtml(value) {
         .replaceAll("'", "&#39;");
 }
 
+function downloadPdf() {
+    if (!currentProblemId || currentProblemId === "-") {
+        return;
+    }
+
+    if (typeof currentUsername === 'undefined' || currentUsername === null) {
+        if (confirm('PDF 다운로드는 로그인이 필요한 서비스입니다. 로그인 하시겠습니까?')) {
+            location.href = '/login';
+        }
+        return;
+    }
+
+    if (confirm('문제를 PDF로 다운로드하시겠습니까? (1,000 바나나 소모)')) {
+        location.href = `/problem/${currentProblemId}/download`;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     initFilterGroups();
     initFilterReset();

@@ -106,7 +106,7 @@ public class AdminRestController {
     }
 
     @PostMapping("/members/{id}/role")
-    public void updateRole(@PathVariable Long id, @RequestParam Role role) {
+    public void updateRole(@PathVariable("id") Long id, @RequestParam("role") Role role) {
         MemberEntity member = memberRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
         member.setRole(role);
@@ -122,7 +122,7 @@ public class AdminRestController {
     }
 
     @PostMapping("/tags")
-    public void addTag(@RequestParam String name) {
+    public void addTag(@RequestParam("name") String name) {
         // 실제로는 특정 문제에 연결되어야 하지만, 관리용 마스터 태그 개념으로 첫 번째 문제나 가상의 ID에 연결
         ProblemTagEntity tag = ProblemTagEntity.builder()
                 .problemId(1L) // 임시 ID
@@ -132,7 +132,7 @@ public class AdminRestController {
     }
 
     @DeleteMapping("/tags/{name}")
-    public void deleteTag(@PathVariable String name) {
+    public void deleteTag(@PathVariable("name") String name) {
         List<ProblemTagEntity> tags = problemTagRepository.findAll();
         for (ProblemTagEntity tag : tags) {
             if (tag.getTagName().equals(name)) {

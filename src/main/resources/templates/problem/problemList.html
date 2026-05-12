@@ -231,6 +231,7 @@
 
                     <div class="detail-actions">
                         <button class="enter-btn" onclick="enterProblem()">문제 풀기</button>
+                        <button class="favorite-btn" onclick="downloadPdf()" style="background: #27ae60; color: white; border-color: #27ae60;">PDF 다운로드</button>
                         <a
                             th:if="${isAdmin && selectedProblem != null}"
                             class="favorite-btn admin-edit-btn"
