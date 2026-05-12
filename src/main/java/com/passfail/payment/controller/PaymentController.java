@@ -1,5 +1,6 @@
-package com.passfail.payment;
+package com.passfail.payment.controller;
 
+import com.passfail.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;

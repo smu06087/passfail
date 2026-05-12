@@ -22,7 +22,7 @@
             <span class="tier-badge" 
                   th:style="'background-color:' + ${member.tier.colorCode} + '; color: #fff;'" 
                   th:text="${member.tier}">BRONZE</span>
-            <div class="sidebar-points">
+            <div class="sidebar-points" onclick="location.href='/payment'" style="cursor: pointer;" title="포인트 충전하러 가기">
                 <span class="point-value" th:text="${#numbers.formatInteger(member.pointBalance, 0, 'COMMA')}">0</span>
                 <span class="point-label">Points</span>
             </div>

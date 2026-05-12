@@ -1,4 +1,4 @@
-package com.passfail.payment;
+package com.passfail.payment.dto;
 
 public class OrderCreateForm {
 	private String name;

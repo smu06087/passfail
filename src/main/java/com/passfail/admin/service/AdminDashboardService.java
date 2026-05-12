@@ -1,0 +1,70 @@
+package com.passfail.admin.service;
+
+import com.passfail.admin.dto.AdminDashboardDto;
+import com.passfail.admin.dto.MemberStatusDto;
+import com.passfail.admin.dto.PaymentSummaryDto;
+import com.passfail.enums.PaymentStatus;
+import com.passfail.member.repository.MemberRepository;
+import com.passfail.payment.repository.PaymentRepository;
+import com.passfail.problem.repository.ProblemRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Arrays;
+
+@Service
+@RequiredArgsConstructor
+public class AdminDashboardService {
+
+    private final MemberRepository memberRepository;
+    private final ProblemRepository problemRepository;
+    private final PaymentRepository paymentRepository;
+
+    @Transactional(readOnly = true)
+    public AdminDashboardDto getDashboardData() {
+        // 1. 핵심 요약 데이터 (Summary Data)
+        long totalMembers = memberRepository.count();
+        long totalProblems = problemRepository.count();
+        Long totalRevenue = paymentRepository.sumAmountByStatus(PaymentStatus.SUCCESS);
+        if (totalRevenue == null) totalRevenue = 0L;
+        
+        long todayVisits = 842; // 실시간 로그 테이블이 완성되기 전까지는 가상의 데이터를 사용합니다.
+
+        // 2. 회원 상태 분포 (Member Status Distribution)
+        MemberStatusDto memberStatus = MemberStatusDto.builder()
+                .activeCount(memberRepository.countByIsActiveTrue())
+                .inactiveCount(memberRepository.countByIsActiveFalse())
+                .suspendedCount(0) // 추가적인 상태 엔티티 속성이 필요함
+                .withdrawnCount(0) // 추가적인 상태 엔티티 속성이 필요함
+                .build();
+
+        // 3. 매출 요약 (Payment Summaries)
+        PaymentSummaryDto success = PaymentSummaryDto.builder()
+                .label("결제 완료")
+                .value(totalRevenue)
+                .color("text-green-600")
+                .build();
+        
+        PaymentSummaryDto refundRequested = PaymentSummaryDto.builder()
+                .label("환불 요청")
+                .value(0) // 환불 관련 로직이 추가되면 연동
+                .color("text-amber-500")
+                .build();
+
+        PaymentSummaryDto refunded = PaymentSummaryDto.builder()
+                .label("환불 완료")
+                .value(0) // 환불 관련 로직이 추가되면 연동
+                .color("text-gray-400")
+                .build();
+
+        return AdminDashboardDto.builder()
+                .totalMembers(totalMembers)
+                .totalProblems(totalProblems)
+                .totalRevenue(totalRevenue)
+                .todayVisits(todayVisits)
+                .memberStatus(memberStatus)
+                .paymentSummaries(Arrays.asList(success, refundRequested, refunded))
+                .build();
+    }
+}

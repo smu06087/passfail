@@ -1,4 +1,4 @@
-package com.passfail.payment;
+package com.passfail.payment.service;
 
 import java.util.Objects;
 import org.springframework.web.context.request.RequestAttributes;

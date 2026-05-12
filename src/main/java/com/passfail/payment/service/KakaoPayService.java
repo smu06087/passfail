@@ -1,4 +1,4 @@
-package com.passfail.payment;
+package com.passfail.payment.service;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +34,7 @@ public class KakaoPayService {
      * 1단계: "결제 준비할게요!" (kakaoPayReady / 카카오페이 레디)
      * 비유: "사장님, 손님이 바나나 사신대요! 카카오페이에 미리 알려줄게요!"
      */
-    public Map<String, Object> kakaoPayReady() {
+    public Map<String, Object> kakaoPayReady(String partnerOrderId, String partnerUserId, String itemName, int totalAmount) {
         // 🚀 [우체부] 카카오페이 본사로 편지를 배달해줄 우체부 아저씨예요.
         RestTemplate restTemplate = new RestTemplate();
 
@@ -45,13 +45,17 @@ public class KakaoPayService {
 
         // 📝 [편지 내용] 무엇을 팔 건지 상세하게 적어요.
         Map<String, Object> body = new HashMap<>();
-        String[] keys = {"cid", "partner_order_id", "partner_user_id", "item_name", "quantity", "total_amount", "vat_amount", "tax_free_amount", "approval_url", "cancel_url", "fail_url"};
-        Object[] values = {cid, "donation_001", "anonymous_donor", "바나나", 1, 20000, 0, 0, approvalUrl, cancelUrl, failUrl};
-
-        // 🔁 [반복문] 내용물들을 하나씩 봉투에 차곡차곡 담아요.
-        for (int i = 0; i < keys.length; i++) {
-            body.put(keys[i], values[i]);
-        }
+        body.put("cid", cid);
+        body.put("partner_order_id", partnerOrderId);
+        body.put("partner_user_id", partnerUserId);
+        body.put("item_name", itemName);
+        body.put("quantity", 1);
+        body.put("total_amount", totalAmount);
+        body.put("vat_amount", 0);
+        body.put("tax_free_amount", 0);
+        body.put("approval_url", approvalUrl);
+        body.put("cancel_url", cancelUrl);
+        body.put("fail_url", failUrl);
 
         // 📦 [택배 박스] 내용물(body)과 도장 찍힌 봉투(headers)를 하나로 합쳐요.
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
@@ -69,7 +73,7 @@ public class KakaoPayService {
      * 2단계: "최종 승인해주세요!" (kakaoPayApprove / 카카오페이 어프루브)
      * 비유: "손님이 폰으로 확인 누르셨대요! 이제 진짜 돈 옮겨주세요!"
      */
-    public Map<String, Object> kakaoPayApprove(String tid, String pgToken) {
+    public Map<String, Object> kakaoPayApprove(String tid, String pgToken, String partnerOrderId, String partnerUserId) {
         RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
@@ -78,13 +82,11 @@ public class KakaoPayService {
 
         // 📝 [확인서] 아까 그 결제 건(tid)이 맞는지, 손님이 준 확인권(pgToken)은 있는지 적어요.
         Map<String, Object> body = new HashMap<>();
-        String[] keys = {"cid", "tid", "partner_order_id", "partner_user_id", "pg_token"};
-        Object[] values = {cid, tid, "donation_001", "anonymous_donor", pgToken};
-
-        // 🔁 [반복문] 확인 서류들을 하나씩 정리해서 담아요.
-        for (int i = 0; i < keys.length; i++) {
-            body.put(keys[i], values[i]);
-        }
+        body.put("cid", cid);
+        body.put("tid", tid);
+        body.put("partner_order_id", partnerOrderId);
+        body.put("partner_user_id", partnerUserId);
+        body.put("pg_token", pgToken);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 

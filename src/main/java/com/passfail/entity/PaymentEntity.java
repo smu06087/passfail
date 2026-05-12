@@ -29,7 +29,7 @@ public class PaymentEntity {
 	private MemberEntity member;
 
 	@Enumerated(EnumType.STRING)
-    @Column(name = "method", nullable = false, length = 30)
+    @Column(name = "payment_method", nullable = false, length = 30)
     private PaymentMethod method;
 
     @Column(nullable = false)
