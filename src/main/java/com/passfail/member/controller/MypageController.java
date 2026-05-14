@@ -123,67 +123,6 @@ public class MypageController {
     }
 
     /**
-     * 닉네임 수정 처리
-     */
-    @PostMapping("/update")
-    public String updateInfo(Principal principal, @RequestParam("nickname") String nickname) {
-        if (principal == null) return "redirect:/login";
-        
-        try {
-            String currentUsername = principal.getName();
-            mypageService.updateNickname(currentUsername, nickname);
-            
-            // 닉네임 변경 후 SecurityContext의 Authentication 객체 업데이트 (세션 정보 갱신)
-            updateAuthentication(nickname);
-            
-            String encodedNickname = java.net.URLEncoder.encode(nickname, java.nio.charset.StandardCharsets.UTF_8);
-            return "redirect:/mypage/" + encodedNickname + "?updateSuccess";
-        } catch (Exception e) {
-            String encodedMessage = java.net.URLEncoder.encode(e.getMessage(), java.nio.charset.StandardCharsets.UTF_8);
-            return "redirect:/mypage?error=" + encodedMessage;
-        }
-    }
-
-    /**
-     * SecurityContext의 Authentication 객체를 새로운 닉네임으로 업데이트합니다.
-     * 일반 로그인과 소셜 로그인(OAuth2)을 모두 지원합니다.
-     */
-    private void updateAuthentication(String newNickname) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        
-        if (auth instanceof UsernamePasswordAuthenticationToken) {
-            UserDetails userDetails = (UserDetails) auth.getPrincipal();
-            UserDetails newUserDetails = new User(
-                    newNickname,
-                    userDetails.getPassword() != null ? userDetails.getPassword() : "",
-                    userDetails.getAuthorities()
-            );
-            
-            Authentication newAuth = new UsernamePasswordAuthenticationToken(
-                    newUserDetails, 
-                    auth.getCredentials(), 
-                    auth.getAuthorities()
-            );
-            SecurityContextHolder.getContext().setAuthentication(newAuth);
-        } else if (auth instanceof OAuth2AuthenticationToken) {
-            OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) auth;
-            OAuth2User oauthUser = oauthToken.getPrincipal();
-            
-            if (oauthUser instanceof OAuth2Member) {
-                OAuth2Member oldMember = (OAuth2Member) oauthUser;
-                OAuth2Member newMember = new OAuth2Member(oldMember.getOriginalUser(), newNickname, oldMember.getRole());
-                
-                Authentication newAuth = new OAuth2AuthenticationToken(
-                        newMember, 
-                        auth.getAuthorities(), 
-                        oauthToken.getAuthorizedClientRegistrationId()
-                );
-                SecurityContextHolder.getContext().setAuthentication(newAuth);
-            }
-        }
-    }
-
-    /**
      * 소셜 계정 연동 해제
      */
     @PostMapping("/unlink")

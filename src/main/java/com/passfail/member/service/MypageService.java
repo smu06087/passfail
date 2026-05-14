@@ -98,22 +98,6 @@ public class MypageService {
     }
 
     /**
-     * 닉네임(사용자 아이디) 변경
-     */
-    @Transactional
-    public void updateNickname(String currentUsername, String newNickname) {
-        MemberEntity member = memberRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
-        
-        // 본인 기존 닉네임과 다르면서 이미 존재하는 닉네임인 경우 중복 처리
-        if (memberRepository.findByUsername(newNickname).isPresent() && !currentUsername.equals(newNickname)) {
-            throw new IllegalArgumentException("이미 사용 중인 이름입니다.");
-        }
-        
-        member.setUsername(newNickname);
-    }
-
-    /**
      * 비밀번호 변경
      */
     @Transactional

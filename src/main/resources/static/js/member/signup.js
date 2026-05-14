@@ -67,13 +67,29 @@ $(document).ready(function() {
             return;
         }
 
+        // [화면 체감 성능 개선] 즉시 UI 반응
+        const $btn = $(this);
+        const originalText = $btn.text();
+        
+        $btn.prop('disabled', true).text('발송 중...');
+        $('#verificationGroup').fadeIn(); // 즉시 인증번호 입력창 표시
+        $('#emailMsg').text('인증번호를 발송했습니다. 잠시만 기다려주세요.').css('color', 'blue');
+
         $.post('/api/member/send-verification', { email: email }, function(data) {
             if (data.status === 'success') {
-                alert(data.message);
-                $('#verificationGroup').show();
+                $btn.text('재발송');
+                $btn.prop('disabled', false);
+                $('#emailMsg').text('인증번호가 발송되었습니다. 메일함을 확인해주세요.').css('color', 'green');
             } else {
                 alert(data.message);
+                $btn.text(originalText);
+                $btn.prop('disabled', false);
+                $('#emailMsg').text(data.message).css('color', 'red');
             }
+        }).fail(function() {
+            alert('서버 오류가 발생했습니다. 다시 시도해주세요.');
+            $btn.text(originalText);
+            $btn.prop('disabled', false);
         });
     });
 
