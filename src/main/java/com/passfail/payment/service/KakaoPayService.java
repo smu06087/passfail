@@ -98,4 +98,57 @@ public class KakaoPayService {
 
         return response.getBody();
     }
+
+    /**
+     * 3단계: "결제 취소(환불)해주세요!" (kakaoPayCancel / 카카오페이 캔슬)
+     * 비유: "손님이 환불해달라고 하세요! 아까 받은 돈 돌려드려야 해요!"
+     */
+    public Map<String, Object> kakaoPayCancel(String tid, int cancelAmount) {
+        RestTemplate restTemplate = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "SECRET_KEY " + secretKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        // 📝 [취소 요청서] 어떤 결제 건(tid)을 얼마만큼(cancelAmount) 취소할지 적어요.
+        Map<String, Object> body = new HashMap<>();
+        body.put("cid", cid);
+        body.put("tid", tid);
+        body.put("cancel_amount", cancelAmount);
+        body.put("cancel_tax_free_amount", 0); // 비과세 금액
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        // 📍 [취소 주소] 결제 취소를 담당하는 부서의 주소예요.
+        String url = "https://open-api.kakaopay.com/online/v1/payment/cancel";
+
+        // 📮 [발송] "이 결제 취소해주세요!" 하고 요청을 보내요.
+        ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+
+        return response.getBody();
+    }
+
+    /**
+     * 4단계: "결제 상태 확인해볼게요!" (kakaoPayOrder / 카카오페이 오더)
+     * 비유: "이 결제가 지금 어떤 상태인지 카카오페이에 물어봐요."
+     */
+    public Map<String, Object> kakaoPayOrder(String tid) {
+        RestTemplate restTemplate = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "SECRET_KEY " + secretKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("cid", cid);
+        body.put("tid", tid);
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        String url = "https://open-api.kakaopay.com/online/v1/payment/order";
+
+        ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+
+        return response.getBody();
+    }
 }

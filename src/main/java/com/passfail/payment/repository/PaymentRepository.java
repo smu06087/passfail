@@ -17,4 +17,6 @@ public interface PaymentRepository extends JpaRepository<PaymentEntity, Long> {
     Long sumAmountByStatus(@Param("status") PaymentStatus status);
     
     long countByStatus(PaymentStatus status);
+
+    java.util.List<PaymentEntity> findAllByMemberIdAndStatusOrderByPaidAtDesc(Long memberId, PaymentStatus status);
 }

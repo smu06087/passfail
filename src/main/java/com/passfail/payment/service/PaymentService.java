@@ -55,7 +55,7 @@ public class PaymentService {
             PaymentHistory history = PaymentHistory.builder()
                     .memberId(member.getMemberId())
                     .amount(dto.getPointCharged().longValue())
-                    .txnType(TXN_Type.CHARGE)
+                    .txnType(TXN_Type.CHARGE.name())
                     .paymentDate(LocalDateTime.now())
                     .build();
             paymentHistoryRepository.save(history);
@@ -89,7 +89,7 @@ public class PaymentService {
         PaymentHistory history = PaymentHistory.builder()
                 .memberId(memberId)
                 .amount(500L)
-                .txnType(TXN_Type.USE_HINT)
+                .txnType(TXN_Type.USE_HINT.name())
                 .paymentDate(LocalDateTime.now())
                 .build();
         paymentHistoryRepository.save(history);
@@ -119,7 +119,7 @@ public class PaymentService {
         PaymentHistory history = PaymentHistory.builder()
                 .memberId(member.getMemberId())
                 .amount(300L)
-                .txnType(TXN_Type.USE_REVIEW)
+                .txnType(TXN_Type.USE_REVIEW.name())
                 .paymentDate(LocalDateTime.now())
                 .build();
         paymentHistoryRepository.save(history);
@@ -140,7 +140,7 @@ public class PaymentService {
         PaymentHistory history = PaymentHistory.builder()
                 .memberId(member.getMemberId())
                 .amount(1000L)
-                .txnType(TXN_Type.USE_DOWNLOAD)
+                .txnType(TXN_Type.USE_DOWNLOAD.name())
                 .paymentDate(LocalDateTime.now())
                 .build();
         paymentHistoryRepository.save(history);
@@ -150,5 +150,50 @@ public class PaymentService {
         ProblemEntity problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new RuntimeException("문제를 찾을 수 없습니다."));
         return problem.getHint() != null ? problem.getHint() : "이 문제에 대한 힌트가 없습니다.";
+    }
+
+    public List<PaymentEntity> findRefundablePayments(String username) {
+        MemberEntity member = memberRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
+        return paymentRepository.findAllByMemberIdAndStatusOrderByPaidAtDesc(member.getMemberId(), PaymentStatus.SUCCESS);
+    }
+
+    @Transactional
+    public void refundPayment(Long paymentId, String username) {
+        PaymentEntity payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("결제 정보를 찾을 수 없습니다."));
+
+        if (payment.getStatus() == PaymentStatus.REFUNDED) {
+            throw new RuntimeException("이미 환불된 결제입니다.");
+        }
+
+        MemberEntity member = memberRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
+
+        if (!payment.getMemberId().equals(member.getMemberId())) {
+            throw new RuntimeException("본인의 결제 건만 환불할 수 있습니다.");
+        }
+
+        // 포인트 잔액 확인 (충전된 포인트보다 잔액이 적으면 환불 불가)
+        if (member.getPointBalance() < payment.getPointCharged()) {
+            throw new RuntimeException("충전된 포인트보다 현재 잔액이 적어 환불이 불가능합니다.");
+        }
+
+        // 1. 포인트 차감
+        member.setPointBalance(member.getPointBalance() - payment.getPointCharged());
+        memberRepository.save(member);
+
+        // 2. 결제 상태 업데이트
+        payment.setStatus(PaymentStatus.REFUNDED);
+        paymentRepository.save(payment);
+
+        // 3. 환불 이력 저장
+        PaymentHistory history = PaymentHistory.builder()
+                .memberId(member.getMemberId())
+                .amount(payment.getPointCharged().longValue())
+                .txnType(TXN_Type.REFUND.name())
+                .paymentDate(LocalDateTime.now())
+                .build();
+        paymentHistoryRepository.save(history);
     }
 }
