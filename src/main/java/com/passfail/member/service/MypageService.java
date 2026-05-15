@@ -8,16 +8,19 @@ import com.passfail.entity.SubmissionEntity;
 import com.passfail.enums.Provider;
 import com.passfail.member.dto.MemberInfoResponse;
 import com.passfail.member.repository.MemberRepository;
-import com.passfail.member.repository.NotificationRepository;
 import com.passfail.member.repository.SocialAccountRepository;
 import com.passfail.problem.repository.SolvedProblemRepository;
 import com.passfail.problem.repository.SubmissionRepository;
+import com.passfail.post.repository.CommentRepository;
+import com.passfail.post.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.passfail.entity.PostEntity;
+import com.passfail.entity.CommentEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
@@ -25,7 +28,7 @@ import java.util.List;
 
 /**
  * 마이페이지 관련 데이터 조회 및 회원 정보 수정을 처리하는 서비스 클래스
- * 프로필 정보, 제출 이력, 알림 조회 및 계정 설정 변경 기능을 담당합니다.
+ * 프로필 정보, 제출 이력, 게시글/댓글 내역 조회 및 계정 설정 변경 기능을 담당합니다.
  */
 @Service
 @RequiredArgsConstructor
@@ -37,7 +40,8 @@ public class MypageService {
     private final MemberService memberService;
     private final SubmissionRepository submissionRepository;
     private final SolvedProblemRepository solvedProblemRepository;
-    private final NotificationRepository notificationRepository;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
 
     /**
      * 회원 정보 응답 DTO 조회
@@ -53,30 +57,12 @@ public class MypageService {
     }
 
     /**
-     * 최근 제출 내역 리스트 조회
-     */
-    public List<SubmissionEntity> getRecentSubmissions(String username) {
-        MemberEntity member = memberRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
-        return submissionRepository.findByMemberOrderBySubmittedAtDesc(member);
-    }
-
-    /**
      * 최근 제출 내역 페이징 조회
      */
     public Page<SubmissionEntity> getRecentSubmissions(String username, Pageable pageable) {
         MemberEntity member = memberRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
         return submissionRepository.findByMember(member, pageable);
-    }
-
-    /**
-     * 해결한 문제 리스트 조회
-     */
-    public List<SolvedProblemEntity> getSolvedProblems(String username) {
-        MemberEntity member = memberRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
-        return solvedProblemRepository.findByMember(member);
     }
 
     /**
@@ -89,12 +75,30 @@ public class MypageService {
     }
 
     /**
-     * 사용자의 알림 목록 조회 (최신순)
+     * 내가 쓴 게시글 페이징 조회
      */
-    public List<NotificationEntity> getNotifications(String username) {
+    public Page<PostEntity> getMyPosts(String username, Pageable pageable) {
         MemberEntity member = memberRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
-        return notificationRepository.findByMemberOrderByCreatedAtDesc(member);
+        return postRepository.findByMemberIdAndIsDeletedFalseOrderByCreatedAtDesc(member.getMemberId(), pageable);
+    }
+
+    /**
+     * 좋아요 한 게시글 페이징 조회
+     */
+    public Page<PostEntity> getLikedPosts(String username, Pageable pageable) {
+        MemberEntity member = memberRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        return postRepository.findLikedPostsByMemberId(member.getMemberId(), pageable);
+    }
+
+    /**
+     * 내가 쓴 댓글 페이징 조회
+     */
+    public Page<CommentEntity> getMyComments(String username, Pageable pageable) {
+        MemberEntity member = memberRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        return commentRepository.findByMemberIdAndIsDeletedFalseOrderByCreatedAtDesc(member.getMemberId(), pageable);
     }
 
     /**

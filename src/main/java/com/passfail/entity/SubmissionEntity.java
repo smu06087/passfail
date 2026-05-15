@@ -10,7 +10,7 @@ import com.passfail.enums.SubmissionStatus;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "submission", uniqueConstraints = { @UniqueConstraint(columnNames = { "member_id", "problem_id" }) })
+@Table(name = "submission")
 @Getter
 @Setter
 @NoArgsConstructor

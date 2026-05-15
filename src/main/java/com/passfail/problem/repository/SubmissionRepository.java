@@ -13,5 +13,5 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, Lo
     List<SubmissionEntity> findByProblemId(Long problemId);
     List<SubmissionEntity> findByMemberOrderBySubmittedAtDesc(MemberEntity member);
     Page<SubmissionEntity> findByMember(MemberEntity member, Pageable pageable);
-    Optional<SubmissionEntity> findByMemberIdAndProblemId(Long memberId, Long problemId);
+    Optional<SubmissionEntity> findFirstByMemberIdAndProblemIdOrderBySubmittedAtDesc(Long memberId, Long problemId);
 }

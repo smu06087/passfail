@@ -60,6 +60,9 @@ public class MypageController {
     public String userProfile(@PathVariable("username") String username, 
                               @RequestParam(value = "solvedPage", defaultValue = "0") int solvedPage,
                               @RequestParam(value = "subPage", defaultValue = "0") int subPage,
+                              @RequestParam(value = "postPage", defaultValue = "0") int postPage,
+                              @RequestParam(value = "likedPage", defaultValue = "0") int likedPage,
+                              @RequestParam(value = "commentPage", defaultValue = "0") int commentPage,
                               Principal principal, Model model) {
         String loggedInUsername = (principal != null) ? principal.getName() : null;
         
@@ -72,6 +75,9 @@ public class MypageController {
             int pageSize = 5;
             PageRequest subPageable = PageRequest.of(subPage, pageSize, Sort.by("submittedAt").descending());
             PageRequest solvedPageable = PageRequest.of(solvedPage, pageSize, Sort.by("firstSolvedAt").descending());
+            PageRequest postPageable = PageRequest.of(postPage, pageSize, Sort.by("createdAt").descending());
+            PageRequest likedPageable = PageRequest.of(likedPage, pageSize); // LikedPosts are already ordered in service
+            PageRequest commentPageable = PageRequest.of(commentPage, pageSize, Sort.by("createdAt").descending());
             
             // 최근 제출 내역 및 해결한 문제 목록 조회
             Page<com.passfail.entity.SubmissionEntity> submissionPage = mypageService.getRecentSubmissions(username, subPageable);
@@ -80,14 +86,16 @@ public class MypageController {
             model.addAttribute("submissionPage", submissionPage);
             model.addAttribute("solvedPage", solvedPageObj);
             
+            // 본인 프로필 조회 시에만 게시글, 좋아요 한 글, 댓글 내역 추가
+            if (memberResponse.isOwnProfile()) {
+                model.addAttribute("postPage", mypageService.getMyPosts(username, postPageable));
+                model.addAttribute("likedPage", mypageService.getLikedPosts(username, likedPageable));
+                model.addAttribute("commentPage", mypageService.getMyComments(username, commentPageable));
+            }
+            
             // 통계 정보 추가
             model.addAttribute("totalSolvedCount", solvedPageObj.getTotalElements());
             model.addAttribute("totalSubmissionCount", submissionPage.getTotalElements());
-            
-            // 본인 프로필 조회 시에만 읽지 않은 알림 목록 추가
-            if (memberResponse.isOwnProfile()) {
-                model.addAttribute("notifications", mypageService.getNotifications(username));
-            }
             
             return "member/mypage";
         } catch (Exception e) {

@@ -76,49 +76,64 @@ public class ProblemService {
     }
 
     @Transactional
-    public SubmissionEntity submitSolution(String username, Long problemId, String code, ProgrammingLanguage language) {
+    public SubmissionEntity recordSubmission(String username, Long problemId, String code, ProgrammingLanguage language, SubmissionStatus status) {
         MemberEntity member = memberRepository.findByUsername(username)
             .orElseThrow(() -> new EntityNotFoundException("Member not found."));
         ProblemEntity problem = getProblemEntity(problemId);
 
-        SubmissionEntity submission = submissionRepository.findByMemberIdAndProblemId(member.getMemberId(), problemId)
-            .orElse(SubmissionEntity.builder()
+        // 모든 제출을 기록으로 남기기 위해 항상 새로운 객체 생성 (기존 unique 제약 조건 제거됨)
+        SubmissionEntity submission = SubmissionEntity.builder()
                 .memberId(member.getMemberId())
                 .problemId(problem.getProblemId())
-                .build());
-
-        submission.setCode(code);
-        submission.setLanguage(language);
-        submission.setStatus(SubmissionStatus.ACCEPTED);
-        submission.setExecutionTimeMs(100);
-        submission.setMemoryUsedKb(1024);
+                .code(code)
+                .language(language)
+                .status(status)
+                .executionTimeMs(0) 
+                .memoryUsedKb(0)    
+                .build();
 
         submission = submissionRepository.save(submission);
 
-        solvedProblemRepository.findByMemberId(member.getMemberId()).stream()
-            .filter(sp -> sp.getProblemId().equals(problemId))
-            .findFirst()
-            .ifPresentOrElse(
-                sp -> sp.setTryCount(sp.getTryCount() + 1),
-                () -> {
-                    int score = 100;
-                    SolvedProblemEntity solvedProblem = SolvedProblemEntity.builder()
-                        .memberId(member.getMemberId())
-                        .problemId(problemId)
-                        .scoreEarned(score)
-                        .tryCount(1)
-                        .build();
-                    solvedProblemRepository.save(solvedProblem);
+        // 문제의 총 제출 수 증가 (성공/실패 여부 상관없이)
+        problem.setSubmissionCount((problem.getSubmissionCount() != null ? problem.getSubmissionCount() : 0) + 1);
 
-                    member.setTotalScore(member.getTotalScore() + score);
-                    member.setTier(Tier.fromScore(member.getTotalScore()));
-                    memberRepository.save(member);
-                }
-            );
+        if (status == SubmissionStatus.ACCEPTED) {
+            // 정답인 경우에만 해결 문제로 기록 및 점수 부여
+            solvedProblemRepository.findByMemberId(member.getMemberId()).stream()
+                .filter(sp -> sp.getProblemId().equals(problemId))
+                .findFirst()
+                .ifPresentOrElse(
+                    sp -> sp.setTryCount(sp.getTryCount() + 1),
+                    () -> {
+                        int score = 100;
+                        SolvedProblemEntity solvedProblem = SolvedProblemEntity.builder()
+                            .memberId(member.getMemberId())
+                            .problemId(problemId)
+                            .scoreEarned(score)
+                            .tryCount(1)
+                            .build();
+                        solvedProblemRepository.save(solvedProblem);
 
-        problem.setSubmissionCount(problem.getSubmissionCount() + 1);
-        problem.setAcceptedCount(problem.getAcceptedCount() + 1);
-        problem.setAcceptanceRate((double) problem.getAcceptedCount() / (double) problem.getSubmissionCount() * 100.0);
+                        int currentScore = member.getTotalScore() != null ? member.getTotalScore() : 0;
+                        member.setTotalScore(currentScore + score);
+                        member.setTier(Tier.fromScore(member.getTotalScore()));
+                        memberRepository.save(member);
+                    }
+                );
+
+            problem.setAcceptedCount((problem.getAcceptedCount() != null ? problem.getAcceptedCount() : 0) + 1);
+        } else {
+            // 틀린 경우에도 시도 횟수는 증가시킴 (기존에 해결 기록이 있는 경우 포함)
+            solvedProblemRepository.findByMemberId(member.getMemberId()).stream()
+                .filter(sp -> sp.getProblemId().equals(problemId))
+                .findFirst()
+                .ifPresent(sp -> sp.setTryCount(sp.getTryCount() + 1));
+        }
+
+        // 정답률 업데이트
+        double subCount = problem.getSubmissionCount();
+        double accCount = problem.getAcceptedCount() != null ? problem.getAcceptedCount() : 0;
+        problem.setAcceptanceRate(subCount > 0 ? (accCount / subCount * 100.0) : 0.0);
         problemRepository.save(problem);
 
         return submission;
@@ -129,7 +144,7 @@ public class ProblemService {
         MemberEntity member = memberRepository.findByUsername(username).orElse(null);
         if (member == null) return null;
 
-        return submissionRepository.findByMemberIdAndProblemId(member.getMemberId(), problemId)
+        return submissionRepository.findFirstByMemberIdAndProblemIdOrderBySubmittedAtDesc(member.getMemberId(), problemId)
             .map(SubmissionEntity::getCode)
             .orElse(null);
     }

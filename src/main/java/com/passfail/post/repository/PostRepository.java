@@ -74,4 +74,9 @@ public interface PostRepository extends JpaRepository<PostEntity, Long> {
     @Transactional
     @Query("UPDATE PostEntity p SET p.commentCount = p.commentCount - 1 WHERE p.postId = :postId AND p.commentCount > 0")
     void decrementCommentCount(@Param("postId") Long postId);
+
+    Page<PostEntity> findByMemberIdAndIsDeletedFalseOrderByCreatedAtDesc(Long memberId, Pageable pageable);
+
+    @Query("SELECT p FROM PostEntity p JOIN PostLikeEntity pl ON p.postId = pl.postId WHERE pl.memberId = :memberId AND p.isDeleted = false ORDER BY pl.likedAt DESC")
+    Page<PostEntity> findLikedPostsByMemberId(@Param("memberId") Long memberId, Pageable pageable);
 }

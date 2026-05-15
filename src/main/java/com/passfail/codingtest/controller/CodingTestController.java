@@ -4,6 +4,7 @@ import com.passfail.codingtest.dto.ExecutionResult;
 import com.passfail.codingtest.dto.CustomTestCaseRequest;
 import com.passfail.codingtest.service.CodeExecutionService;
 import com.passfail.enums.ProgrammingLanguage;
+import com.passfail.enums.SubmissionStatus;
 import com.passfail.problem.dto.ProblemResponse;
 import com.passfail.problem.service.ProblemService;
 import lombok.RequiredArgsConstructor;
@@ -155,10 +156,27 @@ public class CodingTestController {
             // 모든 테스트 케이스가 정답(CORRECT)인지 확인
             boolean allCorrect = results.stream().allMatch(r -> "CORRECT".equals(r.getStatus()));
             
+            // 제출 상태 결정
+            SubmissionStatus status;
             if (allCorrect) {
-                // 문제 해결 정보 기록
-                problemService.submitSolution(username, problemId, code, ProgrammingLanguage.JAVA);
+                status = SubmissionStatus.ACCEPTED;
+            } else {
+                // 첫 번째 실패한 케이스의 상태를 대표 상태로 설정
+                status = results.stream()
+                        .filter(r -> !"CORRECT".equals(r.getStatus()))
+                        .map(r -> switch (r.getStatus()) {
+                            case "COMPILE_ERROR" -> SubmissionStatus.COMPILE_ERROR;
+                            case "TIMEOUT" -> SubmissionStatus.TIME_LIMIT;
+                            case "RUNTIME_ERROR" -> SubmissionStatus.RUNTIME_ERROR;
+                            case "WRONG" -> SubmissionStatus.WRONG_ANSWER;
+                            default -> SubmissionStatus.WRONG_ANSWER;
+                        })
+                        .findFirst()
+                        .orElse(SubmissionStatus.WRONG_ANSWER);
             }
+
+            // 문제 해결 정보 기록 (성공/실패 여부 상관없이 기록됨)
+            problemService.recordSubmission(username, problemId, code, ProgrammingLanguage.JAVA, status);
             
             return Map.of("allCorrect", allCorrect, "results", results);
         } catch (Exception e) {

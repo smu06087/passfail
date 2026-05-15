@@ -22,12 +22,12 @@
             <span class="tier-badge" 
                   th:style="'background-color:' + ${member.tier.colorCode} + '; color: #fff;'" 
                   th:text="${member.tier}">BRONZE</span>
-            <div class="sidebar-points">
+            <div class="sidebar-points" th:if="${member.ownProfile}">
                 <span class="point-value" th:text="${#numbers.formatInteger(member.pointBalance, 0, 'COMMA')}">0</span>
                 <span class="point-label">Points</span>
             </div>
             <button class="btn btn-primary" style="width: 100%; margin-top: 12px; font-size: 13px; padding: 10px;" 
-                    onclick="location.href='/payment'">충전하기</button>
+                    onclick="location.href='/payment'" th:if="${member.ownProfile}">충전하기</button>
         </div>
 
         <nav class="nav-menu">
@@ -37,23 +37,23 @@
                 </button>
             </div>
             <div class="nav-item" th:if="${member.ownProfile}">
+                <button class="nav-link" data-section="community">
+                    <span>커뮤니티 활동</span>
+                </button>
+            </div>
+            <div class="nav-item" th:if="${member.ownProfile}">
                 <button class="nav-link" data-section="profile">
                     <span>정보 수정</span>
                 </button>
             </div>
             <div class="nav-item" th:if="${member.ownProfile}">
-                <button class="nav-link" data-section="notifications">
-                    <span>알림</span>
-                </button>
-            </div>
-            <div class="nav-item">
                 <button class="nav-link" data-section="help">
                     <span>도움이 필요하신가요?</span>
                 </button>
             </div>
         </nav>
 
-        <div class="sidebar-help">
+        <div class="sidebar-help" th:if="${member.ownProfile}">
             <h4>고객 지원</h4>
             <p>문제가 발생했나요? <br>고객센터로 문의해주세요.</p>
             <a href="mailto:smu06089@gmail.com" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 700; margin-top: 8px; display: block;">smu06089@gmail.com</a>
@@ -185,6 +185,137 @@
             </div>
         </section>
 
+        <!-- Community Section -->
+        <section id="community" class="content-section" th:if="${member.ownProfile}">
+            <div class="section-header">
+                <h2>커뮤니티 활동</h2>
+            </div>
+
+            <!-- My Posts -->
+            <div class="card">
+                <h3 style="margin-top:0; margin-bottom:20px;">내가 쓴 게시글</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>카테고리</th>
+                            <th>제목</th>
+                            <th>작성일</th>
+                            <th>조회수</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="post : ${postPage.content}">
+                            <td th:text="${post.category}">자유게시판</td>
+                            <td>
+                                <a th:href="@{/posts/{id}/view(id=${post.postId})}" th:text="${post.title}" style="text-decoration:none; color:var(--primary); font-weight:600;">Post Title</a>
+                            </td>
+                            <td th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd')}">2024-01-01</td>
+                            <td th:text="${post.viewCount}">0</td>
+                        </tr>
+                        <tr th:if="${postPage.empty}">
+                            <td colspan="4" style="text-align:center; color:var(--text-muted); padding: 40px;">작성한 게시글이 없습니다.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- My Posts Pagination -->
+                <div class="pagination-container" th:if="${!postPage.empty}" 
+                     th:with="start=${(postPage.number / 10) * 10 + 1},
+                              end=${((start + 9) < postPage.totalPages ? (start + 9) : postPage.totalPages)}">
+                    <a th:href="@{/mypage/{username}(username=${member.username}, postPage=${postPage.number - 1})}" 
+                       class="pagination-link" th:classappend="${!postPage.hasPrevious()} ? 'disabled'">이전</a>
+                    <th:block th:each="page : ${#numbers.sequence(start, (end > 0 ? end : 1))}">
+                        <a th:href="@{/mypage/{username}(username=${member.username}, postPage=${page - 1})}" 
+                           th:text="${page}" class="pagination-link" th:classappend="${page - 1 == postPage.number} ? 'active'">1</a>
+                    </th:block>
+                    <a th:href="@{/mypage/{username}(username=${member.username}, postPage=${postPage.number + 1})}" 
+                       class="pagination-link" th:classappend="${!postPage.hasNext()} ? 'disabled'">다음</a>
+                </div>
+            </div>
+
+            <!-- Liked Posts -->
+            <div class="card">
+                <h3 style="margin-top:0; margin-bottom:20px;">좋아요 한 게시글</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>카테고리</th>
+                            <th>제목</th>
+                            <th>작성자</th>
+                            <th>좋아요 수</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="post : ${likedPage.content}">
+                            <td th:text="${post.category}">자유게시판</td>
+                            <td>
+                                <a th:href="@{/posts/{id}/view(id=${post.postId})}" th:text="${post.title}" style="text-decoration:none; color:var(--primary); font-weight:600;">Post Title</a>
+                            </td>
+                            <td th:text="${post.member.username}">Author</td>
+                            <td th:text="${post.likeCount}">0</td>
+                        </tr>
+                        <tr th:if="${likedPage.empty}">
+                            <td colspan="4" style="text-align:center; color:var(--text-muted); padding: 40px;">좋아요 한 게시글이 없습니다.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Liked Posts Pagination -->
+                <div class="pagination-container" th:if="${!likedPage.empty}" 
+                     th:with="start=${(likedPage.number / 10) * 10 + 1},
+                              end=${((start + 9) < likedPage.totalPages ? (start + 9) : likedPage.totalPages)}">
+                    <a th:href="@{/mypage/{username}(username=${member.username}, likedPage=${likedPage.number - 1})}" 
+                       class="pagination-link" th:classappend="${!likedPage.hasPrevious()} ? 'disabled'">이전</a>
+                    <th:block th:each="page : ${#numbers.sequence(start, (end > 0 ? end : 1))}">
+                        <a th:href="@{/mypage/{username}(username=${member.username}, likedPage=${page - 1})}" 
+                           th:text="${page}" class="pagination-link" th:classappend="${page - 1 == likedPage.number} ? 'active'">1</a>
+                    </th:block>
+                    <a th:href="@{/mypage/{username}(username=${member.username}, likedPage=${likedPage.number + 1})}" 
+                       class="pagination-link" th:classappend="${!likedPage.hasNext()} ? 'disabled'">다음</a>
+                </div>
+            </div>
+
+            <!-- My Comments -->
+            <div class="card">
+                <h3 style="margin-top:0; margin-bottom:20px;">내가 쓴 댓글</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>게시글</th>
+                            <th>댓글 내용</th>
+                            <th>작성일</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="comment : ${commentPage.content}">
+                            <td>
+                                <a th:href="@{/posts/{id}/view(id=${comment.postId})}" th:text="${comment.post.title}" style="text-decoration:none; color:var(--primary); font-size:13px;">Post Title</a>
+                            </td>
+                            <td th:text="${comment.content}">Comment Content</td>
+                            <td th:text="${#temporals.format(comment.createdAt, 'MM-dd HH:mm')}">01-01 12:00</td>
+                        </tr>
+                        <tr th:if="${commentPage.empty}">
+                            <td colspan="3" style="text-align:center; color:var(--text-muted); padding: 40px;">작성한 댓글이 없습니다.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- My Comments Pagination -->
+                <div class="pagination-container" th:if="${!commentPage.empty}" 
+                     th:with="start=${(commentPage.number / 10) * 10 + 1},
+                              end=${((start + 9) < commentPage.totalPages ? (start + 9) : commentPage.totalPages)}">
+                    <a th:href="@{/mypage/{username}(username=${member.username}, commentPage=${commentPage.number - 1})}" 
+                       class="pagination-link" th:classappend="${!commentPage.hasPrevious()} ? 'disabled'">이전</a>
+                    <th:block th:each="page : ${#numbers.sequence(start, (end > 0 ? end : 1))}">
+                        <a th:href="@{/mypage/{username}(username=${member.username}, commentPage=${page - 1})}" 
+                           th:text="${page}" class="pagination-link" th:classappend="${page - 1 == commentPage.number} ? 'active'">1</a>
+                    </th:block>
+                    <a th:href="@{/mypage/{username}(username=${member.username}, commentPage=${commentPage.number + 1})}" 
+                       class="pagination-link" th:classappend="${!commentPage.hasNext()} ? 'disabled'">다음</a>
+                </div>
+            </div>
+        </section>
+
         <!-- Profile / Info Update Section -->
         <section id="profile" class="content-section" th:if="${member.ownProfile}">
             <div class="section-header">
@@ -231,25 +362,10 @@
             </div>
         </section>
 
-        <!-- Notifications Section -->
-        <section id="notifications" class="content-section" th:if="${member.ownProfile}">
-            <div class="section-header">
-                <h2>최근 알림</h2>
-            </div>
-            
-            <div th:if="${#lists.isEmpty(notifications)}" class="card" style="text-align:center; padding:60px; color:var(--text-muted);">
-                새로운 알림이 없습니다.
-            </div>
-            
-            <div th:each="notif : ${notifications}" class="notif-item">
-                <div style="font-weight:bold; font-size:15px;" th:text="${notif.title}">Title</div>
-                <div style="font-size:14px; color:#555; margin-top:4px;" th:text="${notif.body}">Body</div>
-                <div class="notif-time" th:text="${#temporals.format(notif.createdAt, 'yyyy-MM-dd HH:mm')}">Time</div>
-            </div>
-        </section>
+        <!-- Removed Notifications Section -->
 
         <!-- Help Section -->
-        <section id="help" class="content-section">
+        <section id="help" class="content-section" th:if="${member.ownProfile}">
             <div class="section-header">
                 <h2>도움말 & FAQ</h2>
             </div>
