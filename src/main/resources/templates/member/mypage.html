@@ -22,10 +22,12 @@
             <span class="tier-badge" 
                   th:style="'background-color:' + ${member.tier.colorCode} + '; color: #fff;'" 
                   th:text="${member.tier}">BRONZE</span>
-            <div class="sidebar-points" onclick="location.href='/payment'" style="cursor: pointer;" title="포인트 충전하러 가기">
+            <div class="sidebar-points">
                 <span class="point-value" th:text="${#numbers.formatInteger(member.pointBalance, 0, 'COMMA')}">0</span>
                 <span class="point-label">Points</span>
             </div>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 12px; font-size: 13px; padding: 10px;" 
+                    onclick="location.href='/payment'">충전하기</button>
         </div>
 
         <nav class="nav-menu">
@@ -190,14 +192,12 @@
             </div>
 
             <div class="card">
-                <h3>기본 정보 수정</h3>
-                <form th:action="@{/mypage/update}" method="post">
-                    <div class="form-group">
-                        <label>아이디</label>
-                        <input type="text" name="nickname" th:value="${member.username}" class="input-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">저장하기</button>
-                </form>
+                <h3>기본 정보</h3>
+                <div class="form-group">
+                    <label>아이디</label>
+                    <input type="text" th:value="${member.username}" class="input-control" readonly style="background-color: #f8f9fa; cursor: not-allowed;">
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">아이디는 보안 및 시스템 정책상 수정할 수 없습니다.</p>
+                </div>
             </div>
 
             <div class="card">

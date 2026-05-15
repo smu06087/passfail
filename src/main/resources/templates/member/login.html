@@ -6,77 +6,103 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap');
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
+            font-family: 'Pretendard', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1fdf4 100%);
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
+            color: #1e293b;
         }
         .login-container {
-            background-color: #fff;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(14px);
+            padding: 48px;
+            border-radius: 32px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.8);
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             text-align: center;
         }
-        h2 { color: #333; margin-bottom: 30px; }
+        h2 { 
+            color: #1e293b; 
+            margin-bottom: 32px; 
+            font-weight: 900; 
+            font-size: 28px;
+            letter-spacing: -0.05em;
+        }
         
-        /* 로컬 로그인 폼 */
-        .form-group { margin-bottom: 15px; text-align: left; }
-        label { display: block; margin-bottom: 5px; color: #666; font-size: 14px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; margin-bottom: 8px; color: #64748b; font-size: 14px; font-weight: 700; }
         input[type="text"], input[type="password"] {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            padding: 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
             box-sizing: border-box;
+            background: #f8fafc;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #22c55e;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
         }
         .btn-login {
             width: 100%;
-            padding: 12px;
-            background-color: #4A90E2;
+            padding: 14px;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 16px;
-            font-weight: bold;
-            margin-top: 10px;
+            font-weight: 800;
+            margin-top: 12px;
+            box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.2);
+            transition: all 0.2s;
         }
-        .btn-login:hover { background-color: #357ABD; }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(34, 197, 94, 0.2); }
+        .btn-login:active { transform: translateY(0); }
 
         /* 소셜 로그인 섹션 */
-        .social-login { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
-        .social-login p { color: #999; font-size: 13px; margin-bottom: 15px; }
-        .social-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .social-login { margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 24px; }
+        .social-login p { color: #94a3b8; font-size: 13px; margin-bottom: 16px; font-weight: 700; }
+        .social-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .social-btn {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10px;
-            border-radius: 6px;
+            padding: 12px;
+            border-radius: 10px;
             text-decoration: none;
             font-size: 14px;
-            font-weight: 500;
-            color: #333;
-            border: 1px solid #ddd;
+            font-weight: 700;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            background: white;
+            transition: all 0.2s;
         }
+        .social-btn:hover { border-color: #cbd5e1; background: #f8fafc; }
         .btn-google { background-color: #fff; }
-        .btn-kakao { background-color: #FEE500; border: none; }
+        .btn-kakao { background-color: #FEE500; border: none; color: #3c1e1e; }
         .btn-naver { background-color: #03C75A; color: #fff; border: none; }
-        .btn-github { background-color: #333; color: #fff; border: none; }
+        .btn-github { background-color: #1e293b; color: #fff; border: none; }
 
         /* 하단 링크 */
-        .footer-links { margin-top: 20px; font-size: 13px; color: #666; }
-        .footer-links a { color: #4A90E2; text-decoration: none; margin: 0 5px; }
+        .footer-links { margin-top: 24px; font-size: 13px; color: #94a3b8; font-weight: 700; }
+        .footer-links a { color: #22c55e; text-decoration: none; margin: 0 8px; }
+        .footer-links a:hover { text-decoration: underline; }
         
-        .error-msg { color: #e74c3c; font-size: 13px; margin-bottom: 15px; }
-        .success-msg { color: #27ae60; font-size: 13px; margin-bottom: 15px; }
+        .error-msg { color: #ef4444; font-size: 13px; margin-bottom: 16px; font-weight: 700; }
+        .success-msg { color: #10b981; font-size: 13px; margin-bottom: 16px; font-weight: 700; }
     </style>
 </head>
 <body>

@@ -10,7 +10,7 @@
     <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
 <body>
-    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+<div th:replace="~{fragments/navbar :: mainNavbar}"></div>
 
 <div class="page">
     <aside class="side-card">
@@ -25,14 +25,14 @@
             <div class="guide-step"><span class="step-num">2</span><span>문제 설명 작성</span></div>
             <div class="guide-step"><span class="step-num">3</span><span>태그 추가</span></div>
             <div class="guide-step"><span class="step-num">4</span><span>예제 입출력 작성</span></div>
-            <div class="guide-step"><span class="step-num">5</span><span>테스트케이스 작성</span></div>
+            <div class="guide-step"><span class="step-num">5</span><span>테스트 케이스 작성</span></div>
         </div>
 
         <div class="tip-box">
             <div class="tip-title">작성 팁</div>
             <div class="tip-text">
-                제목은 짧고 명확하게, 설명은 입력과 출력 형식을 빠짐없이 적는 편이 좋습니다.
-                예제 입력과 출력은 최소 1개 이상 등록해 주세요.
+                임시 저장 상태에서는 필수값 없이도 저장할 수 있습니다.
+                공개용 문제는 제목, 카테고리, 설명, 예제 입출력이 필요합니다.
             </div>
         </div>
     </aside>
@@ -44,12 +44,12 @@
                     <div class="header-face">P</div>
                     <div class="header-text">
                         <h1 th:text="${formMode == 'edit' ? '문제 수정' : '문제 등록'}">문제 등록</h1>
-                        <p th:text="${formMode == 'edit' ? '기존 문제 정보를 불러와 수정한 뒤 바로 반영할 수 있습니다.' : '새 문제를 등록하고 미리보기로 내용을 바로 확인할 수 있습니다.'}">
-                            새 문제를 등록하고 미리보기로 내용을 바로 확인할 수 있습니다.
+                        <p th:text="${formMode == 'edit' ? '기존 문제를 수정하고 다시 저장할 수 있습니다.' : '새 문제를 작성하고 임시 저장 또는 등록할 수 있습니다.'}">
+                            새 문제를 작성하고 임시 저장 또는 등록할 수 있습니다.
                         </p>
                     </div>
                 </div>
-                <div class="status-badge" id="modeBadge">임시 작성 중</div>
+                <div class="status-badge" id="modeBadge">신규 등록</div>
             </div>
 
             <form id="problemForm">
@@ -62,11 +62,11 @@
                     <div class="grid-2">
                         <div class="form-group">
                             <label for="title">문제 제목</label>
-                            <input type="text" id="title" class="form-control" placeholder="예: 배열 합 구하기">
+                            <input type="text" id="title" class="form-control" placeholder="예: 두 배열 합 구하기">
                         </div>
                         <div class="form-group">
                             <label for="category">카테고리</label>
-                            <input type="text" id="category" class="form-control" placeholder="예: 구현 / 문자열 / 그래프">
+                            <input type="text" id="category" class="form-control" placeholder="예: 구현 / 그래프 / 문자열">
                         </div>
                     </div>
 
@@ -101,7 +101,7 @@
                         <div class="form-group">
                             <label for="acceptRate">초기 정답률</label>
                             <input type="text" id="acceptRate" class="form-control" value="0">
-                            <div class="help-text">처음 등록 시 0으로 저장하고 이후 실제 제출 결과에 따라 변경할 수 있습니다.</div>
+                            <div class="help-text">신규 문제는 보통 0으로 두고 시작합니다.</div>
                         </div>
                     </div>
                 </div>
@@ -110,11 +110,6 @@
                     <div class="section-title">
                         <div class="section-badge">2</div>
                         <div>문제 설명</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="shortDesc">간단 설명</label>
-                        <input type="text" id="shortDesc" class="form-control" placeholder="예: N개의 정수를 입력받아 합을 출력하는 기본 문제">
                     </div>
 
                     <div class="form-group">
@@ -130,7 +125,7 @@
                     </div>
 
                     <div class="tag-row">
-                        <input type="text" id="tagInput" class="form-control" placeholder="예: 구현, 문자열, BFS">
+                        <input type="text" id="tagInput" class="form-control" placeholder="예: 구현, bfs, 문자열">
                         <button type="button" class="tag-add-btn" onclick="addTag()">추가</button>
                     </div>
 
@@ -151,18 +146,19 @@
                 <div class="section">
                     <div class="section-title">
                         <div class="section-badge">5</div>
-                        <div>테스트케이스</div>
+                        <div>테스트 케이스</div>
                     </div>
 
-                    <div class="help-text">실제 채점에 사용할 숨김 테스트 입력과 기대 출력입니다.</div>
+                    <div class="help-text">실제 채점에 사용할 입력과 기대 출력입니다.</div>
 
                     <div id="testCaseContainer"></div>
 
-                    <button type="button" class="sample-add test-case-add" onclick="addTestCase()">+ 테스트케이스 추가</button>
+                    <button type="button" class="sample-add test-case-add" onclick="addTestCase()">+ 테스트 케이스 추가</button>
                 </div>
 
                 <div class="action-row">
                     <button type="button" class="btn btn-reset" onclick="resetForm()">초기화</button>
+                    <button th:if="${formMode == 'edit' && problemData != null}" type="button" class="btn btn-reset" onclick="deleteProblem()">문제 삭제</button>
                     <button type="button" class="btn btn-save" onclick="saveDraft()">임시 저장</button>
                     <button type="button" class="btn btn-submit" id="submitButton" onclick="submitProblem()">문제 등록</button>
                 </div>
@@ -183,7 +179,7 @@
                         <span class="preview-difficulty easy" id="previewDifficulty">EASY</span>
                         <span class="preview-rate" id="previewRate">정답률 0%</span>
                     </div>
-                    <p id="previewText">등록 버튼을 누르기 전에 여기에 내용을 확인할 수 있습니다.</p>
+                    <p id="previewText">문제 설명을 입력하면 여기에 표시됩니다.</p>
                     <div class="preview-tags" id="previewTags">
                         <span class="preview-tag">태그 없음</span>
                     </div>
@@ -197,12 +193,13 @@
     window.problemFormConfig = {
         mode: [[${formMode}]],
         submitUrl: [[${formMode == 'edit' && problemData != null ? '/problem/api/problems/' + problemData.problemId : '/problem/api/problems'}]],
+        deleteUrl: [[${formMode == 'edit' && problemData != null ? '/problem/api/problems/' + problemData.problemId : null}]],
         problemListUrl: [[@{/problem/problemList}]],
         editMethod: [[${formMode == 'edit' ? 'PUT' : 'POST'}]],
-        initialProblem: [[${problemData}]]
+        initialProblem: [(${problemDataJson})]
     };
 </script>
 <script th:replace="~{fragments/navbar :: navbarScript}"></script>
-<script th:src="@{/js/problem/problemCreate.js}"></script>
+<script th:src="@{/js/problem/problemCreate.js}" src="/js/problem/problemCreate.js"></script>
 </body>
 </html>

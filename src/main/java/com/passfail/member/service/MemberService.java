@@ -38,10 +38,7 @@ public class MemberService implements UserDetailsService {
     private final EmailVerificationRepository emailVerificationRepository;
     private final TermsConsentRepository termsConsentRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JavaMailSender mailSender;
-
-    @org.springframework.beans.factory.annotation.Value("${spring.mail.username}")
-    private String fromEmail;
+    private final MailService mailService;
 
     /**
      * Spring Security에서 사용자 정보를 로드하는 메서드
@@ -103,12 +100,8 @@ public class MemberService implements UserDetailsService {
         
         emailVerificationRepository.save(verification);
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail); // 발신자 설정 추가
-        message.setTo(email);
-        message.setSubject("[Passfail] 이메일 인증 코드");
-        message.setText("인증 코드는 [" + code + "] 입니다. 5분 이내에 입력해 주세요.");
-        mailSender.send(message);
+        // 비동기 메일 발송
+        mailService.sendMail(email, "[Passfail] 이메일 인증 코드", "인증 코드는 [" + code + "] 입니다. 5분 이내에 입력해 주세요.");
     }
 
     /**
@@ -218,14 +211,10 @@ public class MemberService implements UserDetailsService {
         member.setPassword(passwordEncoder.encode(tempPassword));
         memberRepository.save(member);
 
-        // 3. 이메일 발송
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail); // 발신자 설정 추가
-        message.setTo(email);
-        message.setSubject("[Passfail] 임시 비밀번호 안내");
-        message.setText("안녕하세요. 요청하신 임시 비밀번호는 [" + tempPassword + "] 입니다.\n" +
+        // 3. 비동기 메일 발송
+        mailService.sendMail(email, "[Passfail] 임시 비밀번호 안내", 
+                "안녕하세요. 요청하신 임시 비밀번호는 [" + tempPassword + "] 입니다.\n" +
                 "로그인 후 반드시 비밀번호를 변경해 주세요.");
-        mailSender.send(message);
     }
 
     /**

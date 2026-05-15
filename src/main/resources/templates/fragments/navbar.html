@@ -3,9 +3,21 @@
 <head>
     <!-- Navbar styles extracted from main.html -->
     <style th:fragment="navbarStyles">
-        .bg-green-grad { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap');
 
-        .nav-box {
+        /* Global reset for navbar to ensure consistency across all pages */
+        .navbar-global-style {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif !important;
+            font-size: 15px !important; /* Base font size */
+        }
+
+        .navbar-global-style *, 
+        .navbar-global-style *::before, 
+        .navbar-global-style *::after {
+            font-family: 'Pretendard', sans-serif !important;
+        }
+
+        .navbar-global-style .nav-box {
             border: 1px solid #e2e8f0;
             border-radius: 14px;
             background: white;
@@ -16,51 +28,160 @@
             height: 52px;
             width: 150px;
             cursor: pointer;
-            font-weight: 800;
-            font-size: 15px;
+            font-weight: 800 !important;
+            font-size: 16px !important; /* Slightly larger for main menu */
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
-        .nav-box:hover {
+
+        .navbar-global-style .nav-box:hover {
             border-color: #22c55e;
             color: #22c55e;
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.1);
         }
 
-        .nav-item { position: relative; }
+        .navbar-global-style .nav-item { position: relative; }
+        
+        .navbar-global-style .bg-green-grad { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+        
+        /* Ensure all text-bearing elements use the unified font and predictable sizes */
+        .navbar-global-style a, 
+        .navbar-global-style span, 
+        .navbar-global-style div,
+        .navbar-global-style input {
+            font-family: 'Pretendard', sans-serif !important;
+        }
+
+        .navbar-global-style .logo-text {
+            font-size: 32px !important;
+            font-weight: 900 !important;
+            line-height: 1.2 !important;
+        }
+
+        .navbar-global-style #login-section a,
+        .navbar-global-style #member-section a,
+        .navbar-global-style #member-section span {
+            font-size: 14px !important;
+            font-weight: 800 !important;
+        }
+
+        .navbar-global-style #member-section .logout-link {
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            color: #94a3b8 !important; /* slate-400 */
+        }
+
+        .navbar-global-style input {
+            font-size: 15px !important;
+            font-weight: 700 !important;
+        }
+
+        /* Layout Spacing Reset */
+        .navbar-global-style.nav-container {
+            padding-left: 32px !important;
+            padding-right: 32px !important;
+            padding-top: 12px !important;
+            padding-bottom: 12px !important;
+        }
+
+        .navbar-global-style .main-content-wrapper {
+            width: 100% !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+        }
+
+        .navbar-global-style .top-row {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 32px !important;
+            margin-bottom: 16px !important;
+        }
+
+        .navbar-global-style .search-bar-wrapper {
+            flex: 1 !important;
+            max-width: 672px !important; /* 2xl */
+            border: 1px solid #cbd5e1 !important; /* slate-300 */
+            border-radius: 16px !important;
+            display: flex !important;
+            align-items: center !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+            background-color: white !important;
+            transition: all 0.2s !important;
+        }
+
+        .navbar-global-style .search-bar-wrapper:focus-within {
+            border-color: #22c55e !important;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1) !important;
+        }
+
+        .navbar-global-style .search-input {
+            width: 100% !important;
+            padding: 12px !important;
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+        }
+
+        .navbar-global-style .user-section {
+            flex: 1 !important;
+            display: flex !important;
+            justify-content: flex-end !important;
+            align-items: center !important;
+            gap: 16px !important;
+        }
+
+        .navbar-global-style .nav-loop-wrapper {
+            display: flex !important;
+            justify-content: center !important;
+            gap: 24px !important;
+            padding-bottom: 8px !important;
+        }
+
+        .navbar-global-style #login-section {
+            display: flex !important;
+            gap: 12px !important;
+        }
+
+        .navbar-global-style #member-section {
+            display: flex !important;
+            align-items: center !important;
+            gap: 20px !important;
+        }
     </style>
 </head>
 <body>
 
-<nav th:fragment="mainNavbar" class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 px-8 py-3 text-slate-800">
-    <div class="w-full mx-auto space-y-4">
+<nav th:fragment="mainNavbar" th:with="sId=${searchInputId ?: ''}, sPlaceholder=${searchPlaceholder ?: '검색 기능을 이용해보세요'}" class="navbar-global-style nav-container sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 text-slate-800">
+    <div class="main-content-wrapper">
         <!-- 상단 로고 및 검색 바 -->
-        <div class="flex items-center justify-between gap-8">
-            <div class="flex-1">
-                <div class="text-3xl font-black text-green-600 tracking-tighter cursor-pointer inline-block" onclick="location.href='/main'">
+        <div class="top-row">
+            <div style="flex: 1;">
+                <div class="logo-text text-green-600 tracking-tighter cursor-pointer inline-block" onclick="location.href='/main'">
                     Passfail
                 </div>
             </div>
             
-            <div class="flex-1 max-w-2xl border border-slate-300 rounded-2xl flex items-center px-4 bg-white focus-within:border-green-500 focus-within:ring-4 focus-within:ring-green-500/10 transition-all shadow-inner">
-                <i data-lucide="search" size="18" class="text-slate-400"></i>
-                <input type="text" placeholder="검색 기능을 이용해보세요" class="w-full p-3 bg-transparent outline-none font-bold text-slate-600">
+            <div class="search-bar-wrapper shadow-inner">
+                <i data-lucide="search" style="width: 18px; height: 18px;" class="text-slate-400"></i>
+                <input type="text" th:id="${sId}" th:placeholder="${sPlaceholder}" class="search-input font-bold text-slate-600">
             </div>
 
-            <div class="flex-1 flex justify-end items-center gap-4">
-                <div id="login-section" th:if="${currentUsername == null}" class="flex gap-3">
+            <div class="user-section">
+                <div id="login-section" th:if="${currentUsername == null}">
                     <a href="/login" class="px-6 py-2.5 border border-slate-300 rounded-xl font-black text-sm hover:bg-slate-50 transition-all">로그인</a>
                 </div>
-                <div id="member-section" th:if="${currentUsername != null}" class="flex items-center gap-5">
+                <div id="member-section" th:if="${currentUsername != null}">
                     <span class="font-black text-sm text-slate-500 whitespace-nowrap"><span class="text-green-600" th:text="${currentUsername}">동엽</span>님 접속</span>
                     <a th:href="@{/mypage/{name}(name=${currentUsername})}" class="px-6 py-2.5 bg-green-grad text-white rounded-xl font-black text-sm shadow-lg shadow-green-500/20 whitespace-nowrap">마이페이지</a>
-                    <a href="/logout" class="text-xs font-bold text-slate-400 hover:text-slate-600 whitespace-nowrap">로그아웃</a>
+                    <a href="/logout" class="logout-link text-xs font-bold text-slate-400 hover:text-slate-600 whitespace-nowrap">로그아웃</a>
                 </div>
             </div>
         </div>
 
         <!-- 하단 카테고리 루프 컨테이너 -->
-        <div id="nav-loop-container" class="flex justify-center gap-6 pb-2">
+        <div id="nav-loop-container" class="nav-loop-wrapper">
             <!-- JavaScript 루프로 생성됨 -->
         </div>
     </div>

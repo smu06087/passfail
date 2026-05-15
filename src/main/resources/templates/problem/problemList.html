@@ -10,7 +10,14 @@
     <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
 <body class="flex flex-col">
-<div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+<div th:replace="~{fragments/navbar :: mainNavbar(searchInputId='problemSearchInput')}"></div>
+
+<div class="search-related-container" style="background: white; padding: 0 2rem;">
+    <div class="search-related" id="searchRelatedBox" style="max-width: 1200px; margin: 0 auto; padding: 10px 0;">
+        <span class="search-related-label">연관 검색어</span>
+        <div class="search-related-keywords" id="searchRelatedKeywords"></div>
+    </div>
+</div>
 
 <div class="app">
     <main class="page">
@@ -29,7 +36,7 @@
             </div>
 
             <div class="filter-group">
-                <div class="filter-title">알고리즘 분류</div>
+                <div class="filter-title">카테고리</div>
                 <select>
                     <option>전체</option>
                     <option>구현</option>
@@ -40,7 +47,7 @@
             </div>
 
             <div class="filter-group">
-                <div class="filter-title">문제 상태</div>
+                <div class="filter-title">상태</div>
                 <label class="check-item"><input type="checkbox" checked> <span>전체</span></label>
                 <label class="check-item"><input type="checkbox" checked> <span>미해결</span></label>
                 <label class="check-item"><input type="checkbox" checked> <span>해결</span></label>
@@ -124,10 +131,10 @@
                         data-correct="0"
                         data-my-submit="-"
                         data-my-rate="-"
-                        data-desc="문제를 등록하면 이 목록에 표시됩니다.">
+                        data-desc="문제를 등록하면 목록에 표시됩니다.">
                         <div class="problem-number">-</div>
                         <div class="card-star-wrap">
-                            <div class="card-star gray">☆</div>
+                            <div class="card-star gray">*</div>
                         </div>
                         <div class="card-title">등록된 문제가 없습니다</div>
                         <div class="mini-difficulty easy">EASY</div>
@@ -154,7 +161,7 @@
                         onclick="selectProblem(this)">
                         <div class="problem-number" th:text="${problem.problemId}">1</div>
                         <div class="card-star-wrap">
-                            <div class="card-star gray">☆</div>
+                            <div class="card-star gray">*</div>
                         </div>
                         <div class="card-title" th:text="${problem.title}">문제 제목</div>
                         <div class="mini-difficulty"
@@ -164,7 +171,7 @@
                 </div>
             </div>
 
-            <div class="panel-arrow">›</div>
+            <div class="panel-arrow">v</div>
 
             <section class="detail-panel">
                 <div class="detail-left">
@@ -180,11 +187,11 @@
                             id="detailDifficulty"
                             th:classappend="${selectedProblem != null ? #strings.toLowerCase(selectedProblem.difficulty) : 'easy'}"
                             th:text="${selectedProblem != null ? selectedProblem.difficulty : 'EASY'}">EASY</span>
-                        <span class="detail-id">문제번호 <span id="detailId" th:text="${selectedProblem != null ? selectedProblem.problemId : '-'}">-</span></span>
+                        <span class="detail-id">문제 번호 <span id="detailId" th:text="${selectedProblem != null ? selectedProblem.problemId : '-'}">-</span></span>
                     </div>
 
                     <div class="detail-info-grid">
-                        <div class="detail-label">알고리즘 분류</div>
+                        <div class="detail-label">카테고리</div>
                         <div class="detail-value">
                             <div class="tag-list" id="detailCategoryTags">
                                 <span class="tag-chip" th:text="${selectedProblem != null ? selectedProblem.category : '-'}">구현</span>
@@ -231,6 +238,7 @@
 
                     <div class="detail-actions">
                         <button class="enter-btn" onclick="enterProblem()">문제 풀기</button>
+                        <button class="favorite-btn" onclick="downloadPdf()" style="background: #27ae60; color: white; border-color: #27ae60;">PDF 다운로드</button>
                         <a
                             th:if="${isAdmin && selectedProblem != null}"
                             class="favorite-btn admin-edit-btn"
@@ -259,6 +267,6 @@
 </div>
 
 <script th:replace="~{fragments/navbar :: navbarScript}"></script>
-<script th:src="@{/js/problem/problemList.js}"></script>
+<script th:src="@{/js/problem/problemList.js}" src="/js/problem/problemList.js"></script>
 </body>
 </html>

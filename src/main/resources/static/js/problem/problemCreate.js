@@ -1,17 +1,22 @@
 const config = window.problemFormConfig || {
     mode: "create",
     submitUrl: "/problem/api/problems",
+    deleteUrl: null,
     problemListUrl: "/problem/problemList",
     editMethod: "POST",
     initialProblem: null
 };
 
+const normalizedInitialProblem = normalizeInitialProblem(config.initialProblem);
+
 let tagList = [];
 let sampleCount = 0;
 let testCaseCount = 0;
+let isDirty = false;
+let isSubmitting = false;
+let suppressBeforeUnload = false;
 
 const titleInput = document.getElementById("title");
-const shortDescInput = document.getElementById("shortDesc");
 const difficultyInput = document.getElementById("difficulty");
 const acceptRateInput = document.getElementById("acceptRate");
 const previewTitle = document.getElementById("previewTitle");
@@ -27,40 +32,58 @@ const descriptionInput = document.getElementById("description");
 const modeBadge = document.getElementById("modeBadge");
 const submitButton = document.getElementById("submitButton");
 
-titleInput.addEventListener("input", updatePreview);
-shortDescInput.addEventListener("input", updatePreview);
-difficultyInput.addEventListener("change", updatePreview);
-acceptRateInput.addEventListener("input", updatePreview);
+function markDirty() {
+    if (!isSubmitting) {
+        isDirty = true;
+    }
+}
 
 function updatePreview() {
-    const titleValue = titleInput.value.trim();
-    const descValue = shortDescInput.value.trim();
-    const difficultyValue = difficultyInput.value;
-    const rateValue = normalizeDecimal(acceptRateInput.value, 0);
+    const titleValue = titleInput ? titleInput.value.trim() : "";
+    const descValue = descriptionInput ? descriptionInput.value.trim() : "";
+    const difficultyValue = difficultyInput ? difficultyInput.value : "EASY";
+    const rateValue = normalizeDecimal(acceptRateInput ? acceptRateInput.value : 0, 0);
 
-    previewTitle.textContent = titleValue || "문제 제목을 입력해 주세요.";
-    previewText.textContent = descValue || "등록 버튼을 누르기 전에 여기에 내용을 확인할 수 있습니다.";
-    previewDifficulty.textContent = difficultyValue;
-    previewDifficulty.className = "preview-difficulty " + difficultyValue.toLowerCase();
-    previewRate.textContent = "정답률 " + rateValue + "%";
+    if (previewTitle) {
+        previewTitle.textContent = titleValue || "문제 제목을 입력해 주세요.";
+    }
+    if (previewText) {
+        previewText.textContent = descValue || "문제 설명을 입력하면 여기에 표시됩니다.";
+    }
+    if (previewDifficulty) {
+        previewDifficulty.textContent = difficultyValue;
+        previewDifficulty.className = "preview-difficulty " + difficultyValue.toLowerCase();
+    }
+    if (previewRate) {
+        previewRate.textContent = "정답률 " + rateValue + "%";
+    }
+
     renderPreviewTags();
+    markDirty();
 }
 
 function addTag() {
     const tagInput = document.getElementById("tagInput");
-    const value = tagInput.value.trim();
+    if (!tagInput) {
+        return;
+    }
 
+    const value = tagInput.value.trim();
     if (!value) {
         return;
     }
 
-    value.split(",").map(function (item) {
-        return item.trim();
-    }).filter(Boolean).forEach(function (item) {
-        if (!tagList.includes(item)) {
-            tagList.push(item);
-        }
-    });
+    value
+        .split(",")
+        .map(function(item) {
+            return item.trim();
+        })
+        .filter(Boolean)
+        .forEach(function(item) {
+            if (!tagList.includes(item)) {
+                tagList.push(item);
+            }
+        });
 
     tagInput.value = "";
     renderTags();
@@ -69,9 +92,12 @@ function addTag() {
 
 function renderTags() {
     const wrap = document.getElementById("tagList");
-    wrap.innerHTML = "";
+    if (!wrap) {
+        return;
+    }
 
-    tagList.forEach(function (tag) {
+    wrap.innerHTML = "";
+    tagList.forEach(function(tag) {
         const chip = document.createElement("div");
         chip.className = "tag-chip";
         chip.innerHTML = `<span>${escapeHtml(tag)}</span><button type="button" onclick="removeTag('${escapeJs(tag)}')">x</button>`;
@@ -80,6 +106,10 @@ function renderTags() {
 }
 
 function renderPreviewTags() {
+    if (!previewTags) {
+        return;
+    }
+
     previewTags.innerHTML = "";
 
     if (tagList.length === 0) {
@@ -90,7 +120,7 @@ function renderPreviewTags() {
         return;
     }
 
-    tagList.forEach(function (tag) {
+    tagList.forEach(function(tag) {
         const chip = document.createElement("span");
         chip.className = "preview-tag";
         chip.textContent = tag;
@@ -99,7 +129,7 @@ function renderPreviewTags() {
 }
 
 function removeTag(tag) {
-    tagList = tagList.filter(function (item) {
+    tagList = tagList.filter(function(item) {
         return item !== tag;
     });
     renderTags();
@@ -124,6 +154,7 @@ function addSample(inputValue, outputValue) {
         outputValue: outputValue,
         withTopMargin: sampleCount > 1
     });
+    markDirty();
 }
 
 function addTestCase(inputValue, outputValue) {
@@ -132,22 +163,27 @@ function addTestCase(inputValue, outputValue) {
         containerId: "testCaseContainer",
         wrapperClassName: "sample-wrap test-case-wrap",
         titleClassName: "test-case-title",
-        titleText: "테스트케이스 " + testCaseCount,
+        titleText: "테스트 케이스 " + testCaseCount,
         deleteHandler: "removeTestCase(this)",
         inputLabel: "테스트 입력",
         outputLabel: "기대 출력",
         inputSelector: "data-test-input",
         outputSelector: "data-test-output",
-        inputPlaceholder: "숨김 테스트 입력값",
-        outputPlaceholder: "숨김 테스트 기대 출력값",
+        inputPlaceholder: "채점에 사용할 입력값",
+        outputPlaceholder: "채점 시 기대하는 출력값",
         inputValue: inputValue,
         outputValue: outputValue,
         withTopMargin: testCaseCount > 1
     });
+    markDirty();
 }
 
 function appendCaseBlock(options) {
     const container = document.getElementById(options.containerId);
+    if (!container) {
+        return;
+    }
+
     const block = document.createElement("div");
     block.className = options.wrapperClassName;
     block.style.marginTop = options.withTopMargin ? "10px" : "0";
@@ -179,17 +215,19 @@ function removeSample(button) {
 
     button.closest(".sample-wrap").remove();
     resetSampleTitles();
+    markDirty();
 }
 
 function removeTestCase(button) {
     button.closest(".test-case-wrap").remove();
     resetTestCaseTitles();
+    markDirty();
 }
 
 function resetSampleTitles() {
     const titles = document.querySelectorAll(".sample-title");
     sampleCount = titles.length;
-    titles.forEach(function (title, index) {
+    titles.forEach(function(title, index) {
         title.textContent = "예제 " + (index + 1);
     });
 }
@@ -197,33 +235,69 @@ function resetSampleTitles() {
 function resetTestCaseTitles() {
     const titles = document.querySelectorAll(".test-case-title");
     testCaseCount = titles.length;
-    titles.forEach(function (title, index) {
-        title.textContent = "테스트케이스 " + (index + 1);
+    titles.forEach(function(title, index) {
+        title.textContent = "테스트 케이스 " + (index + 1);
     });
 }
 
 function resetForm() {
-    if (!confirm(config.mode === "edit" ? "수정 중인 내용을 초기화할까요?" : "입력한 내용을 초기화할까요?")) {
+    const message = config.mode === "edit"
+        ? "수정 중인 내용을 초기화할까요?"
+        : "입력한 내용을 초기화할까요?";
+    if (!confirm(message)) {
         return;
     }
 
-    fillForm(config.initialProblem);
+    fillForm(normalizedInitialProblem);
 }
 
 async function saveDraft() {
-    statusInput.value = "DRAFT";
-    await submitProblemRequest("DRAFT", "문제가 임시 저장되었습니다.");
+    if (statusInput) {
+        statusInput.value = "DRAFT";
+    }
+    await submitProblemRequest("DRAFT", "임시 저장되었습니다.");
 }
 
 async function submitProblem() {
     const successMessage = config.mode === "edit" ? "문제가 수정되었습니다." : "문제가 등록되었습니다.";
-    await submitProblemRequest(statusInput.value, successMessage);
+    await submitProblemRequest(statusInput ? statusInput.value : "DRAFT", successMessage);
+}
+
+async function deleteProblem() {
+    if (!config.deleteUrl) {
+        return;
+    }
+
+    if (!confirm("이 문제를 삭제할까요? 삭제 후 복구할 수 없습니다.")) {
+        return;
+    }
+
+    try {
+        isSubmitting = true;
+        const response = await fetch(config.deleteUrl, {
+            method: "DELETE"
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "문제 삭제에 실패했습니다.");
+        }
+
+        isDirty = false;
+        suppressBeforeUnload = true;
+        alert(result.message || "문제가 삭제되었습니다.");
+        window.location.href = config.problemListUrl;
+    } catch (error) {
+        alert(error.message || "문제 삭제 중 오류가 발생했습니다.");
+    } finally {
+        isSubmitting = false;
+    }
 }
 
 async function submitProblemRequest(status, successMessage) {
     const payload = buildPayload(status);
 
     try {
+        isSubmitting = true;
         const response = await fetch(config.submitUrl, {
             method: config.mode === "edit" ? "PUT" : "POST",
             headers: {
@@ -231,31 +305,33 @@ async function submitProblemRequest(status, successMessage) {
             },
             body: JSON.stringify(payload)
         });
-
         const result = await response.json();
         if (!response.ok || !result.success) {
             throw new Error(result.message || "문제 저장에 실패했습니다.");
         }
 
+        isDirty = false;
+        suppressBeforeUnload = true;
         alert(successMessage + " 문제 번호: " + result.problemId);
         window.location.href = config.problemListUrl;
     } catch (error) {
-        alert(error.message);
+        alert(error.message || "문제 저장 중 오류가 발생했습니다.");
+    } finally {
+        isSubmitting = false;
     }
 }
 
 function buildPayload(status) {
     return {
-        problemId: config.initialProblem && config.initialProblem.problemId ? config.initialProblem.problemId : null,
-        title: titleInput.value.trim(),
-        shortDescription: shortDescInput.value.trim(),
-        description: descriptionInput.value.trim(),
-        difficulty: difficultyInput.value,
-        category: categoryInput.value.trim(),
-        timeLimitMs: normalizeNumber(timeLimitInput.value, 0),
-        memoryLimitMb: normalizeNumber(memoryLimitInput.value, 0),
+        problemId: normalizedInitialProblem && normalizedInitialProblem.problemId ? normalizedInitialProblem.problemId : null,
+        title: titleInput ? titleInput.value.trim() : "",
+        description: descriptionInput ? descriptionInput.value.trim() : "",
+        difficulty: difficultyInput ? difficultyInput.value : "EASY",
+        category: categoryInput ? categoryInput.value.trim() : "",
+        timeLimitMs: normalizeNumber(timeLimitInput ? timeLimitInput.value : 0, 0),
+        memoryLimitMb: normalizeNumber(memoryLimitInput ? memoryLimitInput.value : 0, 0),
         status: status,
-        acceptanceRate: normalizeDecimal(acceptRateInput.value, 0),
+        acceptanceRate: normalizeDecimal(acceptRateInput ? acceptRateInput.value : 0, 0),
         tags: tagList.slice(),
         sampleInputs: collectValues("[data-sample-input]"),
         sampleOutputs: collectValues("[data-sample-output]"),
@@ -265,7 +341,7 @@ function buildPayload(status) {
 }
 
 function collectValues(selector) {
-    return Array.from(document.querySelectorAll(selector)).map(function (item) {
+    return Array.from(document.querySelectorAll(selector)).map(function(item) {
         return item.value.trim();
     });
 }
@@ -286,6 +362,23 @@ function normalizeDecimal(value, fallbackValue) {
     return Number.parseFloat(normalized);
 }
 
+function normalizeInitialProblem(problem) {
+    if (!problem) {
+        return null;
+    }
+
+    if (typeof problem === "string") {
+        try {
+            return JSON.parse(problem);
+        } catch (error) {
+            console.error("initialProblem JSON parse failed", error);
+            return null;
+        }
+    }
+
+    return problem;
+}
+
 function escapeHtml(value) {
     return String(value)
         .replaceAll("&", "&amp;")
@@ -300,32 +393,51 @@ function escapeJs(value) {
 }
 
 function fillForm(problem) {
-    const initialProblem = problem || {};
-    titleInput.value = initialProblem.title || "";
-    shortDescInput.value = initialProblem.shortDescription || "";
-    descriptionInput.value = initialProblem.description || "";
-    categoryInput.value = initialProblem.category || "";
-    difficultyInput.value = initialProblem.difficulty || "EASY";
-    timeLimitInput.value = initialProblem.timeLimitMs || 2000;
-    memoryLimitInput.value = initialProblem.memoryLimitMb || 256;
-    statusInput.value = initialProblem.status || "DRAFT";
-    acceptRateInput.value = initialProblem.acceptanceRate != null ? initialProblem.acceptanceRate : 0;
+    const initialProblem = normalizeInitialProblem(problem) || {};
+
+    if (titleInput) {
+        titleInput.value = initialProblem.title || "";
+    }
+    if (descriptionInput) {
+        descriptionInput.value = initialProblem.description || "";
+    }
+    if (categoryInput) {
+        categoryInput.value = initialProblem.category || "";
+    }
+    if (difficultyInput) {
+        difficultyInput.value = initialProblem.difficulty || "EASY";
+    }
+    if (timeLimitInput) {
+        timeLimitInput.value = initialProblem.timeLimitMs || 2000;
+    }
+    if (memoryLimitInput) {
+        memoryLimitInput.value = initialProblem.memoryLimitMb || 256;
+    }
+    if (statusInput) {
+        statusInput.value = initialProblem.status || "DRAFT";
+    }
+    if (acceptRateInput) {
+        acceptRateInput.value = initialProblem.acceptanceRate != null ? initialProblem.acceptanceRate : 0;
+    }
 
     tagList = Array.isArray(initialProblem.tags) ? initialProblem.tags.slice() : [];
     renderTags();
 
     const sampleContainer = document.getElementById("sampleContainer");
-    sampleContainer.innerHTML = "";
+    if (sampleContainer) {
+        sampleContainer.innerHTML = "";
+    }
     sampleCount = 0;
 
     const testCaseContainer = document.getElementById("testCaseContainer");
-    testCaseContainer.innerHTML = "";
+    if (testCaseContainer) {
+        testCaseContainer.innerHTML = "";
+    }
     testCaseCount = 0;
 
     const sampleInputs = Array.isArray(initialProblem.sampleInputs) ? initialProblem.sampleInputs : [];
     const sampleOutputs = Array.isArray(initialProblem.sampleOutputs) ? initialProblem.sampleOutputs : [];
     const maxSampleLength = Math.max(sampleInputs.length, sampleOutputs.length, 1);
-
     for (let index = 0; index < maxSampleLength; index += 1) {
         addSample(sampleInputs[index] || "", sampleOutputs[index] || "");
     }
@@ -333,14 +445,141 @@ function fillForm(problem) {
     const testInputs = Array.isArray(initialProblem.testInputs) ? initialProblem.testInputs : [];
     const testOutputs = Array.isArray(initialProblem.testOutputs) ? initialProblem.testOutputs : [];
     const maxTestLength = Math.max(testInputs.length, testOutputs.length, 1);
-
     for (let index = 0; index < maxTestLength; index += 1) {
         addTestCase(testInputs[index] || "", testOutputs[index] || "");
     }
 
-    modeBadge.textContent = config.mode === "edit" ? "수정 모드" : "신규 등록";
-    submitButton.textContent = config.mode === "edit" ? "문제 수정" : "문제 등록";
+    if (modeBadge) {
+        modeBadge.textContent = config.mode === "edit" ? "수정 모드" : "신규 등록";
+    }
+    if (submitButton) {
+        submitButton.textContent = config.mode === "edit" ? "문제 수정" : "문제 등록";
+    }
+
     updatePreview();
+    isDirty = false;
+    isSubmitting = false;
+    suppressBeforeUnload = false;
 }
 
-fillForm(config.initialProblem);
+async function promptDraftSaveOnLeave(targetUrl) {
+    if (!isDirty || isSubmitting) {
+        if (targetUrl) {
+            window.location.href = targetUrl;
+        }
+        return;
+    }
+
+    const shouldSaveDraft = confirm("입력 중입니다. 페이지를 이동하기 전에 임시 저장할까요?");
+    if (shouldSaveDraft) {
+        await saveDraft();
+        return;
+    }
+
+    const shouldLeave = confirm("임시 저장 없이 이동하면 작성 중인 내용이 사라집니다. 이동할까요?");
+    if (!shouldLeave) {
+        return;
+    }
+
+    isDirty = false;
+    suppressBeforeUnload = true;
+    if (targetUrl) {
+        window.location.href = targetUrl;
+    }
+}
+
+window.addTag = addTag;
+window.removeTag = removeTag;
+window.addSample = addSample;
+window.addTestCase = addTestCase;
+window.removeSample = removeSample;
+window.removeTestCase = removeTestCase;
+window.resetForm = resetForm;
+window.saveDraft = saveDraft;
+window.submitProblem = submitProblem;
+window.deleteProblem = deleteProblem;
+
+if (titleInput) {
+    titleInput.addEventListener("input", updatePreview);
+}
+if (descriptionInput) {
+    descriptionInput.addEventListener("input", updatePreview);
+}
+if (difficultyInput) {
+    difficultyInput.addEventListener("change", updatePreview);
+}
+if (acceptRateInput) {
+    acceptRateInput.addEventListener("input", updatePreview);
+}
+if (categoryInput) {
+    categoryInput.addEventListener("input", markDirty);
+}
+if (timeLimitInput) {
+    timeLimitInput.addEventListener("input", markDirty);
+}
+if (memoryLimitInput) {
+    memoryLimitInput.addEventListener("input", markDirty);
+}
+if (statusInput) {
+    statusInput.addEventListener("change", markDirty);
+}
+
+document.addEventListener("input", function(event) {
+    if (event.target.matches("[data-sample-input], [data-sample-output], [data-test-input], [data-test-output]")) {
+        markDirty();
+    }
+});
+
+document.addEventListener("click", function(event) {
+    const link = event.target.closest("a[href]");
+    const navBox = event.target.closest(".nav-box");
+    const logo = event.target.closest("[onclick*=\"location.href\"]");
+
+    if (isSubmitting) {
+        return;
+    }
+
+    if (link) {
+        const href = link.getAttribute("href");
+        if (!href || href.startsWith("#") || href.startsWith("javascript:")) {
+            return;
+        }
+        if (link.hasAttribute("download") || link.target === "_blank") {
+            return;
+        }
+
+        event.preventDefault();
+        promptDraftSaveOnLeave(link.href);
+        return;
+    }
+
+    if (navBox && typeof navBox.onclick === "function") {
+        event.preventDefault();
+        const original = navBox.onclick;
+        navBox.onclick = null;
+        promptDraftSaveOnLeave(null).finally(function() {
+            navBox.onclick = original;
+        });
+        return;
+    }
+
+    if (logo) {
+        const onclickValue = logo.getAttribute("onclick") || "";
+        const match = onclickValue.match(/location\.href='([^']+)'/);
+        if (match && match[1]) {
+            event.preventDefault();
+            promptDraftSaveOnLeave(match[1]);
+        }
+    }
+});
+
+window.addEventListener("beforeunload", function(event) {
+    if (!isDirty || isSubmitting || suppressBeforeUnload) {
+        return;
+    }
+
+    event.preventDefault();
+    event.returnValue = "";
+});
+
+fillForm(normalizedInitialProblem);

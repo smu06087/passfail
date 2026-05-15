@@ -1,23 +1,43 @@
 package com.passfail.problem.service;
 
-import com.passfail.entity.*;
-import com.passfail.enums.*;
+import com.passfail.entity.MemberEntity;
+import com.passfail.entity.ProblemEntity;
+import com.passfail.entity.ProblemTagEntity;
+import com.passfail.entity.SolvedProblemEntity;
+import com.passfail.entity.SubmissionEntity;
+import com.passfail.entity.TestCaseEntity;
+import com.passfail.enums.Difficulty;
+import com.passfail.enums.ProblemStatus;
+import com.passfail.enums.ProgrammingLanguage;
+import com.passfail.enums.SubmissionStatus;
+import com.passfail.enums.Tier;
 import com.passfail.member.repository.MemberRepository;
-import com.passfail.problem.dto.*;
-import com.passfail.problem.repository.*;
+import com.passfail.problem.dto.ProblemDTO;
+import com.passfail.problem.dto.ProblemResponse;
+import com.passfail.problem.dto.TestCaseResponse;
+import com.passfail.problem.repository.ProblemRepository;
+import com.passfail.problem.repository.ProblemTagRepository;
+import com.passfail.problem.repository.SolvedProblemRepository;
+import com.passfail.problem.repository.SubmissionRepository;
+import com.passfail.problem.repository.TestCaseRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.PersistenceContext;
+import java.sql.Connection;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.PersistenceContext;
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,71 +58,69 @@ public class ProblemService {
 
     private final Map<String, List<String>> relatedKeywordMap = createRelatedKeywordMap();
 
-    // Methods from the original ProblemService (User interaction)
-
     public List<ProblemResponse> getActiveProblems() {
         return problemRepository.findByStatus(ProblemStatus.PUBLISHED).stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+            .map(this::convertToResponse)
+            .collect(Collectors.toList());
     }
 
     public ProblemResponse getProblemResponse(Long id) {
         ProblemEntity problem = problemRepository.findByIdWithTestCases(id)
-                .orElseThrow(() -> new EntityNotFoundException("문제를 찾을 수 없습니다."));
+            .orElseThrow(() -> new EntityNotFoundException("Problem not found."));
         return convertToResponse(problem);
     }
 
     public ProblemEntity getProblemEntity(Long id) {
         return problemRepository.findByIdWithTestCases(id)
-                .orElseThrow(() -> new EntityNotFoundException("문제를 찾을 수 없습니다."));
+            .orElseThrow(() -> new EntityNotFoundException("Problem not found."));
     }
 
     @Transactional
     public SubmissionEntity submitSolution(String username, Long problemId, String code, ProgrammingLanguage language) {
         MemberEntity member = memberRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+            .orElseThrow(() -> new EntityNotFoundException("Member not found."));
         ProblemEntity problem = getProblemEntity(problemId);
 
         SubmissionEntity submission = submissionRepository.findByMemberIdAndProblemId(member.getMemberId(), problemId)
-                .orElse(SubmissionEntity.builder()
-                        .memberId(member.getMemberId())
-                        .problemId(problem.getProblemId())
-                        .build());
-        
+            .orElse(SubmissionEntity.builder()
+                .memberId(member.getMemberId())
+                .problemId(problem.getProblemId())
+                .build());
+
         submission.setCode(code);
         submission.setLanguage(language);
         submission.setStatus(SubmissionStatus.ACCEPTED);
         submission.setExecutionTimeMs(100);
         submission.setMemoryUsedKb(1024);
-        
+
         submission = submissionRepository.save(submission);
 
         solvedProblemRepository.findByMemberId(member.getMemberId()).stream()
-                .filter(sp -> sp.getProblemId().equals(problemId))
-                .findFirst()
-                .ifPresentOrElse(
-                    sp -> sp.setTryCount(sp.getTryCount() + 1),
-                    () -> {
-                        int score = 100;
-                        SolvedProblemEntity solvedProblem = SolvedProblemEntity.builder()
-                                .memberId(member.getMemberId())
-                                .problemId(problemId)
-                                .scoreEarned(score)
-                                .tryCount(1)
-                                .build();
-                        solvedProblemRepository.save(solvedProblem);
-                        
-                        member.setTotalScore(member.getTotalScore() + score);
-                        member.setTier(Tier.fromScore(member.getTotalScore()));
-                        memberRepository.save(member);
-                    }
-                );
+            .filter(sp -> sp.getProblemId().equals(problemId))
+            .findFirst()
+            .ifPresentOrElse(
+                sp -> sp.setTryCount(sp.getTryCount() + 1),
+                () -> {
+                    int score = 100;
+                    SolvedProblemEntity solvedProblem = SolvedProblemEntity.builder()
+                        .memberId(member.getMemberId())
+                        .problemId(problemId)
+                        .scoreEarned(score)
+                        .tryCount(1)
+                        .build();
+                    solvedProblemRepository.save(solvedProblem);
+
+                    member.setTotalScore(member.getTotalScore() + score);
+                    member.setTier(Tier.fromScore(member.getTotalScore()));
+                    memberRepository.save(member);
+                }
+            );
 
         problem.setSubmissionCount(problem.getSubmissionCount() + 1);
         problem.setAcceptedCount(problem.getAcceptedCount() + 1);
         problem.setAcceptanceRate((double) problem.getAcceptedCount() / (double) problem.getSubmissionCount() * 100.0);
         problemRepository.save(problem);
-        
+
         return submission;
     }
 
@@ -110,43 +128,41 @@ public class ProblemService {
     public String getPreviousSolution(String username, Long problemId) {
         MemberEntity member = memberRepository.findByUsername(username).orElse(null);
         if (member == null) return null;
-        
+
         return submissionRepository.findByMemberIdAndProblemId(member.getMemberId(), problemId)
-                .map(SubmissionEntity::getCode)
-                .orElse(null);
+            .map(SubmissionEntity::getCode)
+            .orElse(null);
     }
 
     @Transactional(readOnly = true)
     public boolean isSolved(String username, Long problemId) {
         MemberEntity member = memberRepository.findByUsername(username).orElse(null);
         if (member == null) return false;
-        
+
         return solvedProblemRepository.findByMemberId(member.getMemberId()).stream()
-                .anyMatch(sp -> sp.getProblemId().equals(problemId));
+            .anyMatch(sp -> sp.getProblemId().equals(problemId));
     }
 
     private ProblemResponse convertToResponse(ProblemEntity entity) {
         return ProblemResponse.builder()
-                .problemId(entity.getProblemId())
-                .title(entity.getTitle())
-                .description(entity.getDescription())
-                .difficulty(entity.getDifficulty().name())
-                .category(entity.getCategory())
-                .timeLimitMs(entity.getTimeLimitMs())
-                .memoryLimitMb(entity.getMemoryLimitMb())
-                .acceptanceRate(entity.getAcceptanceRate())
-                .testCases(entity.getTest_cases() != null ? entity.getTest_cases().stream()
-                        .map(tc -> TestCaseResponse.builder()
-                                .caseId(tc.getCaseId())
-                                .inputData(tc.getInputData())
-                                .expectedOutput(tc.getExpectedOutput())
-                                .isSample(tc.getIsSample())
-                                .build())
-                        .collect(Collectors.toList()) : List.of())
-                .build();
+            .problemId(entity.getProblemId())
+            .title(entity.getTitle())
+            .description(entity.getDescription())
+            .difficulty(entity.getDifficulty().name())
+            .category(entity.getCategory())
+            .timeLimitMs(entity.getTimeLimitMs())
+            .memoryLimitMb(entity.getMemoryLimitMb())
+            .acceptanceRate(entity.getAcceptanceRate())
+            .testCases(entity.getTest_cases() != null ? entity.getTest_cases().stream()
+                .map(tc -> TestCaseResponse.builder()
+                    .caseId(tc.getCaseId())
+                    .inputData(tc.getInputData())
+                    .expectedOutput(tc.getExpectedOutput())
+                    .isSample(tc.getIsSample())
+                    .build())
+                .collect(Collectors.toList()) : List.of())
+            .build();
     }
-
-    // Methods from ProblemService1 (Admin / Problem Management)
 
     @Transactional
     public Long createProblem(ProblemDTO problemDTO) {
@@ -174,7 +190,7 @@ public class ProblemService {
         validate(problemDTO);
 
         ProblemEntity problem = problemRepository.findById(problemId)
-            .orElseThrow(() -> new EntityNotFoundException("문제를 찾을 수 없습니다. id=" + problemId));
+            .orElseThrow(() -> new EntityNotFoundException("Problem not found. id=" + problemId));
 
         applyProblemFields(problem, problemDTO);
         problemRepository.save(problem);
@@ -190,9 +206,25 @@ public class ProblemService {
         return problemId;
     }
 
+    @Transactional
+    public void deleteProblem(Long problemId) {
+        ProblemEntity problem = problemRepository.findById(problemId)
+            .orElseThrow(() -> new EntityNotFoundException("Problem not found. id=" + problemId));
+
+        problemTagRepository.deleteByProblemId(problemId);
+        testCaseRepository.deleteByProblem_ProblemId(problemId);
+        problemRepository.delete(problem);
+    }
+
     @Transactional(readOnly = true)
     public List<ProblemDTO> getProblemList() {
+        return getProblemList(true);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProblemDTO> getProblemList(boolean includeDrafts) {
         List<ProblemEntity> problems = problemRepository.findAll().stream()
+            .filter(problem -> includeDrafts || problem.getStatus() == ProblemStatus.PUBLISHED)
             .sorted((left, right) -> Long.compare(right.getProblemId(), left.getProblemId()))
             .collect(Collectors.toList());
 
@@ -207,28 +239,20 @@ public class ProblemService {
     @Transactional(readOnly = true)
     public ProblemDTO getProblemDetail(Long problemId) {
         ProblemEntity problem = problemRepository.findById(problemId)
-            .orElseThrow(() -> new EntityNotFoundException("문제를 찾을 수 없습니다. id=" + problemId));
+            .orElseThrow(() -> new EntityNotFoundException("Problem not found. id=" + problemId));
 
         ProblemDTO dto = toProblemDto(problem);
         dto.setTags(problemTagRepository.findByProblemIdOrderByTagIdAsc(problemId).stream()
             .map(ProblemTagEntity::getTagName)
             .collect(Collectors.toList()));
 
-        List<TestCaseEntity> sampleTests = testCaseRepository.findByProblemIdAndIsSampleTrueOrderByOrderNumAsc(problemId);
-        dto.setSampleInputs(sampleTests.stream()
-            .map(TestCaseEntity::getInputData)
-            .collect(Collectors.toList()));
-        dto.setSampleOutputs(sampleTests.stream()
-            .map(TestCaseEntity::getExpectedOutput)
-            .collect(Collectors.toList()));
+        List<TestCaseEntity> sampleTests = testCaseRepository.findByProblem_ProblemIdAndIsSampleTrueOrderByOrderNumAsc(problemId);
+        dto.setSampleInputs(sampleTests.stream().map(TestCaseEntity::getInputData).collect(Collectors.toList()));
+        dto.setSampleOutputs(sampleTests.stream().map(TestCaseEntity::getExpectedOutput).collect(Collectors.toList()));
 
-        List<TestCaseEntity> testCases = testCaseRepository.findByProblemIdAndIsSampleFalseOrderByOrderNumAsc(problemId);
-        dto.setTestInputs(testCases.stream()
-            .map(TestCaseEntity::getInputData)
-            .collect(Collectors.toList()));
-        dto.setTestOutputs(testCases.stream()
-            .map(TestCaseEntity::getExpectedOutput)
-            .collect(Collectors.toList()));
+        List<TestCaseEntity> testCases = testCaseRepository.findByProblem_ProblemIdAndIsSampleFalseOrderByOrderNumAsc(problemId);
+        dto.setTestInputs(testCases.stream().map(TestCaseEntity::getInputData).collect(Collectors.toList()));
+        dto.setTestOutputs(testCases.stream().map(TestCaseEntity::getExpectedOutput).collect(Collectors.toList()));
         return dto;
     }
 
@@ -238,15 +262,10 @@ public class ProblemService {
         List<ProblemEntity> problems = problemRepository.findAll();
 
         debugInfo.put("jpaCount", problems.size());
-        debugInfo.put("jpaFirstIds", problems.stream()
-            .limit(5)
-            .map(ProblemEntity::getProblemId)
-            .collect(Collectors.toList()));
+        debugInfo.put("jpaFirstIds", problems.stream().limit(5).map(ProblemEntity::getProblemId).collect(Collectors.toList()));
 
-        Object nativeCount = entityManager.createNativeQuery("select count(*) from problem")
-            .getSingleResult();
-        Object currentUser = entityManager.createNativeQuery("select user from dual")
-            .getSingleResult();
+        Object nativeCount = entityManager.createNativeQuery("select count(*) from problem").getSingleResult();
+        Object currentUser = entityManager.createNativeQuery("select user from dual").getSingleResult();
 
         debugInfo.put("nativeCount", toLong(nativeCount));
         debugInfo.put("oracleUser", currentUser);
@@ -264,8 +283,13 @@ public class ProblemService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> searchProblems(String query) {
+        return searchProblems(query, true);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> searchProblems(String query, boolean includeDrafts) {
         List<String> expandedKeywords = expandKeywords(query);
-        List<ProblemDTO> problems = getProblemList();
+        List<ProblemDTO> problems = getProblemList(includeDrafts);
 
         if (!hasText(query)) {
             return Map.of(
@@ -300,24 +324,30 @@ public class ProblemService {
     }
 
     private void validate(ProblemDTO problemDTO) {
-        if (problemDTO == null) throw new IllegalArgumentException("문제 데이터가 없습니다.");
-        if (isBlank(problemDTO.getTitle())) throw new IllegalArgumentException("문제 제목은 필수입니다.");
-        if (isBlank(problemDTO.getCategory())) throw new IllegalArgumentException("카테고리는 필수입니다.");
-        if (problemDTO.getTimeLimitMs() == null || problemDTO.getTimeLimitMs() <= 0) throw new IllegalArgumentException("시간 제한은 1 이상이어야 합니다.");
-        if (problemDTO.getMemoryLimitMb() == null || problemDTO.getMemoryLimitMb() <= 0) throw new IllegalArgumentException("메모리 제한은 1 이상이어야 합니다.");
-        if (isBlank(problemDTO.getShortDescription()) && isBlank(problemDTO.getDescription())) throw new IllegalArgumentException("문제 설명을 입력해 주세요.");
+        if (problemDTO == null) throw new IllegalArgumentException("Problem data is required.");
+
+        boolean draft = isDraft(problemDTO);
+        if (!draft) {
+            if (isBlank(problemDTO.getTitle())) throw new IllegalArgumentException("Title is required.");
+            if (isBlank(problemDTO.getCategory())) throw new IllegalArgumentException("Category is required.");
+            if (problemDTO.getTimeLimitMs() == null || problemDTO.getTimeLimitMs() <= 0) throw new IllegalArgumentException("Time limit must be greater than 0.");
+            if (problemDTO.getMemoryLimitMb() == null || problemDTO.getMemoryLimitMb() <= 0) throw new IllegalArgumentException("Memory limit must be greater than 0.");
+            if (isBlank(problemDTO.getDescription())) throw new IllegalArgumentException("Description is required.");
+        }
 
         List<String> sampleInputs = problemDTO.getSampleInputs();
         List<String> sampleOutputs = problemDTO.getSampleOutputs();
-        if (sampleInputs == null || sampleOutputs == null || sampleInputs.isEmpty() || sampleOutputs.isEmpty()) {
-            throw new IllegalArgumentException("예제 입력과 출력은 최소 1개 이상 필요합니다.");
+        if (!draft && (sampleInputs == null || sampleOutputs == null || sampleInputs.isEmpty() || sampleOutputs.isEmpty())) {
+            throw new IllegalArgumentException("At least one sample input/output is required.");
         }
-        if (sampleInputs.size() != sampleOutputs.size()) throw new IllegalArgumentException("예제 입력과 출력 개수가 맞지 않습니다.");
+        if (sampleInputs != null && sampleOutputs != null && sampleInputs.size() != sampleOutputs.size()) {
+            throw new IllegalArgumentException("Sample input and output counts must match.");
+        }
 
         List<String> testInputs = problemDTO.getTestInputs();
         List<String> testOutputs = problemDTO.getTestOutputs();
         if (testInputs != null && testOutputs != null && testInputs.size() != testOutputs.size()) {
-            throw new IllegalArgumentException("테스트케이스 입력과 출력 개수가 맞지 않습니다.");
+            throw new IllegalArgumentException("Test input and output counts must match.");
         }
     }
 
@@ -327,7 +357,6 @@ public class ProblemService {
         dto.setCreatedBy(problem.getCreatedBy());
         dto.setTitle(problem.getTitle());
         dto.setDescription(problem.getDescription());
-        dto.setShortDescription(problem.getDescription());
         dto.setDifficulty(problem.getDifficulty().name());
         dto.setCategory(problem.getCategory());
         dto.setTimeLimitMs(problem.getTimeLimitMs());
@@ -340,13 +369,15 @@ public class ProblemService {
     }
 
     private void applyProblemFields(ProblemEntity problem, ProblemDTO problemDTO) {
-        problem.setTitle(problemDTO.getTitle().trim());
-        problem.setDescription(buildDescription(problemDTO));
+        ProblemStatus status = parseStatus(problemDTO.getStatus());
+        boolean draft = status == ProblemStatus.DRAFT;
+        problem.setTitle(normalizeTitle(problemDTO.getTitle(), draft));
+        problem.setDescription(buildDescription(problemDTO, draft));
         problem.setDifficulty(parseDifficulty(problemDTO.getDifficulty()));
-        problem.setCategory(problemDTO.getCategory().trim());
-        problem.setTimeLimitMs(problemDTO.getTimeLimitMs());
-        problem.setMemoryLimitMb(problemDTO.getMemoryLimitMb());
-        problem.setStatus(parseStatus(problemDTO.getStatus()));
+        problem.setCategory(normalizeCategory(problemDTO.getCategory(), draft));
+        problem.setTimeLimitMs(normalizePositiveInteger(problemDTO.getTimeLimitMs(), 2000));
+        problem.setMemoryLimitMb(normalizePositiveInteger(problemDTO.getMemoryLimitMb(), 256));
+        problem.setStatus(status);
         problem.setAcceptanceRate(problemDTO.getAcceptanceRate() != null ? problemDTO.getAcceptanceRate() : 0.0);
         problem.setSubmissionCount(problemDTO.getSubmissionCount() != null ? problemDTO.getSubmissionCount() : 0);
         problem.setAcceptedCount(problemDTO.getAcceptedCount() != null ? problemDTO.getAcceptedCount() : 0);
@@ -365,17 +396,16 @@ public class ProblemService {
     }
 
     private void replaceTests(Long problemId, List<String> sampleInputs, List<String> sampleOutputs, List<String> testInputs, List<String> testOutputs) {
-        testCaseRepository.deleteByProblemId(problemId);
+        testCaseRepository.deleteByProblem_ProblemId(problemId);
         saveTests(problemId, sampleInputs, sampleOutputs, true);
         saveTests(problemId, testInputs, testOutputs, false);
     }
 
     private void saveTests(Long problemId, List<String> inputs, List<String> outputs, boolean isSample) {
         if (inputs == null || outputs == null) return;
-        
-        // Use a proxy ProblemEntity to avoid fetching it from DB
+
         ProblemEntity problemProxy = ProblemEntity.builder().problemId(problemId).build();
-        
+
         for (int i = 0; i < inputs.size(); i++) {
             String input = inputs.get(i);
             String output = outputs.get(i);
@@ -392,18 +422,16 @@ public class ProblemService {
 
     private Long resolveCreatedBy(Long createdBy) {
         if (createdBy != null) return createdBy;
-        List<?> rows = entityManager.createNativeQuery("select member_id from members order by member_id")
-                .setMaxResults(1)
-                .getResultList();
-        if (rows.isEmpty()) throw new IllegalStateException("문제를 등록할 회원 데이터가 없습니다.");
-        return toLong(rows.get(0));
+        return memberRepository.findTopByOrderByMemberIdAsc()
+            .map(MemberEntity::getMemberId)
+            .orElseThrow(() -> new IllegalStateException("No author account available for problem creation."));
     }
 
     private Difficulty parseDifficulty(String difficulty) {
         try {
             return Difficulty.valueOf(isBlank(difficulty) ? "EASY" : difficulty.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("난이도 값이 올바르지 않습니다.");
+            throw new IllegalArgumentException("Invalid difficulty value.");
         }
     }
 
@@ -411,13 +439,31 @@ public class ProblemService {
         try {
             return ProblemStatus.valueOf(isBlank(status) ? "DRAFT" : status.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("문제 상태 값이 올바르지 않습니다.");
+            throw new IllegalArgumentException("Invalid problem status value.");
         }
     }
 
-    private String buildDescription(ProblemDTO problemDTO) {
+    private String buildDescription(ProblemDTO problemDTO, boolean draft) {
         if (!isBlank(problemDTO.getDescription())) return problemDTO.getDescription().trim();
-        return problemDTO.getShortDescription() != null ? problemDTO.getShortDescription().trim() : "";
+        return draft ? " " : "";
+    }
+
+    private boolean isDraft(ProblemDTO problemDTO) {
+        return parseStatus(problemDTO.getStatus()) == ProblemStatus.DRAFT;
+    }
+
+    private String normalizeTitle(String title, boolean draft) {
+        if (!isBlank(title)) return title.trim();
+        return draft ? "[DRAFT]" : "";
+    }
+
+    private String normalizeCategory(String category, boolean draft) {
+        if (!isBlank(category)) return category.trim();
+        return draft ? "UNCATEGORIZED" : "";
+    }
+
+    private Integer normalizePositiveInteger(Integer value, int defaultValue) {
+        return value != null && value > 0 ? value : defaultValue;
     }
 
     private boolean isBlank(String value) {
@@ -430,23 +476,21 @@ public class ProblemService {
     }
 
     private Long findMemberIdByLoginName(String loginName) {
-        List<?> rows = entityManager.createNativeQuery("select member_id from members where username = :loginName")
-                .setParameter("loginName", loginName)
-                .setMaxResults(1)
-                .getResultList();
-        if (!rows.isEmpty()) return toLong(rows.get(0));
-        
-        rows = entityManager.createNativeQuery("select member_id from members where email = :loginName")
-                .setParameter("loginName", loginName)
-                .setMaxResults(1)
-                .getResultList();
-        if (!rows.isEmpty()) return toLong(rows.get(0));
-        return null;
+        return memberRepository.findByUsername(loginName)
+            .map(MemberEntity::getMemberId)
+            .or(() -> memberRepository.findByEmail(loginName).map(MemberEntity::getMemberId))
+            .orElse(null);
     }
 
     private boolean matchesSearch(ProblemDTO problem, List<String> keywords) {
         if (keywords.isEmpty()) return true;
-        String searchableText = (defaultString(problem.getTitle()) + " " + defaultString(problem.getCategory()) + " " + defaultString(problem.getDescription()) + " " + String.join(" ", loadTagNames(problem.getProblemId()))).toLowerCase();
+        String searchableText = (
+            defaultString(problem.getTitle()) + " " +
+            defaultString(problem.getCategory()) + " " +
+            defaultString(problem.getDescription()) + " " +
+            String.join(" ", loadTagNames(problem.getProblemId()))
+        ).toLowerCase();
+
         for (String keyword : keywords) {
             if (searchableText.contains(keyword.toLowerCase())) return true;
         }
@@ -455,12 +499,14 @@ public class ProblemService {
 
     private List<String> loadTagNames(Long problemId) {
         if (problemId == null) return Collections.emptyList();
-        return problemTagRepository.findByProblemIdOrderByTagIdAsc(problemId).stream().map(ProblemTagEntity::getTagName).collect(Collectors.toList());
+        return problemTagRepository.findByProblemIdOrderByTagIdAsc(problemId).stream()
+            .map(ProblemTagEntity::getTagName)
+            .collect(Collectors.toList());
     }
 
     private List<String> expandKeywords(String query) {
         if (!hasText(query)) return Collections.emptyList();
-        Set<String> expanded = new HashSet<>();
+        Set<String> expanded = new java.util.HashSet<>();
         for (String token : tokenize(query)) {
             expanded.add(token);
             expanded.addAll(relatedKeywordMap.getOrDefault(token.toLowerCase(), Collections.emptyList()));
@@ -469,23 +515,26 @@ public class ProblemService {
     }
 
     private List<String> tokenize(String query) {
-        return Arrays.stream(query.trim().split("\\s+")).map(String::trim).filter(this::hasText).collect(Collectors.toList());
+        return Arrays.stream(query.trim().split("\\s+"))
+            .map(String::trim)
+            .filter(this::hasText)
+            .collect(Collectors.toList());
     }
 
     private Map<String, List<String>> createRelatedKeywordMap() {
         Map<String, List<String>> keywordMap = new LinkedHashMap<>();
-        keywordMap.put("배열", List.of("array", "리스트", "arraylist"));
-        keywordMap.put("array", List.of("배열", "리스트"));
-        keywordMap.put("문자열", List.of("string", "text", "char"));
-        keywordMap.put("string", List.of("문자열", "char", "text"));
-        keywordMap.put("정렬", List.of("sort", "sorting", "ordered"));
-        keywordMap.put("sort", List.of("정렬", "sorting", "ordered"));
-        keywordMap.put("그래프", List.of("graph", "tree", "node"));
-        keywordMap.put("graph", List.of("그래프", "tree", "node"));
-        keywordMap.put("구현", List.of("implementation", "simulate", "simulation"));
-        keywordMap.put("implementation", List.of("구현", "simulate", "simulation"));
-        keywordMap.put("bfs", List.of("너비우선탐색", "breadth first search", "graph"));
-        keywordMap.put("dfs", List.of("깊이우선탐색", "depth first search", "graph"));
+        keywordMap.put("array", List.of("list", "arraylist"));
+        keywordMap.put("list", List.of("array", "arraylist"));
+        keywordMap.put("string", List.of("text", "char"));
+        keywordMap.put("text", List.of("string", "char"));
+        keywordMap.put("sort", List.of("sorting", "ordered"));
+        keywordMap.put("sorting", List.of("sort", "ordered"));
+        keywordMap.put("graph", List.of("tree", "node"));
+        keywordMap.put("tree", List.of("graph", "node"));
+        keywordMap.put("implementation", List.of("simulate", "simulation"));
+        keywordMap.put("simulation", List.of("implementation", "simulate"));
+        keywordMap.put("bfs", List.of("breadth first search", "graph"));
+        keywordMap.put("dfs", List.of("depth first search", "graph"));
         return keywordMap;
     }
 

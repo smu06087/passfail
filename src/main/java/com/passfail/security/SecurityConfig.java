@@ -3,11 +3,15 @@ package com.passfail.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import com.passfail.member.service.CustomOAuth2UserService;
 
@@ -25,23 +29,21 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable());
 
         http.authorizeHttpRequests(config -> config
-        	.dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
-        		// 2. 관리자(ADMIN)만 접근 가능한 경로
+            .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
+            .requestMatchers("/ranking/update").hasRole("ADMIN")
             .requestMatchers(
-                "/ranking/update" // 🏆 랭킹 전체 갱신 API는 관리자 전용
-            ).hasRole("ADMIN")
-        	.requestMatchers(
                 "/", "/login", "/signup", "/forgot-password", "/reset-password",
-                "/api/member/**", "/api/auth/status", "/ranking", "/ranking/top"
+                "/api/member/**", "/api/auth/status", "/api/chat/send", "/ranking", "/ranking/top"
             ).permitAll()
             .requestMatchers("/css/**", "/js/**", "/image/**").permitAll()
             .requestMatchers("/main", "/codingtest/**").permitAll()
             .requestMatchers("/board", "/posts/**").permitAll()
-            .requestMatchers("/ranking/**", "/ranking-list").permitAll() // 🏆 랭킹 경로 추가 (누구나 볼 수 있게)
+            .requestMatchers("/ranking/**", "/ranking-list").permitAll()
             .requestMatchers("/api/posts/**").authenticated()
             .requestMatchers(
-            	"/ranking/me/**", // 🏆 내 랭킹 확인은 본인(로그인 유저)만
-            	"/mypage/**",
+                "/ranking/me/**",
+                "/ai/**",
+                "/mypage/**",
                 "/codingtest/run/**",
                 "/codingtest/submit/**",
                 "/codingtest/ai-review/**"
@@ -71,6 +73,24 @@ public class SecurityConfig {
             .invalidateHttpSession(true)
             .deleteCookies("JSESSIONID")
             .permitAll()
+        );
+
+        http.exceptionHandling(exceptions -> exceptions
+            .defaultAuthenticationEntryPointFor(
+                (request, response, authException) -> {
+                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    response.setCharacterEncoding("UTF-8");
+                    response.getWriter().write("""
+                        {"success":false,"message":"로그인이 필요합니다."}
+                        """);
+                },
+                new AntPathRequestMatcher("/ai/**")
+            )
+            .defaultAuthenticationEntryPointFor(
+                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                new AntPathRequestMatcher("/api/**")
+            )
         );
 
         return http.build();

@@ -74,7 +74,7 @@ function enterProblem() {
     if (!currentProblemId || currentProblemId === "-") {
         return;
     }
-    location.href = '/codingtest/' + currentProblemId;
+    location.href = "/codingtest/" + currentProblemId;
 }
 
 function syncFilterGroup(group) {
@@ -501,7 +501,7 @@ function replaceProblemCards(problems) {
         const emptyCard = document.createElement("div");
         emptyCard.className = "problem-card active";
         emptyCard.dataset.id = "-";
-        emptyCard.dataset.title = "등록된 문제가 없습니다";
+        emptyCard.dataset.title = "검색 결과가 없습니다";
         emptyCard.dataset.difficulty = "EASY";
         emptyCard.dataset.category = "-";
         emptyCard.dataset.time = "-";
@@ -514,7 +514,7 @@ function replaceProblemCards(problems) {
         emptyCard.dataset.desc = "검색 결과가 없습니다.";
         emptyCard.innerHTML = `
             <div class="problem-number">-</div>
-            <div class="card-star-wrap"><div class="card-star gray">☆</div></div>
+            <div class="card-star-wrap"><div class="card-star gray">*</div></div>
             <div class="card-title">검색 결과가 없습니다</div>
             <div class="mini-difficulty easy">EASY</div>
         `;
@@ -544,7 +544,7 @@ function replaceProblemCards(problems) {
         };
         card.innerHTML = `
             <div class="problem-number">${problem.problemId || ""}</div>
-            <div class="card-star-wrap"><div class="card-star gray">☆</div></div>
+            <div class="card-star-wrap"><div class="card-star gray">*</div></div>
             <div class="card-title">${escapeHtml(problem.title || "")}</div>
             <div class="mini-difficulty ${String(problem.difficulty || "EASY").toLowerCase()}">${problem.difficulty || "EASY"}</div>
         `;
@@ -571,6 +571,23 @@ function escapeHtml(value) {
         .replaceAll(">", "&gt;")
         .replaceAll("\"", "&quot;")
         .replaceAll("'", "&#39;");
+}
+
+function downloadPdf() {
+    if (!currentProblemId || currentProblemId === "-") {
+        return;
+    }
+
+    if (typeof currentUsername === 'undefined' || currentUsername === null) {
+        if (confirm('PDF 다운로드는 로그인이 필요한 서비스입니다. 로그인 하시겠습니까?')) {
+            location.href = '/login';
+        }
+        return;
+    }
+
+    if (confirm('문제를 PDF로 다운로드하시겠습니까? (1,000 바나나 소모)')) {
+        location.href = `/problem/${currentProblemId}/download`;
+    }
 }
 
 document.addEventListener("DOMContentLoaded", function() {

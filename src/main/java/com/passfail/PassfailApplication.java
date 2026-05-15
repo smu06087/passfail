@@ -13,6 +13,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 @SpringBootApplication
 @EnableScheduling  // ← ⭐ 이 줄이 반드시 필요!
+@org.springframework.scheduling.annotation.EnableAsync
 public class PassfailApplication {
 
     public static void main(String[] args) {

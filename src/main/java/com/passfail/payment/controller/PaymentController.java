@@ -24,7 +24,7 @@ public class PaymentController {
 
     @PostMapping("/api/hint/{problemId}")
     @ResponseBody
-    public String useHint(@PathVariable Long problemId, Principal principal) {
+    public String useHint(@PathVariable("problemId") Long problemId, Principal principal) {
         if (principal == null) {
             throw new RuntimeException("로그인이 필요합니다.");
         }

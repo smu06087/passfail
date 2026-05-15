@@ -85,7 +85,7 @@
     </main>
 
     <!-- AI 질의응답 사이드바 -->
-    <aside id="ai-sidebar" class="fixed right-0 top-1/2 -translate-y-1/2 z-40 sidebar-transition translate-x-[320px] hover:translate-x-0">
+    <aside id="ai-sidebar" class="hidden" aria-hidden="true">
         <div class="flex items-center">
             <div class="bg-green-grad text-white p-5 rounded-l-[2.5rem] cursor-pointer flex flex-col items-center gap-3 shadow-2xl">
                 <i data-lucide="sparkles" size="24" class="animate-pulse"></i>
@@ -105,6 +105,8 @@
             </div>
         </div>
     </aside>
+
+    <th:block th:replace="~{aiQuestion :: aiQuestion}"></th:block>
 
     <footer class="py-16 text-center border-t border-slate-200 text-slate-300 font-black text-xs tracking-widest uppercase mt-auto">
         &copy; 2026 Passfail Learning Platform. All rights reserved.
