@@ -27,9 +27,8 @@ public class PointTransactionEntity {
 	@JoinColumn(name = "member_id", insertable = false, updatable = false)
 	private MemberEntity member;
 
-	@Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
-    private TXN_Type txnType;
+    private String txnType;
 
     @Column(nullable = false)
     private Integer amount;

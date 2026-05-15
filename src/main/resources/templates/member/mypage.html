@@ -28,6 +28,8 @@
             </div>
             <button class="btn btn-primary" style="width: 100%; margin-top: 12px; font-size: 13px; padding: 10px;" 
                     onclick="location.href='/payment'" th:if="${member.ownProfile}">충전하기</button>
+            <button class="btn btn-outline" style="width: 100%; margin-top: 8px; font-size: 13px; padding: 10px; border-color: #ef4444; color: #ef4444;" 
+                    onclick="location.href='/payment/refund'" th:if="${member.ownProfile}">환불요청</button>
         </div>
 
         <nav class="nav-menu">

@@ -30,9 +30,8 @@ public class PaymentHistory {
     @Column(nullable = false)
     private Long amount;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
-    private TXN_Type txnType;
+    private String txnType;
 
     // 결제 일시 (Date [deɪt])
     @Column(nullable = false)
