@@ -1,6 +1,7 @@
 package com.passfail.admin.controller;
 
 import com.passfail.admin.service.AdminAnalysisService;
+import com.passfail.admin.service.VisitorService;
 import com.passfail.entity.MemberEntity;
 import com.passfail.entity.ProblemTagEntity;
 import com.passfail.enums.PaymentStatus;
@@ -29,6 +30,7 @@ public class AdminRestController {
     private final ProblemRepository problemRepository;
     private final ProblemTagRepository problemTagRepository;
     private final AdminAnalysisService adminAnalysisService;
+    private final VisitorService visitorService;
 
     // ... (existing analysis and stats methods)
 
@@ -56,9 +58,7 @@ public class AdminRestController {
         Long totalSales = paymentRepository.sumAmountByStatus(PaymentStatus.SUCCESS);
         if (totalSales == null) totalSales = 0L;
         
-        // Mocking visit count for now as requested by user context usually implies some real-ish data
-        // but visit count isn't in repos. I'll use a fixed number or random.
-        int todayVisits = 842; 
+        long todayVisits = visitorService.getTodayVisitorCount();
 
         stats.put("summary", List.of(
             Map.of("id", 1, "title", "전체 회원", "value", String.format("%,d", totalMembers), "icon", "users", "color", "text-green-600", "bg", "bg-green-50"),

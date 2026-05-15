@@ -20,6 +20,7 @@ public class AdminDashboardService {
     private final MemberRepository memberRepository;
     private final ProblemRepository problemRepository;
     private final PaymentRepository paymentRepository;
+    private final VisitorService visitorService;
 
     @Transactional(readOnly = true)
     public AdminDashboardDto getDashboardData() {
@@ -29,7 +30,7 @@ public class AdminDashboardService {
         Long totalRevenue = paymentRepository.sumAmountByStatus(PaymentStatus.SUCCESS);
         if (totalRevenue == null) totalRevenue = 0L;
         
-        long todayVisits = 842; // 실시간 로그 테이블이 완성되기 전까지는 가상의 데이터를 사용합니다.
+        long todayVisits = visitorService.getTodayVisitorCount();
 
         // 2. 회원 상태 분포 (Member Status Distribution)
         MemberStatusDto memberStatus = MemberStatusDto.builder()
