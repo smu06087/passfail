@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- [Passfail Editor Core] 공통 부품 및 라이브러리 -->
+
+<head th:fragment="head(title, extraHead)">
+    <meta charset="UTF-8">
+    <title th:text="${title}">Passfail Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" th:href="@{/css/home.css}">
+    
+    <th:block th:replace="${extraHead}"></th:block>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+    <style>
+        :root { --pg-navy: #1e2a3c; --pg-blue: #0078ff; --pg-bg: #f5f6f7; --pg-border: #d7e2eb; --pg-text: #263747; --pg-gray: #98a8b9; --white: #ffffff; --nav-text: #ffffff; }
+        [data-theme='dark'] { --pg-bg: #0f172a; --pg-navy: #020617; --pg-border: #334155; --pg-text: #f1f5f9; --pg-gray: #94a3b8; --white: #1e293b; --nav-text: #f1f5f9; }
+        body, html { margin: 0; height: 100vh; width: 100vw; overflow: hidden; background-color: var(--pg-bg); color: var(--pg-text); font-family: "Pretendard", -apple-system, sans-serif; display: flex; flex-direction: column; }
+        .top-nav { height: 50px; background-color: var(--pg-navy); color: var(--nav-text); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
+        .top-nav h1 { font-size: 15px; margin: 0; font-weight: 500; }
+        .top-nav .problem-title { color: #8c9eb3; margin-left: 10px; font-weight: 400; }
+        .main-container { display: flex; flex: 1; min-height: 0; border-bottom: 1px solid var(--pg-border); }
+        .left-panel { width: 40%; height: 100%; overflow-y: auto; border-right: 1px solid var(--pg-border); background-color: var(--pg-bg); }
+        .section-card { background: var(--white); border-bottom: 1px solid var(--pg-border); padding: 24px; }
+        .section-header { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--pg-text); position: relative; }
+        .section-header::after { content: ''; display: block; width: 20px; height: 3px; background: var(--pg-blue); margin-top: 8px; }
+        .section-content { line-height: 1.8; font-size: 14.5px; }
+        .right-panel { width: 60%; height: 100%; display: flex; flex-direction: column; background: var(--white); min-width: 0; }
+        #editor-container { flex: 1; min-height: 200px; border-bottom: 1px solid var(--pg-border); }
+        .bottom-panel { height: 300px; background: var(--white); flex-shrink: 0; display: none; flex-direction: column; border-top: 2px solid var(--pg-border); }
+        .tab-menu { display: flex; background: var(--white); border-bottom: 1px solid var(--pg-border); flex-shrink: 0; }
+        .tab-item { padding: 12px 24px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--pg-gray); }
+        .tab-item.active { color: var(--pg-blue); border-bottom: 2px solid var(--pg-blue); }
+        .result-panel { flex: 1; padding: 20px; overflow-y: auto; font-family: monospace; font-size: 13px; background: var(--pg-bg); color: var(--pg-text); }
+        .test-case-row { margin-bottom: 10px; padding: 12px; border-radius: 4px; border: 1px solid var(--pg-border); background: var(--white); }
+        .bottom-bar { height: 50px; background-color: var(--pg-navy); display: flex; align-items: center; padding: 0 20px; justify-content: flex-end; gap: 10px; flex-shrink: 0; }
+        .btn-pg { padding: 8px 20px; border-radius: 4px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; min-width: 100px; text-align: center; }
+        .btn-outline { background: transparent; color: white !important; border: 1px solid #4e5968; }
+        .btn-blue { background: var(--pg-blue); color: white !important; }
+        .btn-ai { background: #6a1b9a; color: white !important; display: none; }
+        .btn-pg:hover { opacity: 0.8; filter: brightness(1.1); }
+        .status-CORRECT { color: #2ecc71; font-weight: bold; }
+        .status-WRONG { color: #e74c3c; font-weight: bold; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
+        .modal-content { background: var(--white); color: var(--pg-text); margin: 5% auto; padding: 30px; border-radius: 8px; width: 60%; max-height: 80%; overflow-y: auto; }
+    </style>
+</head>
+
+<body>
+    <!-- (상단 네비게이션, 문제 패널, 결과창 패널 fragment들은 기존과 동일하게 유지) -->
+    <div th:fragment="topNav" class="top-nav">
+        <h1><a href="/main" style="color: inherit; text-decoration: none;">Passfail</a> <span class="problem-title" th:text="${problem.title}">Title</span></h1>
+        <div style="display:flex; align-items:center; gap:15px;">
+            <button onclick="EditorCore.toggleTheme()" id="themeBtn" style="background:none; border:none; color:white; cursor:pointer; font-size:18px; outline:none;">🌙</button>
+        </div>
+    </div>
+    <div th:fragment="problemPanel" class="left-panel" id="problem-sections"></div>
+    <div th:fragment="bottomPanel" class="bottom-panel" id="bottom-panel">
+        <div class="tab-menu">
+            <div class="tab-item active" onclick="EditorCore.showTab('result')">실행 결과</div>
+            <div class="tab-item" onclick="EditorCore.showTab('custom')">테스트 케이스 추가</div>
+            <div style="margin-left:auto; padding-right:15px; display:flex; align-items:center;">
+                <span style="font-size:11px; color:var(--pg-gray); cursor:pointer;" onclick="EditorCore.hideBottomPanel()">접기 ▾</span>
+            </div>
+        </div>
+        <div id="result-display" class="result-panel"></div>
+        <div id="custom-testcases-area" class="result-panel" style="display:none;">
+            <div id="tc-list"></div>
+            <button class="btn-pg btn-outline" style="color:var(--pg-text) !important; border-color:var(--pg-border);" onclick="EditorCore.addTestCaseRow()">+ 추가하기</button>
+        </div>
+    </div>
+
+    <script th:fragment="scripts">
+        const EditorCore = {
+            editor: null, currentTheme: 'light', lastResults: null,
+            init(config) {
+                const dataEl = document.getElementById('problem-data');
+                this.renderSections(dataEl.getAttribute('data-desc'), dataEl.getAttribute('data-time'), dataEl.getAttribute('data-mem'));
+                require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+                require(['vs/editor/editor.main'], () => {
+                    this.editor = monaco.editor.create(document.getElementById('editor-container'), {
+                        value: dataEl.getAttribute('data-code'), language: 'java', theme: 'vs', automaticLayout: true, fontSize: 14, minimap: { enabled: false }
+                    });
+                    if (dataEl.getAttribute('data-is-solved') === 'true') document.getElementById('solvedModal').style.display = 'block';
+                    if (config && config.onEditorLoaded) config.onEditorLoaded(this.editor);
+                });
+            },
+            renderSections(desc, time, mem) {
+                const container = document.getElementById('problem-sections');
+                if (!container) return;
+                desc.split('### ').filter(p => p.trim() !== "").forEach(part => {
+                    const lines = part.split('\n');
+                    const card = document.createElement('div');
+                    card.className = 'section-card';
+                    card.innerHTML = `<div class="section-header">${lines[0].trim()}</div><div class="section-content">${lines.slice(1).join('\n').trim().replace(/\n/g, '<br>').replace(/`([^`]+)`/g, '<code>$1</code>')}</div>`;
+                    container.appendChild(card);
+                });
+                const constCard = document.createElement('div');
+                constCard.className = 'section-card';
+                constCard.innerHTML = `<div class="section-header">제한 사항</div><div class="section-content"><ul><li>시간 제한: ${time}ms</li><li>메모리 제한: ${mem}MB</li></ul></div>`;
+                container.appendChild(constCard);
+            },
+            async runCode() {
+                const dataEl = document.getElementById('problem-data');
+                if (dataEl.getAttribute('data-is-logged-in') !== 'true') { if(confirm('코드 실행은 로그인이 필요한 서비스입니다. 로그인 하시겠습니까?')) window.location.href='/login'; return; }
+                this.showTab('result');
+                const display = document.getElementById('result-display');
+                display.innerHTML = '코드 실행 중...';
+                const customTC = [];
+                document.querySelectorAll('.custom-case-row').forEach(row => customTC.push({ input: row.querySelector('.tc-in').value, expected: row.querySelector('.tc-ex').value }));
+                try {
+                    const res = await fetch(`/codingtest/${dataEl.getAttribute('data-id')}/run`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: this.editor.getValue(), customTestCases: customTC }) });
+                    this.displayResults(await res.json());
+                } catch (e) { display.innerHTML = '에러 발생'; }
+            },
+            async submitCode(onSuccess) {
+                const dataEl = document.getElementById('problem-data');
+                if (dataEl.getAttribute('data-is-logged-in') !== 'true') { if(confirm('채점 및 제출은 로그인이 필요한 서비스입니다. 로그인 하시겠습니까?')) window.location.href='/login'; return; }
+                this.showTab('result');
+                const display = document.getElementById('result-display');
+                display.innerHTML = '채점 중...';
+                try {
+                    const res = await fetch(`/codingtest/${dataEl.getAttribute('data-id')}/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: this.editor.getValue() }) });
+                    const data = await res.json();
+                    if (data.error) { display.innerHTML = `서버 오류: ${data.error}`; return; }
+                    this.displayResults(data.results);
+                    if (data.allCorrect) {
+                        document.getElementById('aiReviewBtn').style.display = 'block';
+                        this.lastResults = data.results;
+                        if (onSuccess) onSuccess(data); else alert('정답입니다!');
+                    }
+                } catch (e) { display.innerHTML = '제출 중 에러 발생'; }
+            },
+            displayResults(results) {
+                const display = document.getElementById('result-display');
+                const officialTCCount = parseInt(document.getElementById('problem-data').getAttribute('data-tc-count'));
+                display.innerHTML = '';
+                results.forEach((r, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'test-case-row';
+                    let title = i < officialTCCount ? `기본 테스트 ${i+1}` : `커스텀 테스트 ${i - officialTCCount + 1}`;
+                    div.innerHTML = `<div style="font-weight:600;">${title}: <span class="status-${r.status}">${r.status}</span></div><div style="font-size:11px;color:gray;">시간: ${r.executionTime || 0}ms</div>${r.output ? `<div>출력: ${r.output}</div>` : ''}${r.error ? `<pre style="color:red;white-space:pre-wrap;">${r.error}</pre>` : ''}`;
+                    display.appendChild(div);
+                });
+            },
+            toggleTheme() {
+                const body = document.body; const btn = document.getElementById('themeBtn');
+                if (this.currentTheme === 'light') { body.setAttribute('data-theme', 'dark'); this.currentTheme = 'dark'; btn.innerText = '☀️'; monaco.editor.setTheme('vs-dark'); }
+                else { body.removeAttribute('data-theme'); this.currentTheme = 'light'; btn.innerText = '🌙'; monaco.editor.setTheme('vs'); }
+            },
+            showTab(type) {
+                document.getElementById('bottom-panel').style.display = 'flex';
+                document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+                document.getElementById('result-display').style.display = 'none';
+                document.getElementById('custom-testcases-area').style.display = 'none';
+                if (type === 'result') { document.querySelector('.tab-item:nth-child(1)').classList.add('active'); document.getElementById('result-display').style.display = 'block'; }
+                else { document.querySelector('.tab-item:nth-child(2)').classList.add('active'); document.getElementById('custom-testcases-area').style.display = 'block'; }
+                if(this.editor) this.editor.layout();
+            },
+            hideBottomPanel() { document.getElementById('bottom-panel').style.display = 'none'; if(this.editor) this.editor.layout(); },
+            tcIdx: 0,
+            addTestCaseRow() {
+                this.tcIdx++; const row = document.createElement('div'); row.className = 'custom-case-row'; row.id = `tc-${this.tcIdx}`; row.style = "display:flex; gap:10px; margin-bottom:10px;";
+                row.innerHTML = `<textarea class="tc-in" placeholder="입력" style="flex:1; height:40px; background:var(--pg-bg); color:var(--pg-text); border:1px solid var(--pg-border);"></textarea><textarea class="tc-ex" placeholder="기대값" style="flex:1; height:40px; background:var(--pg-bg); color:var(--pg-text); border:1px solid var(--pg-border);"></textarea><button onclick="document.getElementById('tc-${this.tcIdx}').remove()" style="color:red; background:none; border:none; cursor:pointer; font-size:20px;">&times;</button>`;
+                document.getElementById('tc-list').appendChild(row);
+            },
+            async openAiReview() {
+                const dataEl = document.getElementById('problem-data');
+                if (dataEl.getAttribute('data-is-logged-in') !== 'true') { if(confirm('AI 리뷰는 로그인이 필요한 서비스입니다. 로그인 하시겠습니까?')) window.location.href='/login'; return; }
+                if (!confirm('AI 코드 리뷰를 요청하시겠습니까? (300 바나나 소모)')) return;
+
+                document.getElementById('aiModal').style.display = 'block';
+                const content = document.getElementById('ai-content');
+                content.innerHTML = '분석 중...';
+                try {
+                    const res = await fetch(`/codingtest/${dataEl.getAttribute('data-id')}/ai-review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: this.editor.getValue(), results: this.lastResults }) });
+                    const data = await res.json();
+                    content.innerHTML = data.review.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                } catch (e) { content.innerHTML = '실패'; }
+            },
+            downloadPdf() {
+                const dataEl = document.getElementById('problem-data');
+                if (dataEl.getAttribute('data-is-logged-in') !== 'true') { if(confirm('PDF 다운로드는 로그인이 필요한 서비스입니다. 로그인 하시겠습니까?')) window.location.href='/login'; return; }
+                if (confirm('문제를 PDF로 다운로드하시겠습니까? (1,000 바나나 소모)')) {
+                    window.location.href = `/problem/${dataEl.getAttribute('data-id')}/download`;
+                }
+            }
+        };
+        function closeAiReview() { document.getElementById('aiModal').style.display = 'none'; }
+        function closeSolvedModal() { document.getElementById('solvedModal').style.display = 'none'; }
+        function loadPreviousSolution() { if (EditorCore.editor) { EditorCore.editor.setValue(document.getElementById('problem-data').getAttribute('data-prev-code')); } closeSolvedModal(); }
+    </script>
+</body>
+</html>

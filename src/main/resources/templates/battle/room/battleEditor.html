@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!-- [Unified Battle Editor] -->
+<head th:replace="~{codingtest/editorCore :: head('Passfail - Battle Mode', ~{::.extra-head})}">
+    <th:block class="extra-head">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+        <style>
+            .battle-info-bar { height: 50px; background: #0f172a; border-bottom: 1px solid #334155; display: flex; align-items: center; padding: 0 20px; gap: 20px; color: #f8fafc; font-size: 14px; font-weight: 800; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+            .mode-badge { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 4px 12px; border-radius: 9999px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+            
+            /* Mode Specific UI Elements */
+            #golf-stats { display: none; background: rgba(251, 191, 36, 0.1); border: 1px solid #fbbf24; color: #fbbf24; padding: 4px 12px; border-radius: 8px; }
+            #survival-list { display: none; gap: 8px; align-items: center; }
+            .survivor-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #1e293b; border: 1px solid #334155; }
+            .survivor-tag.eliminated { opacity: 0.4; text-decoration: line-through; border-color: #f43f5e; color: #f43f5e; }
+            
+            #many-tabs { display: none; gap: 4px; }
+            .prob-tab { padding: 4px 12px; background: #1e293b; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 12px; }
+            .prob-tab.active { background: #334155; color: #22c55e; border: 1px solid #334155; border-bottom: none; }
+            
+            #relay-status { display: none; align-items: center; gap: 10px; }
+            .team-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+            .team-a { background: #3b82f6; color: white; }
+            .team-b { background: #ef4444; color: white; }
+            .turn-active { animation: pulse 2s infinite; border: 2px solid #22c55e; }
+            
+            @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+            
+            .blind-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.9); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+            
+            /* Logic Maze specific */
+            #maze-container { display: none; position: relative; width: 100%; height: 100%; background: #020617; overflow: hidden; }
+            #maze-canvas { display: block; image-rendering: pixelated; }
+            .maze-overlay-ui { position: absolute; top: 10px; left: 10px; z-index: 10; pointer-events: none; }
+            .api-card { background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; border-radius: 8px; padding: 10px; margin-bottom: 5px; color: #94a3b8; font-family: monospace; font-size: 11px; }
+            .api-card b { color: #22c55e; }
+        </style>
+    </th:block>
+</head>
+<body>
+    <div id="problem-data" style="display:none;" 
+         th:attr="data-desc=${problem.description}, data-id=${problem.problemId}, data-code=${defaultCode}, 
+                  data-time=${problem.timeLimitMs}, data-mem=${problem.memoryLimitMb}, data-tc-count=${#lists.size(problem.testCases)},
+                  data-is-logged-in=${#authorization.expression('isAuthenticated()')},
+                  data-room-id=${roomId}, data-mode=${battleMode}, data-user-id=${currentUserId}">
+    </div>
+
+    <div th:replace="~{codingtest/editorCore :: topNav}"></div>
+
+    <div class="battle-info-bar">
+        <span class="mode-badge" th:text="${battleMode}">QUICK</span>
+        
+        <!-- MANY Mode: Problem Tabs -->
+        <div id="many-tabs">
+            <div class="prob-tab active">Prob 1</div>
+            <div class="prob-tab">Prob 2</div>
+            <div class="prob-tab">Prob 3</div>
+        </div>
+
+        <!-- GOLF Mode: Stat -->
+        <div id="golf-stats">
+            <i data-lucide="code-2" size="14"></i> <span id="golf-byte-count">0 Bytes</span>
+        </div>
+
+        <!-- RELAY Mode: Team Info -->
+        <div id="relay-status">
+            <span class="team-badge team-a">TEAM A</span>
+            <span class="text-xs">vs</span>
+            <span class="team-badge team-b">TEAM B</span>
+            <span id="relay-timer" class="text-green-500 ml-2">01:30</span>
+        </div>
+
+        <!-- SURVIVAL Mode: Participant Status -->
+        <div id="survival-list">
+            <div class="survivor-tag">User1</div>
+            <div class="survivor-tag">User2</div>
+            <div class="survivor-tag eliminated">User3</div>
+        </div>
+
+        <div style="margin-left:auto; display:flex; align-items:center; gap:15px;">
+            <div class="flex items-center gap-2 text-rose-500 font-black" id="battle-global-timer">
+                <i data-lucide="timer" size="16"></i>
+                <span id="timer-display">29:59</span>
+            </div>
+            <div id="rank-mini-board" class="flex -space-x-2">
+                <!-- Participants Avatars -->
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container relative">
+        <!-- BLIND Mode Overlay -->
+        <div id="blind-warning" class="blind-overlay">
+            <i data-lucide="eye-off" size="48" class="text-slate-500 mb-4"></i>
+            <h2 class="text-2xl font-black text-white">블라인드 코딩 모드</h2>
+            <p class="text-slate-400 mt-2">중간 실행 결과를 확인할 수 없습니다.<br>오직 단 한 번의 제출로 승부하세요!</p>
+            <button class="mt-8 px-6 py-2 bg-slate-700 text-white rounded-xl font-bold" onclick="hideBlindWarning()">이해했습니다</button>
+        </div>
+
+        <!-- LOGIC MAZE View (Replace Problem Panel for this mode) -->
+        <div id="maze-container">
+            <div class="maze-overlay-ui">
+                <div class="api-card"><b>robot.moveForward()</b>: 1칸 이동</div>
+                <div class="api-card"><b>robot.turnLeft()</b> / <b>turnRight()</b></div>
+                <div class="api-card"><b>robot.checkWall()</b>: 전방 벽 확인</div>
+                <div class="api-card"><b>robot.useSwitch()</b>: 스위치 조작</div>
+            </div>
+            <canvas id="maze-canvas"></canvas>
+        </div>
+
+        <div id="standard-problem-panel" th:replace="~{codingtest/editorCore :: problemPanel}"></div>
+        <div class="right-panel">
+            <div id="editor-container"></div>
+            <div th:replace="~{codingtest/editorCore :: bottomPanel}"></div>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <a id="exit-battle-btn" href="/battle/room/lobby" class="btn-pg btn-outline" style="text-decoration:none; margin-right:auto; display:flex; align-items:center; justify-content:center;">포기하고 로비로</a>
+        <button id="runBtn" class="btn-pg btn-outline" onclick="EditorCore.runCode()">코드 실행</button>
+        <button id="submitBtn" class="btn-pg btn-blue" onclick="submitBattleCode()">제출 후 채점</button>
+    </div>
+
+    <div id="aiModal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--pg-border); padding-bottom:10px;"><h3 style="margin:0;">AI 코드 분석 리포트</h3><span style="cursor:pointer; font-size:24px;" onclick="closeAiReview()">&times;</span></div><div id="ai-content"></div></div></div>
+    
+    <div th:replace="~{codingtest/editorCore :: scripts}"></div>
+
+    <script th:inline="javascript">
+        const roomId = [[${roomId}]];
+        const mode = [[${battleMode}]];
+        const currentUserId = [[${currentUserId}]];
+        let isMyTurn = true; // RELAY 모드용
+
+        document.addEventListener('DOMContentLoaded', () => {
+            EditorCore.init({
+                onEditorLoaded: (editor) => {
+                    setupModeSpecifics(editor);
+                }
+            });
+        });
+
+        let mazeEngine = null;
+
+        function setupModeSpecifics(editor) {
+            console.log("Setting up mode:", mode);
+            
+            startGlobalTimer(1800);
+
+            if (mode === 'GOLF') {
+                document.getElementById('golf-stats').style.display = 'flex';
+                editor.onDidChangeModelContent(() => {
+                    const code = editor.getValue();
+                    const bytes = new Blob([code]).size;
+                    document.getElementById('golf-byte-count').innerText = `${bytes} Bytes`;
+                });
+            } else if (mode === 'BLIND') {
+                document.getElementById('runBtn').style.display = 'none';
+                document.getElementById('blind-warning').style.display = 'flex';
+            } else if (mode === 'LOGIC_MAZE') {
+                document.getElementById('maze-container').style.display = 'block';
+                document.getElementById('standard-problem-panel').style.display = 'none';
+                // 기존 runCode를 Maze 전용으로 교체
+                document.getElementById('runBtn').onclick = () => runMazeCode(editor.getValue());
+                mazeEngine = new MazeEngine('maze-canvas');
+                mazeEngine.initDefaultMap();
+            }
+        }
+
+        class MazeEngine {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.gridSize = 60;
+                this.actionQueue = [];
+                this.isAnimating = false;
+                this.map = null;
+                this.robot = { x: 0, y: 0, dir: 0 }; // 0: East, 1: South, 2: West, 3: North
+                this.switches = [];
+                this.doors = [];
+            }
+
+            initDefaultMap() {
+                // 심플한 8x8 맵 설계
+                this.map = {
+                    width: 8, height: 8,
+                    walls: [[1,1],[1,2],[1,3],[3,0],[3,1],[3,2],[5,5],[5,6],[5,7]],
+                    start: {x: 0, y: 0},
+                    exit: {x: 7, y: 7},
+                    switches: [{x: 4, y: 1, id: 's1', active: false}],
+                    doors: [{x: 6, y: 7, id: 'd1', locked: true, switchId: 's1'}]
+                };
+                this.resetState();
+                this.draw();
+            }
+
+            resetState() {
+                this.robot = { ...this.map.start, dir: 0 };
+                this.switches = this.map.switches.map(s => ({...s}));
+                this.doors = this.map.doors.map(d => ({...d}));
+                this.actionQueue = [];
+                this.isAnimating = false;
+            }
+
+            draw() {
+                const {ctx, gridSize, map, robot} = this;
+                this.canvas.width = map.width * gridSize;
+                this.canvas.height = map.height * gridSize;
+
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Grid
+                ctx.strokeStyle = '#1e293b';
+                for(let i=0; i<=map.width; i++) {
+                    ctx.beginPath(); ctx.moveTo(i*gridSize, 0); ctx.lineTo(i*gridSize, map.height*gridSize); ctx.stroke();
+                }
+                for(let j=0; j<=map.height; j++) {
+                    ctx.beginPath(); ctx.moveTo(0, j*gridSize); ctx.lineTo(map.width*gridSize, j*gridSize); ctx.stroke();
+                }
+
+                // Walls
+                ctx.fillStyle = '#334155';
+                map.walls.forEach(([x, y]) => ctx.fillRect(x*gridSize+2, y*gridSize+2, gridSize-4, gridSize-4));
+
+                // Switches
+                this.switches.forEach(s => {
+                    ctx.fillStyle = s.active ? '#22c55e' : '#f59e0b';
+                    ctx.beginPath(); ctx.arc(s.x*gridSize+gridSize/2, s.y*gridSize+gridSize/2, 10, 0, Math.PI*2); ctx.fill();
+                });
+
+                // Doors
+                this.doors.forEach(d => {
+                    ctx.fillStyle = d.locked ? '#ef4444' : 'rgba(34, 197, 94, 0.2)';
+                    ctx.fillRect(d.x*gridSize+10, d.y*gridSize+10, gridSize-20, gridSize-20);
+                });
+
+                // Exit
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(map.exit.x*gridSize+5, map.exit.y*gridSize+5, gridSize-10, gridSize-20);
+                ctx.fillStyle = 'white'; ctx.font = '10px bold'; ctx.fillText('EXIT', map.exit.x*gridSize+15, map.exit.y*gridSize+gridSize/2);
+
+                // Robot
+                ctx.save();
+                ctx.translate(robot.x*gridSize+gridSize/2, robot.y*gridSize+gridSize/2);
+                ctx.rotate(robot.dir * Math.PI/2);
+                ctx.fillStyle = '#3b82f6';
+                ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(-10, 10); ctx.lineTo(-10, -10); ctx.closePath(); ctx.fill();
+                ctx.restore();
+            }
+
+            async runActions() {
+                if (this.isAnimating) return;
+                this.isAnimating = true;
+                
+                while(this.actionQueue.length > 0) {
+                    const action = this.actionQueue.shift();
+                    await this.executeAction(action);
+                    this.draw();
+                    await new Promise(r => setTimeout(r, 200));
+                    
+                    if (this.robot.x === this.map.exit.x && this.robot.y === this.map.exit.y) {
+                        alert("🎉 축하합니다! 출출구에 도착했습니다!");
+                        this.isAnimating = false;
+                        return;
+                    }
+                }
+                this.isAnimating = false;
+            }
+
+            executeAction(action) {
+                const {robot} = this;
+                if (action === 'MOVE') {
+                    let nx = robot.x + (robot.dir === 0 ? 1 : robot.dir === 2 ? -1 : 0);
+                    let ny = robot.y + (robot.dir === 1 ? 1 : robot.dir === 3 ? -1 : 0);
+                    
+                    if (nx >=0 && nx < this.map.width && ny >=0 && ny < this.map.height) {
+                        const isWall = this.map.walls.some(([wx, wy]) => wx === nx && wy === ny);
+                        const isLockedDoor = this.doors.some(d => d.x === nx && d.y === ny && d.locked);
+                        if (!isWall && !isLockedDoor) {
+                            robot.x = nx; robot.y = ny;
+                        }
+                    }
+                } else if (action === 'LEFT') {
+                    robot.dir = (robot.dir + 3) % 4;
+                } else if (action === 'RIGHT') {
+                    robot.dir = (robot.dir + 1) % 4;
+                } else if (action === 'USE') {
+                    this.switches.forEach(s => {
+                        if (s.x === robot.x && s.y === robot.y) {
+                            s.active = !s.active;
+                            this.doors.forEach(d => { if(d.switchId === s.id) d.locked = !s.active; });
+                        }
+                    });
+                }
+            }
+        }
+
+        function runMazeCode(userCode) {
+            if (!mazeEngine) return;
+            mazeEngine.resetState();
+
+            // 가상 로봇 API 정의
+            const robot = {
+                moveForward: () => mazeEngine.actionQueue.push('MOVE'),
+                turnLeft: () => mazeEngine.actionQueue.push('LEFT'),
+                turnRight: () => mazeEngine.actionQueue.push('RIGHT'),
+                useSwitch: () => mazeEngine.actionQueue.push('USE'),
+                checkWall: () => {
+                    const {robot: r, map} = mazeEngine;
+                    let nx = r.x + (r.dir === 0 ? 1 : r.dir === 2 ? -1 : 0);
+                    let ny = r.y + (r.dir === 1 ? 1 : r.dir === 3 ? -1 : 0);
+                    if (nx < 0 || nx >= map.width || ny < 0 || ny >= map.height) return true;
+                    return map.walls.some(([wx, wy]) => wx === nx && wy === ny);
+                }
+            };
+
+            try {
+                // 유저 코드 실행 (eval을 사용하되 robot 객체 주입)
+                const script = new Function('robot', userCode);
+                script(robot);
+                mazeEngine.runActions();
+            } catch (e) {
+                alert("코드 실행 에러: " + e.message);
+            }
+        }
+
+        function hideBlindWarning() {
+            document.getElementById('blind-warning').style.display = 'none';
+        }
+
+        function startGlobalTimer(seconds) {
+            const display = document.getElementById('timer-display');
+            let timer = seconds;
+            const interval = setInterval(() => {
+                const mins = Math.floor(timer / 60);
+                const secs = timer % 60;
+                display.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                if (--timer < 0) clearInterval(interval);
+            }, 1000);
+        }
+
+        async function submitBattleCode() {
+            if (mode === 'BLIND') {
+                if (!confirm("블라인드 모드입니다. 단 한 번의 제출만 가능합니다. 계속하시겠습니까?")) return;
+            }
+
+            EditorCore.submitCode((data) => {
+                if (data.allCorrect) {
+                    alert('정답입니다! 승리하셨습니다.');
+                    // 결과 페이지로 이동 또는 로비로
+                    location.href = `/battle/room/lobby`;
+                } else {
+                    if (mode === 'BLIND') {
+                        alert('틀렸습니다. 블라인드 모드에서는 재시도가 불가능합니다.');
+                        location.href = `/battle/room/lobby`;
+                    } else {
+                        alert('틀렸습니다. 다시 시도해보세요!');
+                    }
+                }
+            });
+        }
+    </script>
+
+    <script type="module">
+        import WSManager from '/js/util/connection/websocket-manager.js';
+        if (roomId && currentUserId) {
+            WSManager.connect(roomId, currentUserId);
+            WSManager.sendConfirm(roomId, currentUserId);
+        }
+    </script>
+</body>
+</html>

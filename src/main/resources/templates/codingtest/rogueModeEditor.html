@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- [Rogue Mode Battle Editor] -->
+<head th:replace="~{codingtest/editorCore :: head('Passfail - Battle Mode', ~{::.extra-head})}">
+    <th:block class="extra-head">
+        <!-- Monaco(AMD) 충돌 방지를 위해 SockJS를 최상단에서 먼저 전역 로드 -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    </th:block>
+</head>
+<body>
+    <div id="problem-data" style="display:none;" 
+         th:attr="data-desc=${problem.description}, data-id=${problem.problemId}, data-code=${defaultCode}, 
+                  data-time=${problem.timeLimitMs}, data-mem=${problem.memoryLimitMb}, data-tc-count=${#lists.size(problem.testCases)},
+                  data-is-solved=${isSolved}, data-prev-code=${previousCode}, 
+                  data-is-logged-in=${#authorization.expression('isAuthenticated()')}">
+    </div>
+
+    <div th:replace="~{codingtest/editorCore :: topNav}"></div>
+
+    <div class="main-container">
+        <div th:replace="~{codingtest/editorCore :: problemPanel}"></div>
+        <div class="right-panel">
+            <div id="editor-container"></div>
+            <div th:replace="~{codingtest/editorCore :: bottomPanel}"></div>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <a id="exit-battle-btn" href="#" class="btn-pg btn-outline" style="text-decoration:none; margin-right:auto; display:flex; align-items:center; justify-content:center;">포기하고 맵으로</a>
+        <button id="aiReviewBtn" class="btn-pg btn-ai" onclick="EditorCore.openAiReview()">AI 코드 리뷰</button>
+        <button class="btn-pg btn-outline" onclick="EditorCore.runCode()">코드 실행</button>
+        <button class="btn-pg btn-blue" onclick="submitBattleCode()">제출 후 채점</button>
+    </div>
+
+    <div id="aiModal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--pg-border); padding-bottom:10px;"><h3 style="margin:0;">AI 코드 분석 리포트</h3><span style="cursor:pointer; font-size:24px;" onclick="closeAiReview()">&times;</span></div><div id="ai-content"></div></div></div>
+    
+    <div th:replace="~{codingtest/editorCore :: scripts}"></div>
+
+    <script th:inline="javascript">
+        const roomId = [[${roomId}]];
+        const seed = [[${seed}]];
+        const nodeId = [[${nodeId}]];
+        const currentUserId = [[${currentUserId}]];
+
+        function submitBattleCode() {
+            EditorCore.submitCode((data) => {
+                alert('정답입니다! 맵으로 이동합니다.');
+                location.href = `/battle/mode/rogueMap?roomId=${roomId}&seed=${seed}&cleared=true&nodeId=${nodeId}`;
+            });
+        }
+
+        // 나가기 버튼 링크 설정 및 상태 복구
+        document.addEventListener('DOMContentLoaded', () => {
+            EditorCore.init();
+            const exitBtn = document.getElementById('exit-battle-btn');
+            if (exitBtn) {
+                exitBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    if (confirm("정말 포기하시겠습니까? 진행 상태가 이전 노드로 되돌아갑니다.")) {
+                        // 포기 시: 현재 nodeId를 유지하되 isCleared=false로 명시적 저장 (필요 시 로직 확장 가능)
+                        // 또는 단순히 맵으로 리다이렉트 (맵의 onload가 cleared=false를 처리)
+                        location.href = `/battle/mode/rogueMap?roomId=${roomId}&seed=${seed}&cleared=false&nodeId=${nodeId}`;
+                    }
+                };
+            }
+        });
+    </script>
+
+    <!-- Presence 유지 (이미 SockJS가 로드된 상태이므로 안전하게 실행) -->
+    <script type="module">
+        import WSManager from '/js/util/connection/websocket-manager.js';
+        if (roomId && currentUserId) {
+            console.log("[BattleEditor] Connecting to Room WS... Presence Maintained.");
+            WSManager.connect(roomId, currentUserId);
+            WSManager.sendConfirm(roomId, currentUserId);
+ 			window.sendMyPosition = (nodeId, isCleared) => {
+            	WSManager.sendPosition(roomId, memberId, nodeId+`:false`);
+        	};
+            window.updatePlayerPosition = () => {}; 
+        }
+    </script>
+</body>
+</html>

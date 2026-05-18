@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{codingtest/editorCore :: head('Passfail - Relay Coding', ~{::.extra-head})}">
+    <th:block class="extra-head">
+        <style>
+            .battle-info-bar { height: 50px; background: #0f172a; border-bottom: 1px solid #334155; display: flex; align-items: center; padding: 0 20px; gap: 20px; color: #f8fafc; font-size: 14px; font-weight: 800; }
+            .mode-badge { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); color: white; padding: 4px 12px; border-radius: 9999px; font-size: 11px; }
+            .relay-turn-card { padding: 4px 15px; border-radius: 8px; background: #1e293b; border: 2px solid #334155; display: flex; align-items: center; gap: 10px; }
+            .relay-turn-card.active { border-color: #ec4899; box-shadow: 0 0 15px rgba(236, 72, 153, 0.4); }
+            .turn-indicator { width: 10px; height: 10px; border-radius: 50%; background: #475569; }
+            .active .turn-indicator { background: #ec4899; animation: pulse 1s infinite; }
+            @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.5; } 100% { transform: scale(1); opacity: 1; } }
+            .lock-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.3); z-index: 100; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        </style>
+    </th:block>
+</head>
+<body>
+    <div id="problem-data" style="display:none;" 
+         th:attr="data-desc=${problem.description}, data-id=${problem.problemId}, data-code=${defaultCode}, 
+                  data-room-id=${roomId}, data-user-id=${currentUserId}">
+    </div>
+    <div th:replace="~{codingtest/editorCore :: topNav}"></div>
+
+    <div class="battle-info-bar">
+        <span class="mode-badge">릴레이 (RELAY)</span>
+        <div id="relay-status-board" class="flex items-center gap-4 ml-10">
+            <!-- 팀별 턴 정보 -->
+            <div id="team-a-card" class="relay-turn-card">
+                <div class="turn-indicator"></div>
+                <span class="text-xs font-bold text-slate-300">TEAM A</span>
+                <span id="team-a-player" class="text-xs text-pink-500">-</span>
+            </div>
+            <div id="team-b-card" class="relay-turn-card">
+                <div class="turn-indicator"></div>
+                <span class="text-xs font-bold text-slate-300">TEAM B</span>
+                <span id="team-b-player" class="text-xs text-pink-500">-</span>
+            </div>
+        </div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:15px;">
+            <div id="turn-timer" class="text-pink-500 font-black text-xl">02:00</div>
+        </div>
+    </div>
+
+    <div class="main-container relative">
+        <div id="editor-lock" class="lock-overlay">
+            <div class="bg-slate-800 p-6 rounded-2xl border-2 border-slate-700 shadow-2xl text-center">
+                <i data-lucide="lock" size="48" class="text-slate-500 mb-4 mx-auto"></i>
+                <h2 class="text-xl font-black text-white">팀원의 차례입니다</h2>
+                <p class="text-slate-400 text-sm mt-2">화면을 보며 다음 수순을 고민하세요!</p>
+            </div>
+        </div>
+        <div th:replace="~{codingtest/editorCore :: problemPanel}"></div>
+        <div class="right-panel">
+            <div id="editor-container"></div>
+            <div th:replace="~{codingtest/editorCore :: bottomPanel}"></div>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <a href="/battle/room/lobby" class="btn-pg btn-outline">포기</a>
+        <button id="relay-run-btn" class="btn-pg btn-outline" onclick="EditorCore.runCode()">실행</button>
+        <button id="relay-submit-btn" class="btn-pg btn-blue" onclick="EditorCore.submitCode()">최종 제출</button>
+    </div>
+
+    <div th:replace="~{codingtest/editorCore :: scripts}"></div>
+
+    <script type="module">
+        import WSManager from '/js/util/connection/websocket-manager.js';
+        const roomId = [[${roomId}]];
+        const currentUserId = [[${currentUserId}]];
+        let isMyTurn = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            EditorCore.init();
+            WSManager.connect(roomId, currentUserId);
+            WSManager.sendConfirm(roomId, currentUserId);
+            
+            // 임시: 턴 교체 로직 테스트용 (실제로는 서버 WebSocket 이벤트로 수신)
+            // setTurn(true); 
+        });
+
+        window.updateBattleHUD = (memberId, data) => {
+            if (data.startsWith('TURN:')) {
+                const [_, activeId, timeLeft] = data.split(':');
+                updateTurnUI(activeId, timeLeft);
+            }
+        };
+
+        function updateTurnUI(activeMemberId, timeLeft) {
+            isMyTurn = (activeMemberId == currentUserId);
+            const lock = document.getElementById('editor-lock');
+            const runBtn = document.getElementById('relay-run-btn');
+            const submitBtn = document.getElementById('relay-submit-btn');
+            const timer = document.getElementById('turn-timer');
+
+            lock.style.display = isMyTurn ? 'none' : 'flex';
+            runBtn.disabled = !isMyTurn;
+            submitBtn.disabled = !isMyTurn;
+            timer.innerText = timeLeft;
+            
+            // Monaco Editor ReadOnly 토글
+            if (EditorCore.editor) {
+                EditorCore.editor.updateOptions({ readOnly: !isMyTurn });
+            }
+        }
+    </script>
+</body>
+</html>

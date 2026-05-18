@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{codingtest/editorCore :: head('Passfail - Debugging Duel', ~{::.extra-head})}">
+    <th:block class="extra-head">
+        <style>
+            .battle-info-bar { height: 50px; background: #0f172a; border-bottom: 1px solid #334155; display: flex; align-items: center; padding: 0 20px; gap: 20px; color: #f8fafc; font-size: 14px; font-weight: 800; }
+            .mode-badge { background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: white; padding: 4px 12px; border-radius: 9999px; font-size: 11px; }
+            .bug-item { display: flex; align-items: center; gap: 8px; padding: 4px 12px; background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 8px; }
+            .bug-count { font-size: 14px; color: #38bdf8; font-family: monospace; font-weight: 900; }
+        </style>
+    </th:block>
+</head>
+<body>
+    <div id="problem-data" style="display:none;" 
+         th:attr="data-desc=${problem.description}, data-id=${problem.problemId}, data-code=${defaultCode}, 
+                  data-room-id=${roomId}, data-user-id=${currentUserId}">
+    </div>
+    <div th:replace="~{codingtest/editorCore :: topNav}"></div>
+
+    <div class="battle-info-bar">
+        <span class="mode-badge">디버깅 듀얼 (DEBUG)</span>
+        <div id="battle-hud" class="flex items-center gap-3 ml-10">
+            <!-- 유저별 해결한 버그 수 (테스트 케이스 통과 수) -->
+        </div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:15px;">
+            <div class="text-rose-500 font-black" id="timer-display">29:59</div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div th:replace="~{codingtest/editorCore :: problemPanel}"></div>
+        <div class="right-panel">
+            <div id="editor-container"></div>
+            <div th:replace="~{codingtest/editorCore :: bottomPanel}"></div>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <a href="/battle/room/lobby" class="btn-pg btn-outline">포기</a>
+        <button class="btn-pg btn-outline" onclick="EditorCore.runCode()">버그 체크 (Run)</button>
+        <button class="btn-pg btn-blue" onclick="EditorCore.submitCode()">수정 완료 제출</button>
+    </div>
+
+    <div th:replace="~{codingtest/editorCore :: scripts}"></div>
+
+    <script type="module">
+        import WSManager from '/js/util/connection/websocket-manager.js';
+        const roomId = [[${roomId}]];
+        const currentUserId = [[${currentUserId}]];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            EditorCore.init({
+                onRunComplete: (results) => {
+                    const correct = results.filter(r => r.status === 'CORRECT').length;
+                    WSManager.sendProgress(roomId, currentUserId, `${correct}:FIXING`);
+                },
+                onSubmitComplete: (data) => {
+                    if (data.allCorrect) WSManager.sendProgress(roomId, currentUserId, `ALL:FINISHED`);
+                }
+            });
+            initHUD();
+            WSManager.connect(roomId, currentUserId);
+            WSManager.sendConfirm(roomId, currentUserId);
+        });
+
+        window.updateBattleHUD = (memberId, data) => {
+            const [count, status] = data.split(':');
+            const countEl = document.getElementById(`bug-count-${memberId}`);
+            if (countEl) {
+                countEl.innerText = count === 'ALL' ? 'CLEARED' : `${count} Fixed`;
+                if (status === 'FINISHED') countEl.style.color = '#22c55e';
+            }
+        };
+
+        async function initHUD() {
+            const res = await fetch(`/battle/room/${roomId}/positions`);
+            const users = await res.json();
+            const hud = document.getElementById('battle-hud');
+            users.forEach(user => {
+                const div = document.createElement('div');
+                div.id = `bug-item-${user.memberId}`;
+                div.className = 'bug-item';
+                div.innerHTML = `
+                    <span class="text-[10px] text-slate-400 mr-2">${user.username}</span>
+                    <span id="bug-count-${user.memberId}" class="bug-count">0 Fixed</span>
+                `;
+                hud.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>
