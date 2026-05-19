@@ -505,75 +505,89 @@
 
     // ── 게시글 목록 렌더링 ────────────────────────────────────
     function renderPostList(data) {
-        const tbody = document.getElementById('postTableBody');
+    const tbody = document.getElementById('postTableBody');
 
-        const posts         = data?.content          ?? [];
-        const pageInfo      = data?.page             ?? {};
-        const totalPages    = pageInfo?.totalPages   ?? 0;
-        const totalElements = pageInfo?.totalElements ?? 0;
-        const currentNum    = pageInfo?.number        ?? 0;
+    const posts = data?.content ?? [];
 
-        if (posts.length === 0) {
-            tbody.innerHTML =
-                '<tr class="state-row"><td colspan="8">📭 게시글이 없습니다.</td></tr>';
-            renderPagination(0, 0);
-            return;
-        }
+    // ✅ Spring Boot 2.x / 3.x 양쪽 호환
+    const totalPages    = data?.totalPages    ?? data?.page?.totalPages    ?? 0;
+    const totalElements = data?.totalElements ?? data?.page?.totalElements ?? 0;
+    const currentNum    = data?.number        ?? data?.page?.number        ?? 0;
+    const pageSize      = data?.size          ?? data?.page?.size          ?? PAGE_SIZE;
 
-        tbody.innerHTML = posts.map((post, idx) => {
-            const rowNum   = totalElements - (currentNum * PAGE_SIZE) - idx;
-            const pinBadge = post?.isPinned ? '<span class="pin-badge">📌</span>' : '';
-            const catRaw   = post?.category ?? 'FREE';
-            const catClass = `cat-${catRaw}`;
-            const catLabel = categoryLabel(catRaw);
-            const date     = formatDate(post?.createdAt);
-            const author   = escapeHtml(post?.authorNickname ?? '익명');
-            const title    = escapeHtml(post?.title ?? '(제목 없음)');
-
-            return `
-                <tr class="${post?.isPinned ? 'pinned' : ''}"
-                    onclick="goToDetail(${post?.postId})">
-                    <td style="color:#94a3b8; font-weight:700;">
-                        ${post?.isPinned ? '📌' : rowNum}
-                    </td>
-                    <td>
-                        <span class="category-badge ${catClass}">${catLabel}</span>
-                    </td>
-                    <td class="title-cell">
-                        ${pinBadge}<span class="title-text">${title}</span>
-                    </td>
-                    <td style="font-weight:600; color:#475569;">${author}</td>
-                    <td class="stat-cell">👁 ${post?.viewCount    ?? 0}</td>
-                    <td class="stat-cell">❤️ ${post?.likeCount    ?? 0}</td>
-                    <td class="stat-cell">💬 ${post?.commentCount ?? 0}</td>
-                    <td class="stat-cell">${date}</td>
-                </tr>`;
-        }).join('');
-
-        renderPagination(totalPages, currentNum);
+    if (posts.length === 0) {
+        tbody.innerHTML =
+            '<tr class="state-row"><td colspan="8">📭 게시글이 없습니다.</td></tr>';
+        renderPagination(0, 0);
+        return;
     }
+
+    tbody.innerHTML = posts.map((post, idx) => {
+        const rowNum   = totalElements - (currentNum * pageSize) - idx;
+        const pinBadge = post?.isPinned ? '<span class="pin-badge">📌</span>' : '';
+        const catRaw   = post?.category ?? 'FREE';
+        const catClass = `cat-${catRaw}`;
+        const catLabel = categoryLabel(catRaw);
+        const date     = formatDate(post?.createdAt);
+        const author   = escapeHtml(post?.authorNickname ?? '익명');
+        const title    = escapeHtml(post?.title ?? '(제목 없음)');
+
+        return `
+            <tr class="${post?.isPinned ? 'pinned' : ''}"
+                onclick="goToDetail(${post?.postId})">
+                <td style="color:#94a3b8; font-weight:700;">
+                    ${post?.isPinned ? '📌' : rowNum}
+                </td>
+                <td>
+                    <span class="category-badge ${catClass}">${catLabel}</span>
+                </td>
+                <td class="title-cell">
+                    ${pinBadge}<span class="title-text">${title}</span>
+                </td>
+                <td style="font-weight:600; color:#475569;">${author}</td>
+                <td class="stat-cell">👁 ${post?.viewCount    ?? 0}</td>
+                <td class="stat-cell">❤️ ${post?.likeCount    ?? 0}</td>
+                <td class="stat-cell">💬 ${post?.commentCount ?? 0}</td>
+                <td class="stat-cell">${date}</td>
+            </tr>`;
+    }).join('');
+
+    renderPagination(totalPages, currentNum);
+}
 
     // ── 페이지네이션 렌더링 ───────────────────────────────────
     function renderPagination(totalPages, currentPageNum) {
-        const pag = document.getElementById('pagination');
-        if (!totalPages || totalPages <= 1) { pag.innerHTML = ''; return; }
+    const pag = document.getElementById('pagination');
+    if (!totalPages || totalPages <= 1) { pag.innerHTML = ''; return; }
 
-        let html = '';
-        html += `<button onclick="loadPosts(${currentPageNum - 1})"
-                    ${currentPageNum === 0 ? 'disabled' : ''}>◀ 이전</button>`;
+    let html = '';
 
-        const startPage = Math.max(0, currentPageNum - 2);
-        const endPage   = Math.min(totalPages - 1, currentPageNum + 2);
-        for (let i = startPage; i <= endPage; i++) {
-            html += `<button class="${i === currentPageNum ? 'active' : ''}"
-                        onclick="loadPosts(${i})">${i + 1}</button>`;
-        }
+    // ◀◀ 첫 페이지
+    html += `<button onclick="loadPosts(0)"
+                ${currentPageNum === 0 ? 'disabled' : ''}>◀◀</button>`;
 
-        html += `<button onclick="loadPosts(${currentPageNum + 1})"
-                    ${currentPageNum >= totalPages - 1 ? 'disabled' : ''}>다음 ▶</button>`;
+    // ◀ 이전
+    html += `<button onclick="loadPosts(${currentPageNum - 1})"
+                ${currentPageNum === 0 ? 'disabled' : ''}>◀ 이전</button>`;
 
-        pag.innerHTML = html;
+    // 페이지 번호 (현재 기준 앞뒤 2개)
+    const startPage = Math.max(0, currentPageNum - 2);
+    const endPage   = Math.min(totalPages - 1, currentPageNum + 2);
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="${i === currentPageNum ? 'active' : ''}"
+                    onclick="loadPosts(${i})">${i + 1}</button>`;
     }
+
+    // 다음 ▶
+    html += `<button onclick="loadPosts(${currentPageNum + 1})"
+                ${currentPageNum >= totalPages - 1 ? 'disabled' : ''}>다음 ▶</button>`;
+
+    // ▶▶ 마지막 페이지
+    html += `<button onclick="loadPosts(${totalPages - 1})"
+                ${currentPageNum >= totalPages - 1 ? 'disabled' : ''}>▶▶</button>`;
+
+    pag.innerHTML = html;
+}
 
     // ── 라우팅 ───────────────────────────────────────────────
     function goToDetail(postId) {
