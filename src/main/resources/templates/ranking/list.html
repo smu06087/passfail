@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Passfail - 실시간 랭킹</title>
-    <!-- Tailwind CSS & Lucide Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
@@ -60,17 +61,15 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        /* Tier Colors */
-        .tier-BRONZE { background-color: #CD7F32; }
-        .tier-SILVER { background-color: #C0C0C0; color: #334155; }
-        .tier-GOLD { background-color: #FFD700; color: #334155; }
-        .tier-PLATINUM { background-color: #00CED1; }
+        .tier-BRONZE  { background-color: #CD7F32; }
+        .tier-SILVER  { background-color: #C0C0C0; color: #334155; }
+        .tier-GOLD    { background-color: #FFD700; color: #334155; }
+        .tier-PLATINUM{ background-color: #00CED1; }
         .tier-DIAMOND { background-color: #B9F2FF; color: #004085; }
-        .tier-RUBY { background-color: #FF0000; }
+        .tier-RUBY    { background-color: #FF0000; }
 
         .bg-green-grad { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
 
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
@@ -87,10 +86,13 @@
                 <p class="text-slate-400 font-bold">Passfail에서 활약 중인 최고의 사용자들을 만나보세요.</p>
             </div>
             
-            <button id="updateBtn" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-sm hover:border-red-400 hover:text-red-500 transition-all shadow-sm flex items-center gap-2 group">
-                <i data-lucide="refresh-cw" size="18" class="group-hover:rotate-180 transition-transform duration-500"></i>
-                랭킹 데이터 갱신
-            </button>
+            <!-- ✅ 어드민에게만 갱신 버튼 렌더링 -->
+            <div sec:authorize="hasRole('ROLE_ADMIN')">
+                <button id="updateBtn" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-sm hover:border-red-400 hover:text-red-500 transition-all shadow-sm flex items-center gap-2 group">
+                    <i data-lucide="refresh-cw" size="18" class="group-hover:rotate-180 transition-transform duration-500"></i>
+                    랭킹 데이터 갱신
+                </button>
+            </div>
         </div>
 
         <div class="glass-card p-8 min-h-[600px] flex flex-col">
@@ -135,6 +137,36 @@
             loadRankingData();
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
+            }
+
+            // ✅ null 체크: 어드민이 아니면 버튼이 DOM에 없으므로 에러 방지
+            const updateBtn = document.getElementById('updateBtn');
+            if (updateBtn) {
+                updateBtn.addEventListener('click', function() {
+                    if (!confirm('⚠️ 랭킹 데이터를 최신 상태로 갱신하시겠습니까?\n(이 작업은 전체 사용자의 순위를 재계산합니다)')) return;
+
+                    const btn = this;
+                    const originalHtml = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = '<div class="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin inline-block mr-2"></div> 처리 중...';
+
+                    fetch('/ranking/update', { method: 'POST' })
+                        .then(res => {
+                            if (res.ok) {
+                                alert('✅ 랭킹 갱신이 완료되었습니다.');
+                                location.reload();
+                            } else {
+                                throw new Error('권한이 없거나 서버 오류가 발생했습니다.');
+                            }
+                        })
+                        .catch(err => {
+                            alert('❌ 오류: ' + err.message);
+                        })
+                        .finally(() => {
+                            btn.disabled = false;
+                            btn.innerHTML = originalHtml;
+                        });
+                });
             }
         });
 
@@ -208,32 +240,6 @@
                     lucide.createIcons();
                 });
         }
-
-        document.getElementById('updateBtn').addEventListener('click', function() {
-            if (!confirm('⚠️ 랭킹 데이터를 최신 상태로 갱신하시겠습니까?\n(이 작업은 전체 사용자의 순위를 재계산합니다)')) return;
-
-            const btn = this;
-            const originalHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<div class="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div> 처리 중...';
-
-            fetch('/ranking/update', { method: 'POST' })
-                .then(res => {
-                    if (res.ok) {
-                        alert('✅ 랭킹 갱신이 완료되었습니다.');
-                        location.reload();
-                    } else {
-                        throw new Error('권한이 없거나 서버 오류가 발생했습니다.');
-                    }
-                })
-                .catch(err => {
-                    alert('❌ 오류: ' + err.message);
-                })
-                .finally(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHtml;
-                });
-        });
 
         function escapeHtml(text) {
             const div = document.createElement('div');

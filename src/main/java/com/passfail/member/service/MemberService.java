@@ -82,6 +82,21 @@ public class MemberService implements UserDetailsService {
             throw new IllegalArgumentException("비밀번호는 최소 1개의 특수문자를 포함해야 합니다.");
         }
     }
+    
+    /**
+     * Username을 가지고 MemberId를 얻어옵니다.
+     * @param username 확인할 아이디
+     * @return ID in the members table. -1L if there is no member data.
+     */
+    public Long getMemberIdByUsername(String username) {
+    	Optional<MemberEntity> member = memberRepository.findByUsername(username);                
+    	 
+    	if(member.isPresent())
+    	{    	 
+    		return member.get().getMemberId();
+    	}    	
+    	return -1L;
+    }
 
     /**
      * 이메일 인증 코드 발송

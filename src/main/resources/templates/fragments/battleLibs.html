@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- [Battle Mode 전역 외부 라이브러리 뭉치] -->
+<th:block th:fragment="libs">
+    <!-- 1. 기초 기술 (WebSocket) 포함 -->
+    <th:block th:replace="~{fragments/websocketLibs :: libs}"></th:block>
+    
+    <!-- 2. 배틀 전용 에셋 (Icons) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- 3. 공통 스타일 -->
+    <style>
+        @keyframes pulse-active { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</th:block>
+</html>

@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import com.passfail.enums.BattleRoomStatus;
+import com.passfail.enums.Difficulty;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -29,11 +30,26 @@ public class BattleRoomEntity {
 	@JoinColumn(name = "host_id", insertable = false, updatable = false)
 	private MemberEntity hostMember;
 
-	@Column(name = "problem_id",nullable = false)
-	private Long problemId;
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "problem_id", insertable = false, updatable = false)
-	private ProblemEntity problem;
+    @Column(nullable = false)
+    private String roomName;
+    
+    @Column()
+    private String password;
+	
+    @Column(nullable = false)
+	private Long battleSeed;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "battle_mode", nullable = false, length = 20)
+    @Builder.Default
+    private com.passfail.enums.BattleMode battleMode = com.passfail.enums.BattleMode.QUICK;
+
+    @Column(name = "problem_id")
+    private Long problemId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Difficulty difficulty;
 
 	@Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -46,11 +62,16 @@ public class BattleRoomEntity {
 
     private LocalDateTime startAt;
 
-    private LocalDateTime end_at;
+    private LocalDateTime endAt;
+
+    private LocalDateTime actualStartedAt;
+
+    @Column(length = 255)
+    private String tags;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    private LocalDateTime created_at;
+    private LocalDateTime createdAt;
     
     @Builder.Default
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)

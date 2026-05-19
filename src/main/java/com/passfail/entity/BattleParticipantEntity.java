@@ -32,13 +32,25 @@ public class BattleParticipantEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "member_id", insertable = false, updatable = false)
 	private MemberEntity member;
+	
+	@Column(nullable = false)
+	private int slotIndex;
 
 	@Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    @Builder.Default
-    private BattleParticipantStatus status = BattleParticipantStatus.WAITING;
+	@Column(nullable = false, length = 20)
+	@Builder.Default
+	private BattleParticipantStatus status = BattleParticipantStatus.WAITING;
 
-    private Integer finalRank;
+	private String currentNodeId;
+
+	@Builder.Default
+	private boolean isCleared = false;
+
+	private Integer finalRank;
+
+	private LocalDateTime finishedAt;
+
+	private Integer score;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
