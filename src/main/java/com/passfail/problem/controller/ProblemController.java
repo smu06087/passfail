@@ -247,20 +247,6 @@ public class ProblemController {
 
     private String resolveDisplayName(Authentication authentication) {
         if (!isLoggedIn(authentication)) return null;
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof OAuth2User oAuth2User) {
-            Object name = oAuth2User.getAttribute("name");
-            if (name instanceof String value && !value.isBlank()) return value;
-            Object login = oAuth2User.getAttribute("login");
-            if (login instanceof String value && !value.isBlank()) return value;
-            Object response = oAuth2User.getAttribute("response");
-            if (response instanceof Map<?, ?> responseMap) {
-                Object nickname = responseMap.get("nickname");
-                if (nickname instanceof String value && !value.isBlank()) return value;
-                Object responseName = responseMap.get("name");
-                if (responseName instanceof String value && !value.isBlank()) return value;
-            }
-        }
         return authentication.getName();
     }
 
