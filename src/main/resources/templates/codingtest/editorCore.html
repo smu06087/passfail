@@ -167,7 +167,7 @@
             async openAiReview() {
                 const dataEl = document.getElementById('problem-data');
                 if (dataEl.getAttribute('data-is-logged-in') !== 'true') { if(confirm('AI 리뷰는 로그인이 필요한 서비스입니다. 로그인 하시겠습니까?')) window.location.href='/login'; return; }
-                if (!confirm('AI 코드 리뷰를 요청하시겠습니까? (300 바나나 소모)')) return;
+                if (!confirm('AI 코드 리뷰를 요청하시겠습니까? (2000 바나나 소모)')) return;
 
                 document.getElementById('aiModal').style.display = 'block';
                 const content = document.getElementById('ai-content');

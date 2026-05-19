@@ -163,10 +163,10 @@
                 </div>
             </div>
             
-            <div class="search-bar-wrapper shadow-inner">
+            <form action="/search" method="GET" class="search-bar-wrapper shadow-inner">
                 <i data-lucide="search" style="width: 18px; height: 18px;" class="text-slate-400"></i>
-                <input type="text" th:id="${sId}" th:placeholder="${sPlaceholder}" class="search-input font-bold text-slate-600">
-            </div>
+                <input type="text" name="q" th:id="${sId}" th:value="${param.q}" th:placeholder="${sPlaceholder}" class="search-input font-bold text-slate-600">
+            </form>
 
             <div class="user-section">
                 <div id="login-section" th:if="${currentUsername == null}">
