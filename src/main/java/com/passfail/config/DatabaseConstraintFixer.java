@@ -18,25 +18,26 @@ public class DatabaseConstraintFixer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        log.info("🔍 [DB 제약조건 점검] 결제 관련 테이블의 제약조건을 점검합니다.");
-        fixConstraints("PAYMENT_HISTORY");
-        fixConstraints("POINT_TRANSACTION");
-        log.info("🚀 [DB 제약조건 점검 완료] 이제 'REFUND' 타입 입력이 가능할 것입니다.");
+        log.info("🔍 [DB 제약조건 점검] 테이블의 제약조건을 점검합니다.");
+        fixConstraints("PAYMENT_HISTORY", "C");
+        fixConstraints("POINT_TRANSACTION", "C");
+        fixConstraints("SUBMISSION", "U");
+        log.info("🚀 [DB 제약조건 점검 완료]");
     }
 
-    private void fixConstraints(String tableName) {
+    private void fixConstraints(String tableName, String constraintType) {
         try {
             String findConstraintSql = 
                 "SELECT constraint_name FROM user_constraints " +
-                "WHERE table_name = '" + tableName + "' " +
-                "AND constraint_type = 'C'";
+                "WHERE table_name = '" + tableName.toUpperCase() + "' " +
+                "AND constraint_type = '" + constraintType + "'";
             
             List<Map<String, Object>> constraints = jdbcTemplate.queryForList(findConstraintSql);
             
             for (Map<String, Object> row : constraints) {
                 String constraintName = (String) row.get("CONSTRAINT_NAME");
                 try {
-                    log.info("🗑️ {} 테이블 제약조건 삭제 시도: {}", tableName, constraintName);
+                    log.info("🗑️ {} 테이블 제약조건({}) 삭제 시도: {}", tableName, constraintType, constraintName);
                     jdbcTemplate.execute("ALTER TABLE " + tableName + " DROP CONSTRAINT " + constraintName);
                     log.info("✅ 삭제 성공: {}", constraintName);
                 } catch (Exception e) {

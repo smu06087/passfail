@@ -109,16 +109,16 @@ public class PaymentService {
         MemberEntity member = memberRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
 
-        if (member.getPointBalance() < 300) {
-            throw new RuntimeException("잔액이 부족합니다. (300 바나나 필요)");
+        if (member.getPointBalance() < 2000) {
+            throw new RuntimeException("잔액이 부족합니다. (2000 바나나 필요)");
         }
 
-        member.setPointBalance(member.getPointBalance() - 300);
+        member.setPointBalance(member.getPointBalance() - 2000);
         memberRepository.save(member);
 
         PaymentHistory history = PaymentHistory.builder()
                 .memberId(member.getMemberId())
-                .amount(300L)
+                .amount(2000L)
                 .txnType(TXN_Type.USE_REVIEW.name())
                 .paymentDate(LocalDateTime.now())
                 .build();

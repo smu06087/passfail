@@ -46,7 +46,7 @@ public class CodingTestController {
         }
 
         try {
-            // 1. 포인트 소모 (300 바나나)
+            // 1. 포인트 소모 (2000 바나나)
             paymentService.useReviewPoints(principal.getName());
             
             // 2. 리뷰 생성 로직 시작
