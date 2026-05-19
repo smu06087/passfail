@@ -8,7 +8,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /*
- * 작성자 : 신동엽
  * 내용 : Passfail 서비스의 관리자 페이지(Admin Dashboard)를 제어하고 
  * 데이터 상태를 뷰(View)로 전달하기 위한 Controller 클래스
  */
@@ -30,8 +29,6 @@ public class AdminController {
         
         // 화면에 보여줄 데이터를 모델에 담습니다.
         model.addAttribute("data", dashboardData);
-        model.addAttribute("author", "신동엽 관리자");
-        
-        return "admin"; 
-    }
+
+        return "admin";    }
 }
