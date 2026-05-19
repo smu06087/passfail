@@ -2,6 +2,10 @@ let currentProblemId = "";
 let currentSearchKeywords = [];
 let searchDebounceTimer = null;
 
+function formatDifficultyLabel(value) {
+    return String(value || "EASY").toUpperCase() === "MEDIUM" ? "Normal" : String(value || "EASY");
+}
+
 function selectProblem(card) {
     document.querySelectorAll(".problem-card").forEach(function(item) {
         item.classList.remove("active");
@@ -26,7 +30,7 @@ function selectProblem(card) {
     const difficulty = card.dataset.difficulty || "EASY";
     const difficultyEl = document.getElementById("detailDifficulty");
     if (difficultyEl) {
-        difficultyEl.textContent = difficulty;
+        difficultyEl.textContent = formatDifficultyLabel(difficulty);
         difficultyEl.className = "difficulty-chip";
         difficultyEl.classList.add(difficulty.toLowerCase());
     }
@@ -75,6 +79,20 @@ function enterProblem() {
         return;
     }
     location.href = "/codingtest/" + currentProblemId;
+}
+
+function enterRandomProblem() {
+    const visibleCards = Array.from(document.querySelectorAll(".problem-card")).filter(function(card) {
+        return !card.classList.contains("is-hidden") && card.dataset.id && card.dataset.id !== "-";
+    });
+
+    if (visibleCards.length === 0) {
+        return;
+    }
+
+    const randomCard = visibleCards[Math.floor(Math.random() * visibleCards.length)];
+    selectProblem(randomCard);
+    enterProblem();
 }
 
 function syncFilterGroup(group) {
@@ -191,6 +209,7 @@ function getPageSizeFromSelect(select) {
 function initPageSizeControl() {
     const problemGrid = document.getElementById("problemGrid");
     const pageSizeSelect = document.querySelector(".page-size select");
+    const sortSelect = document.getElementById("problemSortSelect");
     const pagination = document.querySelector(".pagination");
     const difficultyTabs = Array.from(document.querySelectorAll(".tabs-row .tab-btn"));
     const tabDifficulties = ["", "EASY", "MEDIUM", "HARD"];
@@ -207,7 +226,7 @@ function initPageSizeControl() {
     let currentPage = 1;
     let selectedDifficulty = "";
 
-    if (!problemGrid || !pageSizeSelect || !pagination) {
+    if (!problemGrid || !pageSizeSelect || !pagination || !sortSelect) {
         return;
     }
 
@@ -230,7 +249,7 @@ function initPageSizeControl() {
         const statusInputs = statusFilterGroup
             ? Array.from(statusFilterGroup.querySelectorAll(".check-item input[type='checkbox']")).slice(1)
             : [];
-        const selectedStatuses = ["UNSOLVED", "SOLVED", "FAVORITE"].filter(function(status, index) {
+        const selectedStatuses = ["UNSOLVED", "SOLVED"].filter(function(status, index) {
             return statusInputs[index] && statusInputs[index].checked;
         });
 
@@ -252,9 +271,51 @@ function initPageSizeControl() {
         return Number.isFinite(rate) ? rate : null;
     }
 
+    function getCardCreatedAt(card) {
+        const createdAt = card.dataset.createdAt || "";
+        const timestamp = Date.parse(createdAt);
+        return Number.isNaN(timestamp) ? 0 : timestamp;
+    }
+
+    function getCardProblemId(card) {
+        const problemId = Number(card.dataset.id || 0);
+        return Number.isFinite(problemId) ? problemId : 0;
+    }
+
+    function sortCards(cards) {
+        const sortValue = sortSelect.value || "latest";
+
+        return cards.slice().sort(function(left, right) {
+            if (sortValue === "number") {
+                return getCardProblemId(left) - getCardProblemId(right);
+            }
+
+            if (sortValue === "rate-desc") {
+                const rateCompare = getCardRate(right) - getCardRate(left);
+                if (rateCompare !== 0) {
+                    return rateCompare;
+                }
+                return getCardProblemId(left) - getCardProblemId(right);
+            }
+
+            if (sortValue === "rate-asc") {
+                const rateCompare = getCardRate(left) - getCardRate(right);
+                if (rateCompare !== 0) {
+                    return rateCompare;
+                }
+                return getCardProblemId(left) - getCardProblemId(right);
+            }
+
+            const createdAtCompare = getCardCreatedAt(right) - getCardCreatedAt(left);
+            if (createdAtCompare !== 0) {
+                return createdAtCompare;
+            }
+            return getCardProblemId(right) - getCardProblemId(left);
+        });
+    }
+
     function getCardStatus(card) {
         const mySubmit = card.dataset.mySubmit || "";
-        const isFavorite = Boolean(card.querySelector(".card-star.open"));
         const isSolved = mySubmit !== "" && mySubmit !== "-" && mySubmit !== "없음";
         const statuses = [];
 
@@ -263,9 +324,6 @@ function initPageSizeControl() {
         }
         if (isSolved) {
             statuses.push("SOLVED");
-        }
-        if (isFavorite) {
-            statuses.push("FAVORITE");
         }
 
         return statuses;
@@ -360,7 +418,7 @@ function initPageSizeControl() {
     }
 
     function renderPage() {
-        const cards = getCards();
+        const cards = sortCards(getCards());
         const filteredCards = selectedDifficulty
             ? cards.filter(function(card) {
                 return card.dataset.difficulty === selectedDifficulty && matchesSidebarFilters(card);
@@ -374,6 +432,10 @@ function initPageSizeControl() {
         const endIndex = startIndex + pageSize;
         const visibleCards = filteredCards.slice(startIndex, endIndex);
         emptyResults.classList.toggle("is-visible", filteredCards.length === 0);
+
+        cards.forEach(function(card) {
+            problemGrid.appendChild(card);
+        });
 
         cards.forEach(function(card) {
             card.classList.toggle("is-hidden", !visibleCards.includes(card));
@@ -393,6 +455,11 @@ function initPageSizeControl() {
     }
 
     pageSizeSelect.addEventListener("change", function() {
+        currentPage = 1;
+        renderPage();
+    });
+
+    sortSelect.addEventListener("change", function() {
         currentPage = 1;
         renderPage();
     });
@@ -533,6 +600,7 @@ function replaceProblemCards(problems) {
         card.dataset.time = `${problem.timeLimitMs || "-"} ms`;
         card.dataset.memory = `${problem.memoryLimitMb || "-"} MB`;
         card.dataset.rate = `${problem.acceptanceRate ?? 0}%`;
+        card.dataset.createdAt = problem.createdAt || "";
         card.dataset.submission = String(problem.submissionCount ?? 0);
         card.dataset.correct = String(problem.acceptedCount ?? 0);
         card.dataset.mySubmit = "-";
@@ -546,7 +614,7 @@ function replaceProblemCards(problems) {
             <div class="problem-number">${problem.problemId || ""}</div>
             <div class="card-star-wrap"><div class="card-star gray">*</div></div>
             <div class="card-title">${escapeHtml(problem.title || "")}</div>
-            <div class="mini-difficulty ${String(problem.difficulty || "EASY").toLowerCase()}">${problem.difficulty || "EASY"}</div>
+            <div class="mini-difficulty ${String(problem.difficulty || "EASY").toLowerCase()}">${escapeHtml(formatDifficultyLabel(problem.difficulty || "EASY"))}</div>
         `;
         problemGrid.appendChild(card);
     });
@@ -596,6 +664,11 @@ document.addEventListener("DOMContentLoaded", function() {
     initViewSwitch();
     initPageSizeControl();
     initSearch();
+
+    const randomProblemButton = document.getElementById("randomProblemButton");
+    if (randomProblemButton) {
+        randomProblemButton.addEventListener("click", enterRandomProblem);
+    }
 
     const firstCard = document.querySelector(".problem-card.active") || document.querySelector(".problem-card");
     if (firstCard) {

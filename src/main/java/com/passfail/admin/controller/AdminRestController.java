@@ -2,6 +2,8 @@ package com.passfail.admin.controller;
 
 import com.passfail.admin.service.AdminAnalysisService;
 import com.passfail.admin.service.VisitorService;
+import com.passfail.ai.dto.AiChatSessionDetailResponse;
+import com.passfail.ai.service.AiQuestionService;
 import com.passfail.entity.MemberEntity;
 import com.passfail.entity.ProblemTagEntity;
 import com.passfail.enums.PaymentStatus;
@@ -31,6 +33,7 @@ public class AdminRestController {
     private final ProblemTagRepository problemTagRepository;
     private final AdminAnalysisService adminAnalysisService;
     private final VisitorService visitorService;
+    private final AiQuestionService aiQuestionService;
 
     // ... (existing analysis and stats methods)
 
@@ -182,5 +185,33 @@ public class AdminRestController {
             map.put("date", payment.getPaidAt().toLocalDate().toString());
             return map;
         }).collect(Collectors.toList());
+    }
+
+    @GetMapping("/ai-handoffs")
+    public List<Map<String, Object>> getAiHandoffs() {
+        return aiQuestionService.getRequestedHandoffs();
+    }
+
+    @GetMapping("/ai-handoffs/{sessionId}")
+    public AiChatSessionDetailResponse getAiHandoffDetail(@PathVariable("sessionId") Long sessionId) {
+        return aiQuestionService.getHandoffDetail(sessionId);
+    }
+
+    @PostMapping("/ai-handoffs/{sessionId}/reply")
+    public void replyToAiHandoff(
+        Authentication authentication,
+        @PathVariable("sessionId") Long sessionId,
+        @RequestBody Map<String, String> payload
+    ) {
+        aiQuestionService.replyToHandoff(
+            sessionId,
+            payload.get("reply"),
+            authentication != null ? authentication.getName() : null
+        );
+    }
+
+    @PostMapping("/ai-handoffs/{sessionId}/close")
+    public void closeAiHandoff(@PathVariable("sessionId") Long sessionId) {
+        aiQuestionService.closeHandoff(sessionId);
     }
 }

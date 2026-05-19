@@ -528,10 +528,6 @@
             font-size: 38px;
         }
 
-        .problem-grid.list-view .card-lock {
-            font-size: 14px;
-        }
-
         .card-star.open {
             color: #74c754;
         }
@@ -540,17 +536,11 @@
             color: #d3d3d3;
         }
 
-        .card-lock {
-            position: absolute;
-            font-size: 18px;
-            color: #9b9b9b;
-        }
-
         .card-title {
             font-size: 14px;
             font-weight: 900;
             color: #404c45;
-            margin-bottom: 8px;
+            margin: 0 0 8px;
             text-align: center;
             min-height: 20px;
         }
@@ -599,12 +589,12 @@
         .detail-panel {
             display: flex;
             align-items: stretch;
-            gap: 18px;
+            gap: 24px;
             background: #ffffff;
             border: 1px solid #e5eee0;
             border-radius: 20px;
             margin-top: 10px;
-            padding: 18px;
+            padding: 22px 24px;
             box-shadow: 0 8px 22px rgba(85, 120, 70, 0.05);
         }
 
@@ -618,51 +608,44 @@
             right: 18px;
             bottom: 18px;
             z-index: 55;
-            max-height: 240px;
+            max-height: 250px;
             overflow: auto;
             margin-top: 0;
             box-shadow: 0 16px 36px rgba(85, 120, 70, 0.16);
         }
 
         .detail-left {
-            width: 160px;
-            min-width: 160px;
-            border-radius: 18px;
-            background: linear-gradient(180deg, #f7fff1 0%, #fdfefc 100%);
-            border: 1px solid #ebf3e5;
+            width: 110px;
+            min-width: 110px;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 14px 12px;
-            position: relative;
         }
 
-        .speech {
-            background: #e3f5d6;
-            color: #5fa647;
-            font-weight: 900;
-            font-size: 12px;
-            border-radius: 12px;
-            padding: 8px 10px;
-            margin-bottom: 10px;
-        }
-
-        .detail-mascot {
-            font-size: 58px;
-            line-height: 1;
+        .detail-badge {
+            width: 82px;
+            height: 82px;
+            border-radius: 24px;
+            border: 1px solid #e5eee0;
+            background: linear-gradient(180deg, #f8fff3 0%, #ffffff 100%);
+            box-shadow: 0 10px 24px rgba(104, 180, 78, 0.10);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
         }
 
         .detail-center {
             flex: 1;
-            padding: 6px 4px;
+            min-width: 0;
+            padding: 2px 8px 2px 0;
         }
 
         .detail-title-row {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
             flex-wrap: wrap;
         }
 
@@ -681,11 +664,11 @@
 
         .detail-info-grid {
             display: grid;
-            grid-template-columns: 130px 1fr;
-            row-gap: 9px;
-            column-gap: 12px;
+            grid-template-columns: 110px minmax(0, 1fr);
+            row-gap: 10px;
+            column-gap: 16px;
             font-size: 15px;
-            margin-top: 10px;
+            margin-top: 6px;
         }
 
         .detail-label {
@@ -718,24 +701,24 @@
         }
 
         .detail-desc {
-            margin-top: 8px;
+            margin-top: 4px;
             font-size: 14px;
             color: #707d73;
             line-height: 1.6;
         }
 
         .detail-right {
-            width: 320px;
-            min-width: 320px;
+            width: 300px;
+            min-width: 300px;
             display: flex;
             align-items: stretch;
-            gap: 20px;
+            gap: 18px;
         }
 
         .detail-stats {
             flex: 1;
             border-left: 1px dashed #e4ebe0;
-            padding-left: 20px;
+            padding-left: 22px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -857,18 +840,6 @@
             color: #55635a;
         }
 
-        .tiny-face {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: #f4fbef;
-            border: 2px solid #d7edca;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 21px;
-        }
-
         @media (max-width: 1400px) {
             .problem-grid {
                 grid-template-columns: repeat(6, minmax(90px, 1fr));
@@ -894,6 +865,12 @@
 
             .detail-panel {
                 flex-direction: column;
+            }
+
+            .detail-left {
+                width: 100%;
+                min-width: 0;
+                justify-content: flex-start;
             }
 
             .detail-right {

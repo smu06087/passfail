@@ -16,4 +16,5 @@ public class AiChatSessionItemResponse {
     private String title;
     private String preview;
     private String updatedAt;
+    private String latestRole;
 }

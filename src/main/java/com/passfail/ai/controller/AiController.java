@@ -1,6 +1,5 @@
 package com.passfail.ai.controller;
 
-import com.passfail.ai.dto.AiChatRequest;
 import com.passfail.ai.dto.AiChatResponse;
 import com.passfail.ai.dto.AiChatSessionDetailResponse;
 import com.passfail.ai.dto.AiChatSessionListResponse;
@@ -19,7 +18,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -116,15 +117,21 @@ public class AiController {
         }
     }
 
-    @PostMapping(value = "/chat", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(
+        value = "/chat",
+        consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE
+    )
     public ResponseEntity<AiChatResponse> chat(
         Authentication authentication,
         HttpSession httpSession,
-        @RequestBody AiChatRequest request
+        @RequestParam("sessionId") Long sessionId,
+        @RequestParam(value = "content", required = false) String content,
+        @RequestParam(value = "image", required = false) MultipartFile image
     ) {
         String username = extractUsername(authentication);
 
-        if (request == null || request.getSessionId() == null) {
+        if (sessionId == null) {
             return ResponseEntity.badRequest().body(
                 AiChatResponse.builder()
                     .success(false)
@@ -133,7 +140,7 @@ public class AiController {
             );
         }
 
-        if (username == null && !getAllowedSessionIds(httpSession).contains(request.getSessionId())) {
+        if (username == null && !getAllowedSessionIds(httpSession).contains(sessionId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
                 AiChatResponse.builder()
                     .success(false)
@@ -142,7 +149,7 @@ public class AiController {
             );
         }
 
-        if (username != null && !aiQuestionService.canAccessSession(username, request.getSessionId())) {
+        if (username != null && !aiQuestionService.canAccessSession(username, sessionId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
                 AiChatResponse.builder()
                     .success(false)
@@ -152,11 +159,11 @@ public class AiController {
         }
 
         try {
-            String answer = aiQuestionService.chat(username, request.getSessionId(), request.getContent());
+            String answer = aiQuestionService.chat(username, sessionId, content, image);
             return ResponseEntity.ok(
                 AiChatResponse.builder()
                     .success(true)
-                    .message("답변을 생성했습니다.")
+                    .message("응답을 생성했습니다.")
                     .answer(answer)
                     .build()
             );

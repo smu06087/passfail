@@ -380,6 +380,7 @@ public class ProblemService {
         dto.setAcceptanceRate(problem.getAcceptanceRate() != null ? problem.getAcceptanceRate() : 0.0);
         dto.setSubmissionCount(problem.getSubmissionCount() != null ? problem.getSubmissionCount() : 0);
         dto.setAcceptedCount(problem.getAcceptedCount() != null ? problem.getAcceptedCount() : 0);
+        dto.setCreatedAt(problem.getCreatedAt());
         return dto;
     }
 

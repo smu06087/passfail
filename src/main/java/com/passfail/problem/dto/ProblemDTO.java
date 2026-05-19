@@ -1,5 +1,6 @@
 package com.passfail.problem.dto;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
@@ -19,6 +20,7 @@ public class ProblemDTO {
     private Double acceptanceRate;
     private Integer submissionCount;
     private Integer acceptedCount;
+    private LocalDateTime createdAt;
     private List<String> tags = new ArrayList<>();
     private List<String> sampleInputs = new ArrayList<>();
     private List<String> sampleOutputs = new ArrayList<>();

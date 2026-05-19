@@ -17,5 +17,6 @@ public class AiChatSessionDetailResponse {
     private boolean success;
     private Long sessionId;
     private String title;
+    private String handoffStatus;
     private List<AiChatMessageItemResponse> messages;
 }

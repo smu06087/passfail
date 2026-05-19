@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -103,6 +104,9 @@ public class ProblemController {
 
     @GetMapping("/main")
     public String main(Authentication authentication, Model model) {
+        model.addAttribute("currentUsername", resolveDisplayName(authentication));
+        model.addAttribute("loggedIn", isLoggedIn(authentication));
+        model.addAttribute("isAdmin", isAdmin(authentication));
         return "problem/main";
     }
 
@@ -206,6 +210,9 @@ public class ProblemController {
     }
 
     private void populateFormModel(Model model, Authentication authentication, String formMode, ProblemDTO problem) {
+        model.addAttribute("currentUsername", resolveDisplayName(authentication));
+        model.addAttribute("loggedIn", isLoggedIn(authentication));
+        model.addAttribute("isAdmin", isAdmin(authentication));
         model.addAttribute("formMode", formMode);
         model.addAttribute("problemData", problem);
         model.addAttribute("problemDataJson", toJson(problem));
@@ -219,16 +226,42 @@ public class ProblemController {
         model.addAttribute("problems", problems);
         model.addAttribute("problemCount", problems.size());
         model.addAttribute("selectedProblem", selectedProblem);
+        model.addAttribute("currentUsername", resolveDisplayName(authentication));
+        model.addAttribute("loggedIn", isLoggedIn(authentication));
+        model.addAttribute("isAdmin", admin);
+    }
+
+    private boolean isLoggedIn(Authentication authentication) {
+        return authentication != null
+            && authentication.isAuthenticated()
+            && !(authentication instanceof AnonymousAuthenticationToken);
     }
 
     private boolean isAdmin(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
-            return false;
-        }
+        if (!isLoggedIn(authentication)) return false;
         for (GrantedAuthority authority : authentication.getAuthorities()) {
             if ("ROLE_ADMIN".equals(authority.getAuthority())) return true;
         }
         return false;
+    }
+
+    private String resolveDisplayName(Authentication authentication) {
+        if (!isLoggedIn(authentication)) return null;
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof OAuth2User oAuth2User) {
+            Object name = oAuth2User.getAttribute("name");
+            if (name instanceof String value && !value.isBlank()) return value;
+            Object login = oAuth2User.getAttribute("login");
+            if (login instanceof String value && !value.isBlank()) return value;
+            Object response = oAuth2User.getAttribute("response");
+            if (response instanceof Map<?, ?> responseMap) {
+                Object nickname = responseMap.get("nickname");
+                if (nickname instanceof String value && !value.isBlank()) return value;
+                Object responseName = responseMap.get("name");
+                if (responseName instanceof String value && !value.isBlank()) return value;
+            }
+        }
+        return authentication.getName();
     }
 
     private String toJson(Object value) {

@@ -1,23 +1,23 @@
 <th:block th:fragment="aiQuestion">
     <link rel="stylesheet" th:href="@{/css/aiQuestion.css}" href="/css/aiQuestion.css">
 
-    <div class="chatbot-widget" id="chatbotWidget">
+    <div class="chatbot-widget" id="chatbotWidget" th:attr="data-is-admin=${isAdmin}">
         <section class="chatbot-panel" id="chatbotPanel" aria-hidden="true">
             <header class="chatbot-header">
                 <div class="chatbot-header-profile">
                     <div class="chatbot-profile-icon">PF</div>
                     <div class="chatbot-header-copy">
                         <strong class="chatbot-header-title" id="chatbotHeaderTitle">passfail</strong>
-                        <span class="chatbot-header-status">AI assistant</span>
+                        <span class="chatbot-header-status" id="chatbotHeaderStatus">AI 상담 도우미</span>
                     </div>
                 </div>
                 <div class="chatbot-header-actions">
-                    <button type="button" class="chatbot-icon-button" id="chatbotHeaderSettings" aria-label="Settings">
+                    <button type="button" class="chatbot-icon-button" id="chatbotResetRooms" aria-label="전체 채팅 삭제">
                         <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M12 8.8a3.2 3.2 0 1 0 0 6.4a3.2 3.2 0 0 0 0-6.4Zm9 3.2l-2.03-.64a7.96 7.96 0 0 0-.67-1.62l.97-1.89l-1.41-1.41l-1.89.97a7.96 7.96 0 0 0-1.62-.67L14 3h-2l-.35 2.13a7.96 7.96 0 0 0-1.62.67l-1.89-.97l-1.41 1.41l.97 1.89c-.29.52-.52 1.06-.67 1.62L3 12v2l2.03.35c.15.56.38 1.1.67 1.62l-.97 1.89l1.41 1.41l1.89-.97c.52.29 1.06.52 1.62.67L12 21h2l.35-2.03c.56-.15 1.1-.38 1.62-.67l1.89.97l1.41-1.41l-.97-1.89c.29-.52.52-1.06.67-1.62L21 14v-2Z" fill="currentColor"/>
+                            <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v8h-2V9Zm4 0h2v8h-2V9ZM7 9h2v8H7V9Zm-1 12h12l1-13H5l1 13Z" fill="currentColor"/>
                         </svg>
                     </button>
-                    <button type="button" class="chatbot-icon-button" id="chatbotClose" aria-label="Close">
+                    <button type="button" class="chatbot-icon-button" id="chatbotClose" aria-label="닫기">
                         <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
@@ -31,78 +31,79 @@
                         <div class="chatbot-home-badge">AI</div>
                         <div>
                             <h3>Passfail AI Chat</h3>
-                            <p>코딩 질문과 학습 방향을 빠르게 도와주는 챗봇입니다.</p>
+                            <p>코딩 질문과 학습 방향을 빠르게 정리해 주는 채팅 도우미입니다.</p>
                         </div>
                     </div>
                     <div class="chatbot-home-card-list">
                         <article class="chatbot-home-card">
                             <strong>알고리즘 질문</strong>
-                            <p>문제 접근법, 구현 아이디어, 개념 정리를 가볍게 물어볼 수 있습니다.</p>
+                            <p>문제 접근법, 구현 아이디어, 시간 복잡도를 빠르게 물어볼 수 있습니다.</p>
                         </article>
                         <article class="chatbot-home-card">
-                            <strong>학습 보조</strong>
-                            <p>Passfail을 사용하면서 궁금한 점이나 학습 중 막힌 부분을 정리해 보세요.</p>
+                            <strong>오류 이미지 첨부</strong>
+                            <p>에러 화면이나 코드 스크린샷을 올리고 함께 질문할 수 있습니다.</p>
                         </article>
                     </div>
-                    <button type="button" class="chatbot-primary-button" id="chatbotStartButton">새로운 채팅 시작</button>
+                    <button type="button" class="chatbot-primary-button" id="chatbotStartButton">새 채팅 시작</button>
                 </div>
             </div>
 
             <div class="chatbot-screen chatbot-screen-hidden" id="chatbotMessagesScreen">
                 <div class="chatbot-screen-body chatbot-messages">
                     <div class="chatbot-screen-intro">
-                        <h3>Messages</h3>
-                        <p>최근 대화 목록입니다.</p>
+                        <h3>채팅 목록</h3>
+                        <p>내가 진행한 최근 대화입니다.</p>
                     </div>
                     <button type="button" class="chatbot-secondary-button chatbot-inline-action" id="chatbotNewChatButton">새 채팅 시작</button>
                     <div class="chatbot-room-list" id="chatbotRoomList"></div>
                 </div>
             </div>
 
-            <div class="chatbot-screen chatbot-screen-hidden" id="chatbotSettingsScreen">
-                <div class="chatbot-screen-body chatbot-settings">
+            <div class="chatbot-screen chatbot-screen-hidden" id="chatbotSupportScreen">
+                <div class="chatbot-screen-body chatbot-messages">
                     <div class="chatbot-screen-intro">
-                        <h3>Settings</h3>
-                        <p>챗봇 관련 간단한 동작을 관리합니다.</p>
+                        <h3>상담 요청</h3>
+                        <p>회원이 상담원 연결을 요청한 대화입니다.</p>
                     </div>
-                    <div class="chatbot-settings-card">
-                        <strong>대화 기록 초기화</strong>
-                        <p>현재 브라우저에 저장된 로컬 대화 목록을 모두 삭제합니다.</p>
-                        <button type="button" class="chatbot-secondary-button" id="chatbotResetRooms">Clear all messages</button>
-                    </div>
+                    <div class="chatbot-room-list" id="chatbotSupportList"></div>
                 </div>
             </div>
 
             <div class="chatbot-screen chatbot-screen-hidden" id="chatbotChatScreen">
                 <div class="chatbot-chat-topbar">
-                    <button type="button" class="chatbot-back-button" id="chatbotBackButton" aria-label="Back">
+                    <button type="button" class="chatbot-back-button" id="chatbotBackButton" aria-label="뒤로가기">
                         <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M15 18l-6-6l6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
                     <div class="chatbot-chat-topbar-copy">
-                        <strong>passfail</strong>
-                        <span id="chatbotChatSubtitle">Ask anything about coding.</span>
+                        <strong id="chatbotChatTitle">passfail</strong>
+                        <span id="chatbotChatSubtitle">코딩에 대해 무엇이든 질문해 보세요.</span>
                     </div>
+                    <button
+                        type="button"
+                        class="chatbot-support-close-button chatbot-screen-hidden"
+                        id="chatbotSupportCloseButton"
+                    >
+                        상담 종료
+                    </button>
                 </div>
 
                 <div class="chatbot-message-area" id="chatbotMessageArea"></div>
 
                 <form class="chatbot-composer" id="chatbotForm">
-                    <label class="chatbot-sr-only" for="chatbotInput">Message</label>
+                    <label class="chatbot-sr-only" for="chatbotInput">메시지</label>
+                    <input class="chatbot-sr-only" type="file" id="chatbotImageInput" accept="image/png,image/jpeg,image/webp,image/gif">
                     <div class="chatbot-status" id="chatbotStatus"></div>
+                    <div class="chatbot-attachment-preview chatbot-screen-hidden" id="chatbotAttachmentPreview" hidden>
+                        <span class="chatbot-attachment-name" id="chatbotAttachmentName"></span>
+                        <button type="button" class="chatbot-attachment-remove" id="chatbotAttachmentRemove" aria-label="첨부 제거">x</button>
+                    </div>
                     <div class="chatbot-input-bar">
                         <div class="chatbot-input-tools">
-                            <button type="button" class="chatbot-tool-button" aria-label="Attachment">
+                            <button type="button" class="chatbot-tool-button" id="chatbotAttachmentButton" aria-label="파일 첨부">
                                 <svg viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M16.5 6.5l-7.6 7.6a3 3 0 1 0 4.2 4.2l7.7-7.7a5 5 0 1 0-7.1-7.1L5.9 11.3a7 7 0 0 0 9.9 9.9l6.3-6.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </button>
-                            <button type="button" class="chatbot-tool-button" aria-label="Emoji">
-                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
-                                    <path d="M9 10h.01M15 10h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                    <path d="M8 14c1.2 1.33 2.57 2 4 2c1.43 0 2.8-.67 4-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 </svg>
                             </button>
                         </div>
@@ -112,9 +113,9 @@
                             name="message"
                             rows="1"
                             maxlength="2000"
-                            placeholder="Ask the AI a question"
+                            placeholder="메시지를 입력하세요"
                         ></textarea>
-                        <button type="submit" class="chatbot-send-button" id="chatbotSendButton" aria-label="Send">
+                        <button type="submit" class="chatbot-send-button" id="chatbotSendButton" aria-label="전송">
                             <svg viewBox="0 0 24 24" aria-hidden="true">
                                 <path d="M12 19V5M6 11l6-6l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
@@ -123,14 +124,15 @@
                 </form>
             </div>
 
-            <nav class="chatbot-tabbar" aria-label="Chatbot navigation">
-                <button type="button" class="chatbot-tab is-active" data-view="home"><span>Home</span></button>
-                <button type="button" class="chatbot-tab" data-view="messages"><span>Messages</span></button>
-                <button type="button" class="chatbot-tab" data-view="settings"><span>Settings</span></button>
+            <nav class="chatbot-tabbar" id="chatbotTabbar" aria-label="챗봇 탐색">
+                <button type="button" class="chatbot-tab is-active" data-view="home"><span>홈</span></button>
+                <button type="button" class="chatbot-tab" data-view="messages"><span>대화</span></button>
+                <button type="button" class="chatbot-tab chatbot-screen-hidden" id="chatbotSupportTab" data-view="support"><span>상담</span></button>
             </nav>
         </section>
 
-        <button type="button" class="chatbot-fab" id="chatbotFab" aria-label="Open chatbot">
+        <button type="button" class="chatbot-fab" id="chatbotFab" aria-label="챗봇 열기">
+            <span class="chatbot-fab-notice chatbot-screen-hidden" id="chatbotFabNotice" aria-hidden="true"></span>
             <span class="chatbot-fab-ripple"></span>
             <span class="chatbot-fab-core">AI</span>
         </button>
