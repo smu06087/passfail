@@ -110,13 +110,14 @@
 
             <div class="form-group">
                 <label for="category">카테고리 <span style="color:#ef4444">*</span></label>
-                <select id="category">
-                    <option value="">카테고리를 선택하세요</option>
-                    <option value="FREE">자유</option>
-                    <option value="NOTICE">공지</option>
-                    <option value="QNA">Q&amp;A</option>
-                    <option value="REVIEW">후기</option>
-                </select>
+                <!-- ✅ 수정: NOTICE 옵션은 JS로 동적 렌더링 -->
+				<select id="category">
+				    <option value="">카테고리를 선택하세요</option>
+				    <option value="FREE">자유</option>
+				    <!-- NOTICE는 JS에서 ADMIN일 때만 추가됨 -->
+				    <option value="QNA">Q&amp;A</option>
+				    <option value="REVIEW">후기</option>
+				</select>
             </div>
 
             <div class="form-group">
@@ -188,6 +189,34 @@
                 alert('오류가 발생했습니다. 다시 시도해주세요.');
             }
         }
+        
+     // ✅ 추가: 페이지 로드 시 관리자 여부 확인 후 NOTICE 옵션 노출
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res  = await fetch('/api/auth/status', { credentials: 'same-origin' });
+                const data = await res.json();
+
+                // ADMIN 롤 보유자에게만 공지 카테고리 옵션 추가
+                const isAdmin = data.loggedIn &&
+                                Array.isArray(data.authorities) &&
+                                data.authorities.includes('ROLE_ADMIN');
+
+                if (isAdmin) {
+                    const select  = document.getElementById('category');
+                    const freeOpt = select.querySelector('option[value="FREE"]');
+
+                    const noticeOpt   = document.createElement('option');
+                    noticeOpt.value   = 'NOTICE';
+                    noticeOpt.textContent = '공지';
+
+                    // 자유 옵션 바로 뒤에 삽입
+                    freeOpt.insertAdjacentElement('afterend', noticeOpt);
+                }
+            } catch (e) {
+                console.error('권한 확인 실패:', e);
+            }
+        });
+        
     </script>
     <script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>

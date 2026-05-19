@@ -21,6 +21,8 @@ import com.passfail.post.dto.PostListResponseDTO;
 import com.passfail.post.dto.PostUpdateRequestDTO;
 import com.passfail.post.service.PostService;
 
+import org.springframework.security.core.GrantedAuthority;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -67,6 +69,18 @@ public class PostController {
         if (memberId == null) {
             return ResponseEntity.status(401).build();
         }
+
+        // ✅ NOTICE 카테고리는 ROLE_ADMIN 권한만 허용
+        if (dto.getCategory() == PostCategory.NOTICE) {
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(auth -> auth.equals("ROLE_ADMIN"));
+
+            if (!isAdmin) {
+                return ResponseEntity.status(403).build();
+            }
+        }
+
         Long postId = postService.createPost(dto, memberId);
         return ResponseEntity.created(URI.create("/posts/" + postId)).build();
     }

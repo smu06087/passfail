@@ -35,4 +35,12 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.badRequest().body(errors);
     }
+    
+    // ✅ 추가: 관리자 전용 기능 접근 시 403 반환
+    @ExceptionHandler(AdminOnlyException.class)
+    public ResponseEntity<Map<String, String>> handleAdminOnly(AdminOnlyException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", e.getMessage()));
+    }
+    
 }

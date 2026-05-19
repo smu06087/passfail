@@ -9,6 +9,7 @@ import com.passfail.post.dto.PostCreateRequestDTO;
 import com.passfail.post.dto.PostDetailResponseDTO;
 import com.passfail.post.dto.PostListResponseDTO;
 import com.passfail.post.dto.PostUpdateRequestDTO;
+import com.passfail.post.exception.AdminOnlyException;
 import com.passfail.post.exception.PostNotFoundException;
 import com.passfail.post.exception.UnauthorizedPostAccessException;
 import com.passfail.post.repository.CommentRepository;
@@ -112,12 +113,38 @@ public class PostService {
     // ── 게시글 작성 ──────────────────────────────────────────────
     @Transactional
     public Long createPost(PostCreateRequestDTO dto, Long memberId) {
+
+        // NOTICE 카테고리는 ADMIN만 작성 가능
+        if (dto.getCategory() == PostCategory.NOTICE) {
+            memberRepository.findById(memberId)
+                    .filter(member -> member.getRole().name().equals("ROLE_ADMIN"))
+                    .orElseThrow(AdminOnlyException::new);
+        }
+
         PostEntity post = PostEntity.builder()
                 .memberId(memberId)
                 .category(dto.getCategory())
                 .title(dto.getTitle())
                 .content(dto.getContent())
                 .build();
+
+        // ✅ NOTICE면 항상 핀 설정 + 최근 5개만 유지
+        if (dto.getCategory() == PostCategory.NOTICE) {
+            post.setIsPinned(true);
+            postRepository.save(post); // 먼저 저장
+
+            // 핀 고정된 글 중 오래된 순으로 가져와서 5개 초과 시 오래된 것부터 해제
+            List<PostEntity> pinnedPosts = postRepository
+                    .findByIsPinnedTrueAndIsDeletedFalseOrderByCreatedAtAsc();
+
+            while (pinnedPosts.size() > 5) {
+                pinnedPosts.get(0).setIsPinned(false);
+                pinnedPosts.remove(0);
+            }
+
+            return post.getPostId();
+        }
+
         return postRepository.save(post).getPostId();
     }
 
@@ -166,7 +193,22 @@ public class PostService {
     @Transactional
     public void togglePin(Long postId) {
         PostEntity post = getActivePost(postId);
-        post.setIsPinned(!post.getIsPinned());
+
+        if (post.getIsPinned()) {
+            // 핀 해제
+            post.setIsPinned(false);
+        } else {
+            // 핀 설정 → 5개 초과 시 가장 오래된 핀 자동 해제
+            post.setIsPinned(true);
+
+            List<PostEntity> pinnedPosts = postRepository
+                    .findByIsPinnedTrueAndIsDeletedFalseOrderByCreatedAtAsc();
+
+            while (pinnedPosts.size() > 5) {
+                pinnedPosts.get(0).setIsPinned(false);
+                pinnedPosts.remove(0);
+            }
+        }
     }
 
     // ── 내부 헬퍼 ────────────────────────────────────────────────

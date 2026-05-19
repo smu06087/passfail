@@ -1,5 +1,6 @@
 package com.passfail.post.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.Query;
@@ -79,4 +80,8 @@ public interface PostRepository extends JpaRepository<PostEntity, Long> {
 
     @Query("SELECT p FROM PostEntity p JOIN PostLikeEntity pl ON p.postId = pl.postId WHERE pl.memberId = :memberId AND p.isDeleted = false ORDER BY pl.likedAt DESC")
     Page<PostEntity> findLikedPostsByMemberId(@Param("memberId") Long memberId, Pageable pageable);
+    
+    // ✅ 핀 고정된 게시글 중 가장 오래된 순으로 조회
+    List<PostEntity> findByIsPinnedTrueAndIsDeletedFalseOrderByCreatedAtAsc();
+    
 }
