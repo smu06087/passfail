@@ -10,49 +10,7 @@
     <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
 </head>
 <body class="flex flex-col">
-<nav class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 px-8 py-2 text-slate-800">
-    <div class="w-full mx-auto space-y-3">
-        <div class="topbar-main" style="display: flex; align-items: center; justify-content: space-between; gap: 2rem;">
-            <div class="text-3xl font-extrabold text-green-600 tracking-tight cursor-pointer" th:onclick="|location.href='@{/main}'|">
-                Passfail
-            </div>
-
-            <div class="topbar-search border border-slate-300 rounded-2xl flex items-center px-4 bg-white focus-within:border-green-500 focus-within:ring-4 focus-within:ring-green-500/10 transition-all" style="flex: 1; max-width: 40rem;">
-                <i data-lucide="search" size="18" class="text-slate-400"></i>
-                <input
-                    type="text"
-                    id="problemSearchInput"
-                    placeholder="문제, 태그, 설명으로 검색해 보세요"
-                    class="w-full p-3 bg-transparent outline-none font-semibold text-slate-600">
-            </div>
-
-            <div class="topbar-actions flex items-center gap-3">
-                <a
-                    id="login-button"
-                    th:href="@{/login}"
-                    class="px-6 py-2.5 border border-slate-300 rounded-xl font-bold hover:bg-slate-50 transition-all text-center"
-                    style="text-decoration: none; color: inherit;"
-                    th:classappend="${loggedIn} ? ' hidden' : ''">로그인</a>
-                <div
-                    id="member-menu"
-                    class="items-center gap-3"
-                    th:classappend="${loggedIn} ? ' flex' : ' hidden'">
-                    <span class="font-bold text-slate-700" th:text="|${currentUsername}님 환영합니다|">사용자님 환영합니다</span>
-                    <a
-                        th:href="@{/mypage}"
-                        class="px-6 py-2.5 bg-green-grad text-white rounded-xl font-bold shadow-lg shadow-green-500/20 text-center"
-                        style="text-decoration: none;">마이페이지</a>
-                </div>
-            </div>
-        </div>
-
-        <div id="nav-loop-container" class="flex justify-center gap-5"></div>
-        <div class="search-related" id="searchRelatedBox">
-            <span class="search-related-label">연관 검색어</span>
-            <div class="search-related-keywords" id="searchRelatedKeywords"></div>
-        </div>
-    </div>
-</nav>
+<div th:replace="~{fragments/navbar :: mainNavbar(searchInputId='problemSearchInput')}"></div>
 
 <div class="app">
     <main class="page">
@@ -60,6 +18,11 @@
             <div class="sidebar-head">
                 <h3>필터</h3>
                 <button class="reset-btn">초기화</button>
+            </div>
+            
+            <div class="search-related mb-6" id="searchRelatedBox" style="display:none;">
+                <span class="search-related-label">연관 검색어</span>
+                <div class="search-related-keywords" id="searchRelatedKeywords"></div>
             </div>
 
             <div class="filter-group">
@@ -274,12 +237,6 @@
                     <div class="detail-actions">
                         <button class="enter-btn" onclick="enterProblem()">문제 풀기</button>
                         <button class="favorite-btn" onclick="downloadPdf()" style="background: #27ae60; color: white; border-color: #27ae60;">PDF 다운로드</button>
-                        <a
-                            th:if="${isAdmin && selectedProblem != null}"
-                            class="favorite-btn admin-edit-btn"
-                            id="detailEditButton"
-                            th:href="@{|/problem/problemEdit/${selectedProblem.problemId}|}"
-                            href="/problem/problemEdit/1">문제 수정</a>
                     </div>
                 </div>
             </section>
