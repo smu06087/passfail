@@ -14,10 +14,20 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             color: #1e293b;
         }
+
+        /* Responsive Scaling Logic */
+        html { zoom: 1; }
+        @media screen and (max-width: 1700px) { html { zoom: 0.95; } }
+        @media screen and (max-width: 1550px) { html { zoom: 0.9; } }
+        @media screen and (max-width: 1400px) { html { zoom: 0.85; } }
+        @media screen and (max-width: 1280px) { html { zoom: 0.8; } }
+        @media screen and (max-width: 1024px) { html { zoom: 0.75; } }
+        @media screen and (max-width: 768px) { html { zoom: auto; } }
+
         .login-container {
             background-color: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(14px);
@@ -113,6 +123,9 @@
     <!-- 에러 메시지 처리 -->
     <div th:if="${param.error}" class="error-msg">
         아이디 또는 비밀번호가 일치하지 않습니다.
+    </div>
+    <div th:if="${param.expired}" class="error-msg">
+        다른 기기에서 로그인되어 현재 세션이 만료되었습니다.
     </div>
     <div th:if="${param.resetSuccess}" class="success-msg">
         비밀번호가 이메일로 발송되었습니다.

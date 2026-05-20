@@ -59,9 +59,10 @@ public class ProblemController {
     }
 
     @GetMapping("/{problemId}/download")
-    public ResponseEntity<byte[]> downloadProblemPdf(@PathVariable("problemId") Long problemId, Principal principal) {
+    public ResponseEntity<?> downloadProblemPdf(@PathVariable("problemId") Long problemId, Principal principal) {
         if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("success", false, "message", "로그인이 필요합니다."));
         }
 
         try {
@@ -75,11 +76,15 @@ public class ProblemController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
         } catch (RuntimeException ex) {
-            log.error("Failed to download PDF due to payment or logic error", ex);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            log.error("Failed to download PDF due to payment or logic error: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("success", false, "message", ex.getMessage()));
         } catch (Exception ex) {
             log.error("Internal error during PDF generation", ex);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("success", false, "message", "PDF 생성 중 서버 오류가 발생했습니다."));
         }
     }
 

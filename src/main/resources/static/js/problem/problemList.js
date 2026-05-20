@@ -586,7 +586,7 @@ function escapeHtml(value) {
         .replaceAll("'", "&#39;");
 }
 
-function downloadPdf() {
+async function downloadPdf() {
     if (!currentProblemId || currentProblemId === "-") {
         return;
     }
@@ -598,8 +598,30 @@ function downloadPdf() {
         return;
     }
 
-    if (confirm('문제를 PDF로 다운로드하시겠습니까? (1,000 바나나 소모)')) {
-        location.href = `/problem/${currentProblemId}/download`;
+    if (!confirm('문제를 PDF로 다운로드하시겠습니까? (1,000 바나나 소모)')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/problem/${currentProblemId}/download`);
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Problem_${currentProblemId}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } else {
+            const errorData = await response.json();
+            alert(errorData.message || '포인트가 부족하거나 다운로드에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('PDF download error:', error);
+        alert('다운로드 중 오류가 발생했습니다.');
     }
 }
 

@@ -24,45 +24,39 @@ public class SseService {
 
 	public SseEmitter subscribe(Long userId) {
 
-		remove(userId);
+		// 기존 연결이 있다면 명시적으로 종료 시도 (새 연결로 교체)
+		SseEmitter oldEmitter = emitters.remove(userId);
+		if (oldEmitter != null) {
+			try {
+				oldEmitter.complete();
+			} catch (Exception e) {
+				// 이미 종료된 경우 무시
+			}
+		}
 
 		SseEmitter emitter = new SseEmitter(TIMEOUT);
 		emitters.put(userId, emitter);
 
-		// 연결 종료/에러 시 삭제 처리
+		// 연결 종료/에러 시 맵에서만 삭제 (이미 종료/에러 상태이므로 complete() 호출 불필요)
 		emitter.onCompletion(() -> {
 			System.out.println("[SseService] subscribe onCompletion, emitter remove");
-			remove(userId);
+			emitters.remove(userId);
 		});
 		emitter.onTimeout(() -> {
 			System.out.println("[SseService] subscribe onTimeout, emitter remove");
-			remove(userId);
+			emitters.remove(userId);
 		});
 		emitter.onError((e) -> {
 			System.out.println("[SseService] subscribe onError, emitter remove");
-			remove(userId);
+			emitters.remove(userId);
 		});
 
 		// 최초 연결 확인용
 		try {
 			System.out.println("[SseService] subscribe success, send connection message");
 			emitter.send(SseEmitter.event().name("connect").data("connected"));
-
-			/*// 3초 뒤 공지 테스트 발송
-			CompletableFuture.delayedExecutor(3, TimeUnit.SECONDS).execute(() -> {
-				send(userId, "notice", "testMsg");
-			});
-
-			// 6초(공지 테스트 이후 3초) 뒤 공지 테스트 발송
-			CompletableFuture.delayedExecutor(6, TimeUnit.SECONDS).execute(() -> {
-				Map<String, Object> payload = new HashMap<>();
-				payload.put("roomId", 333);
-				payload.put("from", "tester");
-				send(userId, "invite", payload);
-			});*/
-
 		} catch (IOException e) {
-			remove(userId);
+			emitters.remove(userId);
 			System.out.println("[SseService] subscribe fail, " + e.getMessage());
 		}
 
@@ -83,22 +77,18 @@ public class SseService {
 
 		try {
 			emitter.send(SseEmitter.event().name(eventName).data(data));
-		} catch (IOException e) {
-			System.out.println("[SseService] send fail IOException, eventName:" + eventName + " object:"
+		} catch (Exception e) {
+			System.out.println("[SseService] send fail, eventName:" + eventName + " object:"
 					+ data.toString() + " e:" + e.getMessage());
-			emitter.complete();
-			remove(userId);
+			// 전송 실패 시 맵에서 제거 (complete() 호출 시 예외 발생 가능성이 높으므로 지양)
+			emitters.remove(userId);
 		}
 
 	}
 
 	private void remove(Long userId) {
-
 		System.out.println("[SseService] emitter remove, id:" + userId);
-
-		SseEmitter old = emitters.remove(userId);
-		if (old != null)
-			old.complete();
+		emitters.remove(userId);
 	}
 
 	// heartbeat (30초마다 ping)

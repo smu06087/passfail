@@ -75,6 +75,12 @@ public class SecurityConfig {
             .permitAll()
         );
 
+        http.sessionManagement(session -> session
+            .maximumSessions(1)
+            .maxSessionsPreventsLogin(false)
+            .expiredUrl("/login?expired")
+        );
+
         http.exceptionHandling(exceptions -> exceptions
             .defaultAuthenticationEntryPointFor(
                 (request, response, authException) -> {
@@ -99,5 +105,10 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public org.springframework.security.web.session.HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new org.springframework.security.web.session.HttpSessionEventPublisher();
     }
 }

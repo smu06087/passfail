@@ -81,7 +81,7 @@
                     <span class="stat-label">총 제출 수</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-value" th:text="${member.globalRank != null ? member.globalRank : '-'}">-</span>
+                    <span class="stat-value" th:text="${member.globalRank != null and member.globalRank > 0 ? member.globalRank : '-'}">-</span>
                     <span class="stat-label">글로벌 랭킹</span>
                 </div>
             </div>

@@ -42,6 +42,7 @@ public class MypageService {
     private final SolvedProblemRepository solvedProblemRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final com.passfail.ranking.repository.TotalTierRepository totalTierRepository;
 
     /**
      * 회원 정보 응답 DTO 조회
@@ -52,8 +53,18 @@ public class MypageService {
     public MemberInfoResponse getMemberInfoResponse(String username, String loggedInUsername) {
         MemberEntity member = memberRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자 정보를 찾을 수 없습니다."));
+        
         boolean isOwnProfile = username.equals(loggedInUsername);
-        return MemberInfoResponse.from(member, isOwnProfile);
+        MemberInfoResponse response = MemberInfoResponse.from(member, isOwnProfile);
+        
+        // 실시간 랭킹 정보 조회 (TotalTierEntity에서 최신 데이터 가져오기)
+        totalTierRepository.findByMember_MemberId(member.getMemberId()).ifPresent(tier -> {
+            response.setTotalScore(tier.getTotalScore());
+            response.setGlobalRank(tier.getCurrentRank());
+            response.setTier(tier.getTier());
+        });
+        
+        return response;
     }
 
     /**

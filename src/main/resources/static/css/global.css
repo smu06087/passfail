@@ -13,6 +13,37 @@
     --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
 }
 
+/* Responsive Scaling Logic */
+html {
+    /* Base scaling for browsers that support zoom */
+    zoom: 1;
+}
+
+@media screen and (max-width: 1700px) {
+    html { zoom: 0.95; }
+}
+
+@media screen and (max-width: 1550px) {
+    html { zoom: 0.9; }
+}
+
+@media screen and (max-width: 1400px) {
+    html { zoom: 0.85; }
+}
+
+@media screen and (max-width: 1280px) {
+    html { zoom: 0.8; }
+}
+
+@media screen and (max-width: 1024px) {
+    html { zoom: 0.75; }
+}
+
+/* For browsers that don't support zoom, or to complement it */
+@media screen and (max-width: 768px) {
+    html { zoom: auto; } /* Disable zoom for mobile-ish sizes and let responsive design handle it */
+}
+
 * {
     box-sizing: border-box;
 }

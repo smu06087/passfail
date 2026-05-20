@@ -15,6 +15,16 @@
     <style>
         :root { --pg-navy: #1e2a3c; --pg-blue: #0078ff; --pg-bg: #f5f6f7; --pg-border: #d7e2eb; --pg-text: #263747; --pg-gray: #98a8b9; --white: #ffffff; --nav-text: #ffffff; }
         [data-theme='dark'] { --pg-bg: #0f172a; --pg-navy: #020617; --pg-border: #334155; --pg-text: #f1f5f9; --pg-gray: #94a3b8; --white: #1e293b; --nav-text: #f1f5f9; }
+        
+        /* Responsive Scaling Logic */
+        html { zoom: 1; }
+        @media screen and (max-width: 1700px) { html { zoom: 0.95; } }
+        @media screen and (max-width: 1550px) { html { zoom: 0.9; } }
+        @media screen and (max-width: 1400px) { html { zoom: 0.85; } }
+        @media screen and (max-width: 1280px) { html { zoom: 0.8; } }
+        @media screen and (max-width: 1024px) { html { zoom: 0.75; } }
+        @media screen and (max-width: 768px) { html { zoom: auto; } }
+
         body, html { margin: 0; height: 100vh; width: 100vw; overflow: hidden; background-color: var(--pg-bg); color: var(--pg-text); font-family: "Pretendard", -apple-system, sans-serif; display: flex; flex-direction: column; }
         .top-nav { height: 50px; background-color: var(--pg-navy); color: var(--nav-text); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
         .top-nav h1 { font-size: 15px; margin: 0; font-weight: 500; }
@@ -169,20 +179,55 @@
                 if (dataEl.getAttribute('data-is-logged-in') !== 'true') { if(confirm('AI 리뷰는 로그인이 필요한 서비스입니다. 로그인 하시겠습니까?')) window.location.href='/login'; return; }
                 if (!confirm('AI 코드 리뷰를 요청하시겠습니까? (2000 바나나 소모)')) return;
 
-                document.getElementById('aiModal').style.display = 'block';
                 const content = document.getElementById('ai-content');
+                document.getElementById('aiModal').style.display = 'block';
                 content.innerHTML = '분석 중...';
                 try {
                     const res = await fetch(`/codingtest/${dataEl.getAttribute('data-id')}/ai-review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: this.editor.getValue(), results: this.lastResults }) });
                     const data = await res.json();
+                    
+                    if (data.review.startsWith('❌ 오류: 잔액이 부족합니다')) {
+                        alert('포인트가 부족합니다.');
+                        document.getElementById('aiModal').style.display = 'none';
+                        return;
+                    }
+                    
                     content.innerHTML = data.review.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                } catch (e) { content.innerHTML = '실패'; }
+                } catch (e) { 
+                    content.innerHTML = '실패';
+                    alert('리뷰 요청 중 오류가 발생했습니다.');
+                }
             },
-            downloadPdf() {
+            async downloadPdf() {
                 const dataEl = document.getElementById('problem-data');
-                if (dataEl.getAttribute('data-is-logged-in') !== 'true') { if(confirm('PDF 다운로드는 로그인이 필요한 서비스입니다. 로그인 하시겠습니까?')) window.location.href='/login'; return; }
-                if (confirm('문제를 PDF로 다운로드하시겠습니까? (1,000 바나나 소모)')) {
-                    window.location.href = `/problem/${dataEl.getAttribute('data-id')}/download`;
+                const problemId = dataEl.getAttribute('data-id');
+                if (dataEl.getAttribute('data-is-logged-in') !== 'true') { 
+                    if(confirm('PDF 다운로드는 로그인이 필요한 서비스입니다. 로그인 하시겠습니까?')) window.location.href='/login'; 
+                    return; 
+                }
+                
+                if (!confirm('문제를 PDF로 다운로드하시겠습니까? (1,000 바나나 소모)')) return;
+
+                try {
+                    const response = await fetch(`/problem/${problemId}/download`);
+                    
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Problem_${problemId}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    } else {
+                        const errorData = await response.json();
+                        alert(errorData.message || '포인트가 부족하거나 다운로드에 실패했습니다.');
+                    }
+                } catch (error) {
+                    console.error('PDF download error:', error);
+                    alert('다운로드 중 오류가 발생했습니다.');
                 }
             }
         };

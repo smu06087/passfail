@@ -56,4 +56,16 @@ public class OAuth2Member implements OAuth2User {
     public OAuth2User getOriginalUser() {
         return oauth2User;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof OAuth2Member that)) return false;
+        return customName.equals(that.customName);
+    }
+
+    @Override
+    public int hashCode() {
+        return customName.hashCode();
+    }
 }
