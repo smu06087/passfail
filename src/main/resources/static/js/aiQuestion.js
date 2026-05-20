@@ -60,6 +60,8 @@
         const newChatButton = document.getElementById("chatbotNewChatButton");
         const roomList = document.getElementById("chatbotRoomList");
         const supportList = document.getElementById("chatbotSupportList");
+        const supportWaitingList = document.getElementById("chatbotSupportWaitingList");
+        const supportAssignedList = document.getElementById("chatbotSupportAssignedList");
         const messageArea = document.getElementById("chatbotMessageArea");
         const form = document.getElementById("chatbotForm");
         const input = document.getElementById("chatbotInput");
@@ -88,7 +90,7 @@
         };
 
         if (!panel || !fab || !fabNotice || !closeButton || !startButton || !newChatButton || !roomList ||
-            !supportList || !messageArea || !form || !input || !imageInput || !attachmentButton ||
+            !supportList || !supportWaitingList || !supportAssignedList || !messageArea || !form || !input || !imageInput || !attachmentButton ||
             !attachmentPreview || !attachmentName || !attachmentRemove || !sendButton || !status ||
             !backButton || !resetButton || !headerStatus || !chatTitle || !chatSubtitle ||
             !supportCloseButton || !tabbar) {
@@ -98,6 +100,8 @@
         const state = {
             sessions: [],
             supportSessions: [],
+            waitingSupportSessions: [],
+            assignedSupportSessions: [],
             activeSessionId: null,
             activeSupportSessionId: null,
             pending: false,
@@ -307,12 +311,21 @@
                 if (!response.ok) {
                     throw new Error(TEXT.supportListLoadFailed);
                 }
-                state.supportSessions = await response.json();
+                const data = await response.json();
+                if (Array.isArray(data)) {
+                    state.waitingSupportSessions = data;
+                    state.assignedSupportSessions = [];
+                } else {
+                    state.waitingSupportSessions = Array.isArray(data.waiting) ? data.waiting : [];
+                    state.assignedSupportSessions = Array.isArray(data.assigned) ? data.assigned : [];
+                }
+                state.supportSessions = state.waitingSupportSessions.concat(state.assignedSupportSessions);
                 reconcileSupportUnread(state.supportSessions);
                 renderSupportRooms();
             } catch (error) {
                 if (!silent) {
-                    supportList.innerHTML = '<div class="chatbot-room-empty">' + TEXT.supportListLoadFailed + "</div>";
+                    supportWaitingList.innerHTML = '<div class="chatbot-room-empty">' + TEXT.supportListLoadFailed + "</div>";
+                    supportAssignedList.innerHTML = "";
                     status.textContent = error.message || TEXT.supportListLoadFailed;
                 }
             }
@@ -369,7 +382,15 @@
             try {
                 const response = await fetch("/ai/session/" + sessionId);
                 if (!response.ok) {
-                    throw new Error(TEXT.loadConversationFailed);
+                    const errorData = await safeReadJson(response);
+                    if (response.status === 403 || response.status === 404 || response.status === 409) {
+                        state.activeSupportSessionId = null;
+                        state.activeSupportStatus = null;
+                        renderMessages([]);
+                        await refreshSupportSessions(true);
+                        switchView("support");
+                    }
+                    throw new Error(errorData && errorData.message ? errorData.message : TEXT.loadConversationFailed);
                 }
 
                 const data = await response.json();
@@ -408,7 +429,15 @@
 
                 const response = await fetch("/api/admin/ai-handoffs/" + sessionId);
                 if (!response.ok) {
-                    throw new Error(TEXT.loadConversationFailed);
+                    const errorData = await safeReadJson(response);
+                    if (response.status === 403 || response.status === 404 || response.status === 409) {
+                        state.activeSupportSessionId = null;
+                        state.activeSupportStatus = null;
+                        renderMessages([]);
+                        await refreshSupportSessions(true);
+                        switchView("support");
+                    }
+                    throw new Error(errorData && errorData.message ? errorData.message : TEXT.loadConversationFailed);
                 }
 
                 const data = await response.json();
@@ -784,14 +813,20 @@
         }
 
         function renderSupportRooms() {
-            supportList.innerHTML = "";
+            supportWaitingList.innerHTML = "";
+            supportAssignedList.innerHTML = "";
 
-            if (state.supportSessions.length === 0) {
-                supportList.innerHTML = '<div class="chatbot-room-empty">' + TEXT.supportListEmpty + "</div>";
+            renderSupportRoomGroup(state.waitingSupportSessions, supportWaitingList, true);
+            renderSupportRoomGroup(state.assignedSupportSessions, supportAssignedList, false);
+        }
+
+        function renderSupportRoomGroup(sessions, container, showAcceptButton) {
+            if (sessions.length === 0) {
+                container.innerHTML = '<div class="chatbot-room-empty">' + TEXT.supportListEmpty + "</div>";
                 return;
             }
 
-            state.supportSessions.forEach(function (session) {
+            sessions.forEach(function (session) {
                 const card = document.createElement("article");
                 card.className = "chatbot-room-card" + (session.sessionId === state.activeSupportSessionId ? " is-active" : "");
 
@@ -809,12 +844,54 @@
                     "</span>";
 
                 mainButton.addEventListener("click", function () {
+                    if (showAcceptButton) {
+                        acceptSupportSession(session.sessionId);
+                        return;
+                    }
                     openSupportSession(session.sessionId);
                 });
 
                 card.appendChild(mainButton);
-                supportList.appendChild(card);
+                if (showAcceptButton) {
+                    const acceptButton = document.createElement("button");
+                    acceptButton.type = "button";
+                    acceptButton.className = "chatbot-support-accept";
+                    acceptButton.textContent = "상담 수락";
+                    acceptButton.disabled = state.pending;
+                    acceptButton.addEventListener("click", function (event) {
+                        event.stopPropagation();
+                        acceptSupportSession(session.sessionId);
+                    });
+                    card.appendChild(acceptButton);
+                }
+                container.appendChild(card);
             });
+        }
+
+        async function acceptSupportSession(sessionId) {
+            if (state.pending) {
+                return;
+            }
+
+            setPending(true, "상담을 수락하는 중입니다.");
+            try {
+                const response = await fetch("/api/admin/ai-handoffs/" + sessionId + "/assign", {
+                    method: "POST"
+                });
+                if (!response.ok) {
+                    const data = await safeReadJson(response);
+                    throw new Error(data && data.message ? data.message : "상담 수락에 실패했습니다.");
+                }
+
+                await refreshSupportSessions();
+                await openSupportSession(sessionId);
+                status.textContent = "";
+            } catch (error) {
+                await refreshSupportSessions(true);
+                status.textContent = error.message || "상담 수락에 실패했습니다.";
+            } finally {
+                setPending(false);
+            }
         }
 
         async function handleLeaveSession(sessionId) {
@@ -895,7 +972,7 @@
                 return "상담 종료";
             }
 
-            if (statusValue === "HANDLED") {
+            if (statusValue === "HANDLED" || statusValue === "IN_PROGRESS" || statusValue === "ASSIGNED") {
                 return TEXT.supportHandledStatus;
             }
 

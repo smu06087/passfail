@@ -18,12 +18,6 @@ function selectProblem(card) {
     setText("detailId", card.dataset.id || "-");
     setText("detailTime", card.dataset.time || "-");
     setText("detailMemory", card.dataset.memory || "-");
-    setText("detailRate", card.dataset.rate || "0%");
-    setText("detailRateRight", card.dataset.rate || "0%");
-    setText("detailSubmission", card.dataset.submission || "0");
-    setText("detailCorrect", card.dataset.correct || "0");
-    setText("detailMySubmit", card.dataset.mySubmit || "-");
-    setText("detailMyRate", card.dataset.myRate || "-");
     setText("detailDesc", card.dataset.desc || "-");
     updateAdminEditLink(card.dataset.editUrl || "");
 
@@ -155,16 +149,8 @@ function resetFilters() {
         });
     });
 
-    const rateInputs = document.querySelectorAll(".rate-row input[type='text']");
-    if (rateInputs.length >= 2) {
-        rateInputs[0].value = "0";
-        rateInputs[1].value = "100";
-    }
-
     document.querySelectorAll(".filter-group input[type='text']").forEach(function(input) {
-        if (!input.closest(".rate-row")) {
-            input.value = "";
-        }
+        input.value = "";
     });
 }
 
@@ -217,10 +203,7 @@ function initPageSizeControl() {
     const difficultyFilterGroup = document.querySelectorAll(".filter-group")[0];
     const categoryFilterSelect = document.querySelectorAll(".filter-group select")[0];
     const statusFilterGroup = document.querySelectorAll(".filter-group")[2];
-    const rateInputs = Array.from(document.querySelectorAll(".rate-row input[type='text']"));
-    const tagInput = Array.from(document.querySelectorAll(".filter-group input[type='text']")).find(function(input) {
-        return !input.closest(".rate-row");
-    });
+    const tagInput = document.querySelector(".filter-group input[type='text']");
     const categoryValues = ["", "구현", "정렬", "문자열", "그래프"];
     const emptyResults = document.createElement("div");
     let currentPage = 1;
@@ -253,22 +236,12 @@ function initPageSizeControl() {
             return statusInputs[index] && statusInputs[index].checked;
         });
 
-        const minRate = rateInputs[0] ? Number(rateInputs[0].value) : 0;
-        const maxRate = rateInputs[1] ? Number(rateInputs[1].value) : 100;
-
         return {
             difficulties: selectedDifficulties,
             statuses: selectedStatuses,
             category: categoryFilterSelect ? categoryValues[categoryFilterSelect.selectedIndex] || "" : "",
-            minRate: Number.isFinite(minRate) ? minRate : 0,
-            maxRate: Number.isFinite(maxRate) ? maxRate : 100,
             keyword: tagInput ? tagInput.value.trim().toLowerCase() : ""
         };
-    }
-
-    function getCardRate(card) {
-        const rate = Number((card.dataset.rate || "").replace("%", ""));
-        return Number.isFinite(rate) ? rate : null;
     }
 
     function getCardCreatedAt(card) {
@@ -290,22 +263,6 @@ function initPageSizeControl() {
                 return getCardProblemId(left) - getCardProblemId(right);
             }
 
-            if (sortValue === "rate-desc") {
-                const rateCompare = getCardRate(right) - getCardRate(left);
-                if (rateCompare !== 0) {
-                    return rateCompare;
-                }
-                return getCardProblemId(left) - getCardProblemId(right);
-            }
-
-            if (sortValue === "rate-asc") {
-                const rateCompare = getCardRate(left) - getCardRate(right);
-                if (rateCompare !== 0) {
-                    return rateCompare;
-                }
-                return getCardProblemId(left) - getCardProblemId(right);
-            }
-
             const createdAtCompare = getCardCreatedAt(right) - getCardCreatedAt(left);
             if (createdAtCompare !== 0) {
                 return createdAtCompare;
@@ -315,8 +272,7 @@ function initPageSizeControl() {
     }
 
     function getCardStatus(card) {
-        const mySubmit = card.dataset.mySubmit || "";
-        const isSolved = mySubmit !== "" && mySubmit !== "-" && mySubmit !== "없음";
+        const isSolved = card.dataset.solved === "true";
         const statuses = [];
 
         if (!isSolved) {
@@ -333,7 +289,6 @@ function initPageSizeControl() {
         const filterState = getSidebarFilterState();
         const cardDifficulty = card.dataset.difficulty || "";
         const cardCategory = card.dataset.category || "";
-        const cardRate = getCardRate(card);
         const cardStatuses = getCardStatus(card);
 
         if (filterState.difficulties.length === 0 || !filterState.difficulties.includes(cardDifficulty)) {
@@ -349,14 +304,6 @@ function initPageSizeControl() {
         if (filterState.statuses.length === 0 || !cardStatuses.some(function(status) {
             return filterState.statuses.includes(status);
         })) {
-            return false;
-        }
-
-        if (cardRate === null && (filterState.minRate > 0 || filterState.maxRate < 100)) {
-            return false;
-        }
-
-        if (cardRate !== null && (cardRate < filterState.minRate || cardRate > filterState.maxRate)) {
             return false;
         }
 
@@ -573,12 +520,8 @@ function replaceProblemCards(problems) {
         emptyCard.dataset.category = "-";
         emptyCard.dataset.time = "-";
         emptyCard.dataset.memory = "-";
-        emptyCard.dataset.rate = "0%";
-        emptyCard.dataset.submission = "0";
-        emptyCard.dataset.correct = "0";
-        emptyCard.dataset.mySubmit = "-";
-        emptyCard.dataset.myRate = "-";
         emptyCard.dataset.desc = "검색 결과가 없습니다.";
+        emptyCard.dataset.solved = "false";
         emptyCard.innerHTML = `
             <div class="problem-number">-</div>
             <div class="card-star-wrap"><div class="card-star gray">*</div></div>
@@ -599,21 +542,23 @@ function replaceProblemCards(problems) {
         card.dataset.category = problem.category || "-";
         card.dataset.time = `${problem.timeLimitMs || "-"} ms`;
         card.dataset.memory = `${problem.memoryLimitMb || "-"} MB`;
-        card.dataset.rate = `${problem.acceptanceRate ?? 0}%`;
         card.dataset.createdAt = problem.createdAt || "";
-        card.dataset.submission = String(problem.submissionCount ?? 0);
-        card.dataset.correct = String(problem.acceptedCount ?? 0);
-        card.dataset.mySubmit = "-";
-        card.dataset.myRate = "-";
         card.dataset.desc = problem.description || "";
         card.dataset.editUrl = `/problem/problemEdit/${problem.problemId}`;
+        card.dataset.solved = problem.solved ? "true" : "false";
+        if (problem.solved) {
+            card.classList.add("solved");
+        }
         card.onclick = function() {
             selectProblem(card);
         };
         card.innerHTML = `
             <div class="problem-number">${problem.problemId || ""}</div>
             <div class="card-star-wrap"><div class="card-star gray">*</div></div>
-            <div class="card-title">${escapeHtml(problem.title || "")}</div>
+            <div class="card-title-row">
+                <div class="card-title">${escapeHtml(problem.title || "")}</div>
+                ${problem.solved ? '<span class="solved-badge">해결</span>' : ''}
+            </div>
             <div class="mini-difficulty ${String(problem.difficulty || "EASY").toLowerCase()}">${escapeHtml(formatDifficultyLabel(problem.difficulty || "EASY"))}</div>
         `;
         problemGrid.appendChild(card);

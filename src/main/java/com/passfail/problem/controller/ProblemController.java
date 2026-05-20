@@ -127,7 +127,7 @@ public class ProblemController {
         @RequestParam(name = "q", defaultValue = "") String query,
         Authentication authentication
     ) {
-        return ResponseEntity.ok(problemService.searchProblems(query, isAdmin(authentication)));
+        return ResponseEntity.ok(problemService.searchProblems(query, isAdmin(authentication), resolveLoginName(authentication)));
     }
 
     @PostMapping("/api/problems")
@@ -220,7 +220,7 @@ public class ProblemController {
 
     private void populateProblemListModel(Model model, Authentication authentication) {
         boolean admin = isAdmin(authentication);
-        List<ProblemDTO> problems = problemService.getProblemList(admin);
+        List<ProblemDTO> problems = problemService.getProblemList(admin, resolveLoginName(authentication));
         ProblemDTO selectedProblem = problems.isEmpty() ? null : problems.get(0);
 
         model.addAttribute("problems", problems);
@@ -248,6 +248,10 @@ public class ProblemController {
     private String resolveDisplayName(Authentication authentication) {
         if (!isLoggedIn(authentication)) return null;
         return authentication.getName();
+    }
+
+    private String resolveLoginName(Authentication authentication) {
+        return isLoggedIn(authentication) ? authentication.getName() : null;
     }
 
     private String toJson(Object value) {

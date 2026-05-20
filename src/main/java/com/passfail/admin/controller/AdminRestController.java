@@ -12,9 +12,13 @@ import com.passfail.member.repository.MemberRepository;
 import com.passfail.payment.repository.PaymentRepository;
 import com.passfail.problem.repository.ProblemRepository;
 import com.passfail.problem.repository.ProblemTagRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -188,13 +192,25 @@ public class AdminRestController {
     }
 
     @GetMapping("/ai-handoffs")
-    public List<Map<String, Object>> getAiHandoffs() {
-        return aiQuestionService.getRequestedHandoffs();
+    public Map<String, Object> getAiHandoffs(Authentication authentication) {
+        return aiQuestionService.getRequestedHandoffs(resolveAdminId(authentication));
     }
 
     @GetMapping("/ai-handoffs/{sessionId}")
-    public AiChatSessionDetailResponse getAiHandoffDetail(@PathVariable("sessionId") Long sessionId) {
-        return aiQuestionService.getHandoffDetail(sessionId);
+    public AiChatSessionDetailResponse getAiHandoffDetail(
+        Authentication authentication,
+        @PathVariable("sessionId") Long sessionId
+    ) {
+        return aiQuestionService.getHandoffDetail(sessionId, resolveAdminId(authentication));
+    }
+
+    @PostMapping("/ai-handoffs/{sessionId}/assign")
+    public ResponseEntity<Map<String, Object>> assignAiHandoff(
+        Authentication authentication,
+        @PathVariable("sessionId") Long sessionId
+    ) {
+        aiQuestionService.assignHandoff(sessionId, resolveAdminId(authentication));
+        return ResponseEntity.ok(Map.of("success", true));
     }
 
     @PostMapping("/ai-handoffs/{sessionId}/reply")
@@ -206,12 +222,47 @@ public class AdminRestController {
         aiQuestionService.replyToHandoff(
             sessionId,
             payload.get("reply"),
+            resolveAdminId(authentication),
             authentication != null ? authentication.getName() : null
         );
     }
 
     @PostMapping("/ai-handoffs/{sessionId}/close")
-    public void closeAiHandoff(@PathVariable("sessionId") Long sessionId) {
-        aiQuestionService.closeHandoff(sessionId);
+    public void closeAiHandoff(Authentication authentication, @PathVariable("sessionId") Long sessionId) {
+        aiQuestionService.closeHandoff(sessionId, resolveAdminId(authentication));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(Map.of("success", false, "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleEntityNotFound(EntityNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(Map.of("success", false, "message", ex.getMessage()));
+    }
+
+    private Long resolveAdminId(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null || "anonymousUser".equals(authentication.getName())) {
+            throw new IllegalStateException("관리자 로그인이 필요합니다.");
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof MemberEntity member) {
+            return member.getMemberId();
+        }
+
+        String loginName = authentication.getName();
+        if (principal instanceof UserDetails userDetails) {
+            loginName = userDetails.getUsername();
+        }
+
+        final String resolvedLoginName = loginName;
+        return memberRepository.findByUsername(resolvedLoginName)
+            .or(() -> memberRepository.findByEmail(resolvedLoginName))
+            .orElseThrow(() -> new IllegalStateException("관리자 정보를 찾을 수 없습니다."))
+            .getMemberId();
     }
 }

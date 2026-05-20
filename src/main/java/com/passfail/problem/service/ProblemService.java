@@ -238,6 +238,11 @@ public class ProblemService {
 
     @Transactional(readOnly = true)
     public List<ProblemDTO> getProblemList(boolean includeDrafts) {
+        return getProblemList(includeDrafts, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProblemDTO> getProblemList(boolean includeDrafts, String loginName) {
         List<ProblemEntity> problems = problemRepository.findAll().stream()
             .filter(problem -> includeDrafts || problem.getStatus() == ProblemStatus.PUBLISHED)
             .sorted((left, right) -> Long.compare(right.getProblemId(), left.getProblemId()))
@@ -246,8 +251,9 @@ public class ProblemService {
         log.debug("Loaded {} problems via JPA. First IDs: {}", problems.size(),
             problems.stream().limit(5).map(ProblemEntity::getProblemId).collect(Collectors.toList()));
 
+        Set<Long> solvedProblemIds = findSolvedProblemIds(loginName);
         return problems.stream()
-            .map(this::toProblemDto)
+            .map(problem -> toProblemDto(problem, solvedProblemIds.contains(problem.getProblemId())))
             .collect(Collectors.toList());
     }
 
@@ -303,8 +309,13 @@ public class ProblemService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> searchProblems(String query, boolean includeDrafts) {
+        return searchProblems(query, includeDrafts, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> searchProblems(String query, boolean includeDrafts, String loginName) {
         List<String> expandedKeywords = expandKeywords(query);
-        List<ProblemDTO> problems = getProblemList(includeDrafts);
+        List<ProblemDTO> problems = getProblemList(includeDrafts, loginName);
 
         if (!hasText(query)) {
             return Map.of(
@@ -367,6 +378,10 @@ public class ProblemService {
     }
 
     private ProblemDTO toProblemDto(ProblemEntity problem) {
+        return toProblemDto(problem, false);
+    }
+
+    private ProblemDTO toProblemDto(ProblemEntity problem, boolean solved) {
         ProblemDTO dto = new ProblemDTO();
         dto.setProblemId(problem.getProblemId());
         dto.setCreatedBy(problem.getCreatedBy());
@@ -380,6 +395,7 @@ public class ProblemService {
         dto.setAcceptanceRate(problem.getAcceptanceRate() != null ? problem.getAcceptanceRate() : 0.0);
         dto.setSubmissionCount(problem.getSubmissionCount() != null ? problem.getSubmissionCount() : 0);
         dto.setAcceptedCount(problem.getAcceptedCount() != null ? problem.getAcceptedCount() : 0);
+        dto.setSolved(solved);
         dto.setCreatedAt(problem.getCreatedAt());
         return dto;
     }
@@ -394,9 +410,15 @@ public class ProblemService {
         problem.setTimeLimitMs(normalizePositiveInteger(problemDTO.getTimeLimitMs(), 2000));
         problem.setMemoryLimitMb(normalizePositiveInteger(problemDTO.getMemoryLimitMb(), 256));
         problem.setStatus(status);
-        problem.setAcceptanceRate(problemDTO.getAcceptanceRate() != null ? problemDTO.getAcceptanceRate() : 0.0);
-        problem.setSubmissionCount(problemDTO.getSubmissionCount() != null ? problemDTO.getSubmissionCount() : 0);
-        problem.setAcceptedCount(problemDTO.getAcceptedCount() != null ? problemDTO.getAcceptedCount() : 0);
+        if (problem.getAcceptanceRate() == null) {
+            problem.setAcceptanceRate(problemDTO.getAcceptanceRate() != null ? problemDTO.getAcceptanceRate() : 0.0);
+        }
+        if (problem.getSubmissionCount() == null) {
+            problem.setSubmissionCount(problemDTO.getSubmissionCount() != null ? problemDTO.getSubmissionCount() : 0);
+        }
+        if (problem.getAcceptedCount() == null) {
+            problem.setAcceptedCount(problemDTO.getAcceptedCount() != null ? problemDTO.getAcceptedCount() : 0);
+        }
     }
 
     private void replaceTags(Long problemId, List<String> tags) {
@@ -441,6 +463,22 @@ public class ProblemService {
         return memberRepository.findTopByOrderByMemberIdAsc()
             .map(MemberEntity::getMemberId)
             .orElseThrow(() -> new IllegalStateException("No author account available for problem creation."));
+    }
+
+    private Set<Long> findSolvedProblemIds(String loginName) {
+        if (isBlank(loginName)) {
+            return Collections.emptySet();
+        }
+
+        Long memberId = findMemberIdByLoginName(loginName);
+        if (memberId == null) {
+            return Collections.emptySet();
+        }
+
+        return solvedProblemRepository.findByMemberId(memberId).stream()
+            .filter(solvedProblem -> solvedProblem.getProblem() != null)
+            .map(solvedProblem -> solvedProblem.getProblem().getProblemId())
+            .collect(Collectors.toSet());
     }
 
     private Difficulty parseDifficulty(String difficulty) {

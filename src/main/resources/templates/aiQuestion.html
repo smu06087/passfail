@@ -41,7 +41,11 @@
                         </article>
                         <article class="chatbot-home-card">
                             <strong>오류 이미지 첨부</strong>
-                            <p>에러 화면이나 코드 스크린샷을 올리고 함께 질문할 수 있습니다.</p>
+                            <p>에러 화면이나 코드 스크린샷을 올리고 질문할 수 있습니다.</p>
+                        </article>
+                        <article class="chatbot-home-card">
+                            <strong>상담원 연결</strong>
+                            <p>AI 답변으로 해결이 어렵다면 채팅창에 "상담원 연결" 또는 "관리자 호출"이라고 입력해 주세요.</p>
                         </article>
                     </div>
                     <button type="button" class="chatbot-primary-button" id="chatbotStartButton">새 채팅 시작</button>
@@ -65,7 +69,15 @@
                         <h3>상담 요청</h3>
                         <p>회원이 상담원 연결을 요청한 대화입니다.</p>
                     </div>
-                    <div class="chatbot-room-list" id="chatbotSupportList"></div>
+                    <section class="chatbot-support-group">
+                        <h4>대기 요청 목록</h4>
+                        <div class="chatbot-room-list" id="chatbotSupportWaitingList"></div>
+                    </section>
+                    <section class="chatbot-support-group">
+                        <h4>내가 맡은 상담 목록</h4>
+                        <div class="chatbot-room-list" id="chatbotSupportAssignedList"></div>
+                    </section>
+                    <div class="chatbot-room-list chatbot-screen-hidden" id="chatbotSupportList"></div>
                 </div>
             </div>
 

@@ -19,7 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -161,14 +160,14 @@ public class AiQuestionService {
 
     @Transactional(readOnly = true)
     public AiChatSessionDetailResponse getSessionDetail(String username, Long sessionId) {
-        resolveSession(username, sessionId);
+        AiChatSessionEntity session = resolveSession(username, sessionId);
         List<AiChatMessageEntity> messages = aiChatMessageRepository.findBySessionIdOrderBySentAtAsc(sessionId);
 
         return AiChatSessionDetailResponse.builder()
             .success(true)
             .sessionId(sessionId)
             .title(buildSessionTitle(messages))
-            .handoffStatus(resolveHandoffStatus(messages).name())
+            .handoffStatus(resolveStoredHandoffStatus(session, messages).name())
             .messages(messages.stream().map(this::toMessageItemResponse).collect(Collectors.toList()))
             .build();
     }
@@ -194,54 +193,119 @@ public class AiQuestionService {
         saveMessage(sessionId, AiChatRole.USER, buildStoredUserMessage(normalizedContent, hasImage));
 
         String answer = generateAnswer(sessionId, normalizedContent, image);
+        if (HANDOFF_REQUESTED_MESSAGE.equals(answer)) {
+            AiChatSessionEntity session = aiChatSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
+            session.setHandoffStatus(AiChatHandoffStatus.WAITING);
+            session.setAssignedAdminId(null);
+        }
         saveMessage(sessionId, AiChatRole.ASSISTANT, answer);
         return answer;
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getRequestedHandoffs() {
-        return aiChatSessionRepository.findAll().stream()
-            .map(session -> Map.entry(session, aiChatMessageRepository.findBySessionIdOrderBySentAtAsc(session.getSessionId())))
-            .filter(entry -> isVisibleHandoffStatus(resolveHandoffStatus(entry.getValue())))
-            .sorted(Comparator.comparing(
-                entry -> extractRequestedAt(entry.getValue()),
-                Comparator.nullsLast(Comparator.reverseOrder())
-            ))
-            .map(entry -> toHandoffSummary(entry.getKey(), entry.getValue()))
+    public Map<String, Object> getRequestedHandoffs(Long adminId) {
+        List<AiChatSessionEntity> waitingSessions = aiChatSessionRepository
+            .findByHandoffStatusAndAssignedAdminIdIsNullOrderByStartedAtDesc(AiChatHandoffStatus.WAITING);
+        Set<Long> waitingSessionIds = waitingSessions.stream()
+            .map(AiChatSessionEntity::getSessionId)
+            .collect(Collectors.toSet());
+
+        List<AiChatSessionEntity> legacyWaitingSessions = aiChatSessionRepository.findAll().stream()
+            .filter(session -> !waitingSessionIds.contains(session.getSessionId()))
+            .filter(session -> session.getAssignedAdminId() == null)
+            .filter(session -> session.getHandoffStatus() == null || session.getHandoffStatus() == AiChatHandoffStatus.NONE)
+            .filter(session -> resolveHandoffStatus(
+                aiChatMessageRepository.findBySessionIdOrderBySentAtAsc(session.getSessionId())
+            ) == AiChatHandoffStatus.REQUESTED)
             .collect(Collectors.toList());
+
+        waitingSessions.addAll(legacyWaitingSessions);
+
+        List<Map<String, Object>> waiting = waitingSessions.stream()
+            .map(this::toHandoffSummary)
+            .collect(Collectors.toList());
+
+        List<Map<String, Object>> assigned = aiChatSessionRepository
+            .findByAssignedAdminIdAndHandoffStatusInOrderByStartedAtDesc(
+                adminId,
+                List.of(AiChatHandoffStatus.ASSIGNED, AiChatHandoffStatus.IN_PROGRESS, AiChatHandoffStatus.HANDLED)
+            )
+            .stream()
+            .map(this::toHandoffSummary)
+            .collect(Collectors.toList());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("waiting", waiting);
+        result.put("assigned", assigned);
+        return result;
     }
 
     @Transactional(readOnly = true)
-    public AiChatSessionDetailResponse getHandoffDetail(Long sessionId) {
-        aiChatSessionRepository.findById(sessionId)
+    public AiChatSessionDetailResponse getHandoffDetail(Long sessionId, Long adminId) {
+        AiChatSessionEntity session = aiChatSessionRepository.findById(sessionId)
             .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
         List<AiChatMessageEntity> messages = aiChatMessageRepository.findBySessionIdOrderBySentAtAsc(sessionId);
+        validateHandoffAccess(session, adminId, resolveStoredHandoffStatus(session, messages));
 
         return AiChatSessionDetailResponse.builder()
             .success(true)
             .sessionId(sessionId)
             .title(buildSessionTitle(messages))
-            .handoffStatus(resolveHandoffStatus(messages).name())
+            .handoffStatus(resolveStoredHandoffStatus(session, messages).name())
             .messages(messages.stream().map(this::toMessageItemResponse).collect(Collectors.toList()))
             .build();
     }
 
     @Transactional
-    public void replyToHandoff(Long sessionId, String reply, String adminName) {
+    public void assignHandoff(Long sessionId, Long adminId) {
+        int updated = aiChatSessionRepository.assignWaitingHandoff(
+            sessionId,
+            adminId,
+            AiChatHandoffStatus.WAITING,
+            AiChatHandoffStatus.IN_PROGRESS
+        );
+
+        if (updated == 0) {
+            AiChatSessionEntity session = aiChatSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("상담 요청을 찾을 수 없습니다."));
+            AiChatHandoffStatus storedStatus = session.getHandoffStatus();
+            AiChatHandoffStatus resolvedStatus = resolveStoredHandoffStatus(
+                session,
+                aiChatMessageRepository.findBySessionIdOrderBySentAtAsc(sessionId)
+            );
+            if (session.getAssignedAdminId() == null
+                && (storedStatus == null || storedStatus == AiChatHandoffStatus.NONE)
+                && resolvedStatus == AiChatHandoffStatus.REQUESTED) {
+                session.setAssignedAdminId(adminId);
+                session.setHandoffStatus(AiChatHandoffStatus.IN_PROGRESS);
+                return;
+            }
+            throw new IllegalStateException("이미 다른 관리자가 수락했거나 대기 중인 상담이 아닙니다.");
+        }
+    }
+
+    @Transactional
+    public void replyToHandoff(Long sessionId, String reply, Long adminId, String adminName) {
         if (reply == null || reply.isBlank()) {
             throw new IllegalArgumentException("답변 내용을 입력해 주세요.");
         }
 
-        aiChatSessionRepository.findById(sessionId)
+        AiChatSessionEntity session = aiChatSessionRepository.findById(sessionId)
             .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
+        validateAssignedAdmin(session, adminId);
+        session.setHandoffStatus(AiChatHandoffStatus.IN_PROGRESS);
 
         saveMessage(sessionId, AiChatRole.ASSISTANT, buildAdminReplyMessage(reply.trim(), adminName));
     }
 
     @Transactional
-    public void closeHandoff(Long sessionId) {
-        aiChatSessionRepository.findById(sessionId)
+    public void closeHandoff(Long sessionId, Long adminId) {
+        AiChatSessionEntity session = aiChatSessionRepository.findById(sessionId)
             .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
+        validateAssignedAdmin(session, adminId);
+        session.setHandoffStatus(AiChatHandoffStatus.CLOSED);
+        session.setEndedAt(LocalDateTime.now());
 
         saveMessage(sessionId, AiChatRole.ASSISTANT, ADMIN_CLOSE_MESSAGE);
     }
@@ -471,7 +535,11 @@ public class AiQuestionService {
     }
 
     private boolean isVisibleHandoffStatus(AiChatHandoffStatus status) {
-        return status == AiChatHandoffStatus.REQUESTED || status == AiChatHandoffStatus.HANDLED;
+        return status == AiChatHandoffStatus.REQUESTED
+            || status == AiChatHandoffStatus.WAITING
+            || status == AiChatHandoffStatus.ASSIGNED
+            || status == AiChatHandoffStatus.IN_PROGRESS
+            || status == AiChatHandoffStatus.HANDLED;
     }
 
     private LocalDateTime extractRequestedAt(List<AiChatMessageEntity> messages) {
@@ -501,7 +569,47 @@ public class AiQuestionService {
         result.put("title", buildSessionTitle(messages));
         result.put("latestQuestion", latestQuestion);
         result.put("messageCount", messages.size());
+        result.put("status", resolveStoredHandoffStatus(session, messages).name());
+        result.put("assignedAdminId", session.getAssignedAdminId());
         return result;
+    }
+
+    private Map<String, Object> toHandoffSummary(AiChatSessionEntity session) {
+        return toHandoffSummary(session, aiChatMessageRepository.findBySessionIdOrderBySentAtAsc(session.getSessionId()));
+    }
+
+    private AiChatHandoffStatus resolveStoredHandoffStatus(AiChatSessionEntity session, List<AiChatMessageEntity> messages) {
+        if (session.getHandoffStatus() != null && session.getHandoffStatus() != AiChatHandoffStatus.NONE) {
+            return session.getHandoffStatus();
+        }
+        return resolveHandoffStatus(messages);
+    }
+
+    private void validateHandoffAccess(AiChatSessionEntity session, Long adminId, AiChatHandoffStatus status) {
+        Long assignedAdminId = session.getAssignedAdminId();
+        if (assignedAdminId == null && (status == AiChatHandoffStatus.WAITING || status == AiChatHandoffStatus.REQUESTED)) {
+            throw new IllegalStateException("상담 수락 후 대화 내용을 확인할 수 있습니다.");
+        }
+        if (assignedAdminId == null && (
+            status == AiChatHandoffStatus.ASSIGNED
+                || status == AiChatHandoffStatus.IN_PROGRESS
+                || status == AiChatHandoffStatus.HANDLED
+                || status == AiChatHandoffStatus.CLOSED
+        )) {
+            throw new EntityNotFoundException("상담 요청을 찾을 수 없습니다.");
+        }
+        if (assignedAdminId != null && !assignedAdminId.equals(adminId)) {
+            throw new EntityNotFoundException("상담 요청을 찾을 수 없습니다.");
+        }
+    }
+
+    private void validateAssignedAdmin(AiChatSessionEntity session, Long adminId) {
+        if (session.getAssignedAdminId() == null || !session.getAssignedAdminId().equals(adminId)) {
+            throw new IllegalStateException("담당자로 배정된 상담만 처리할 수 있습니다.");
+        }
+        if (session.getHandoffStatus() == AiChatHandoffStatus.CLOSED) {
+            throw new IllegalStateException("이미 종료된 상담입니다.");
+        }
     }
 
     private AiChatSessionItemResponse toSessionItemResponse(AiChatSessionEntity session) {

@@ -4,6 +4,9 @@ public enum AiChatHandoffStatus {
     NONE,
     OFFERED,
     REQUESTED,
+    WAITING,
+    ASSIGNED,
+    IN_PROGRESS,
     HANDLED,
     CLOSED
 }

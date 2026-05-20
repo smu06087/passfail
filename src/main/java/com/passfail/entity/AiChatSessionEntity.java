@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.passfail.enums.AiChatHandoffStatus;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +41,14 @@ public class AiChatSessionEntity {
 	private LocalDateTime startedAt;
 
 	private LocalDateTime endedAt;
+
+	@Builder.Default
+	@Enumerated(EnumType.STRING)
+	@Column
+	private AiChatHandoffStatus handoffStatus = AiChatHandoffStatus.NONE;
+
+	@Column(name = "assigned_admin_id")
+	private Long assignedAdminId;
 
 	@Builder.Default
 	@OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)

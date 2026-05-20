@@ -20,6 +20,7 @@ public class ProblemDTO {
     private Double acceptanceRate;
     private Integer submissionCount;
     private Integer acceptedCount;
+    private boolean solved;
     private LocalDateTime createdAt;
     private List<String> tags = new ArrayList<>();
     private List<String> sampleInputs = new ArrayList<>();

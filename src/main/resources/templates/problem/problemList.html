@@ -52,15 +52,6 @@
             </div>
 
             <div class="filter-group">
-                <div class="filter-title">정답률 (%)</div>
-                <div class="rate-row">
-                    <input type="text" value="0">
-                    <span>~</span>
-                    <input type="text" value="100">
-                </div>
-            </div>
-
-            <div class="filter-group">
                 <div class="filter-title">태그 검색</div>
                 <input type="text" placeholder="예: dp, bfs">
             </div>
@@ -101,8 +92,6 @@
                         <select id="problemSortSelect">
                             <option value="latest">최신순</option>
                             <option value="number">번호순</option>
-                            <option value="rate-desc">정답률 높은순</option>
-                            <option value="rate-asc">정답률 낮은순</option>
                         </select>
 
                         <div class="view-switch">
@@ -124,11 +113,7 @@
                         data-category="-"
                         data-time="-"
                         data-memory="-"
-                        data-rate="0%"
-                        data-submission="0"
-                        data-correct="0"
-                        data-my-submit="-"
-                        data-my-rate="-"
+                        data-solved="false"
                         data-desc="문제를 등록하면 목록에 표시됩니다.">
                         <div class="problem-number">-</div>
                         <div class="card-star-wrap">
@@ -141,7 +126,7 @@
                     <div
                         th:each="problem, stat : ${problems}"
                         class="problem-card"
-                        th:classappend="${stat.first} ? ' active' : ''"
+                        th:classappend="|${stat.first ? ' active' : ''}${problem.solved ? ' solved' : ''}|"
                         th:attr="
                             data-id=${problem.problemId},
                             data-title=${problem.title},
@@ -149,12 +134,8 @@
                             data-category=${problem.category},
                             data-time=|${problem.timeLimitMs} ms|,
                             data-memory=|${problem.memoryLimitMb} MB|,
-                            data-rate=|${problem.acceptanceRate}%|,
                             data-created-at=${problem.createdAt},
-                            data-submission=${problem.submissionCount},
-                            data-correct=${problem.acceptedCount},
-                            data-my-submit='-',
-                            data-my-rate='-',
+                            data-solved=${problem.solved},
                             data-desc=${problem.description},
                             data-edit-url=|/problem/problemEdit/${problem.problemId}|"
                         onclick="selectProblem(this)">
@@ -162,7 +143,10 @@
                         <div class="card-star-wrap">
                             <div class="card-star gray">*</div>
                         </div>
-                        <div class="card-title" th:text="${problem.title}">문제 제목</div>
+                        <div class="card-title-row">
+                            <div class="card-title" th:text="${problem.title}">문제 제목</div>
+                            <span class="solved-badge" th:if="${problem.solved}">해결</span>
+                        </div>
                         <div class="mini-difficulty"
                              th:classappend="${#strings.toLowerCase(problem.difficulty)}"
                              th:text="${problem.difficulty == 'MEDIUM' ? 'Normal' : problem.difficulty}">EASY</div>
@@ -202,38 +186,12 @@
                         <div class="detail-label">메모리 제한</div>
                         <div class="detail-value" id="detailMemory" th:text="${selectedProblem != null ? selectedProblem.memoryLimitMb + ' MB' : '-'}">256 MB</div>
 
-                        <div class="detail-label">정답률</div>
-                        <div class="detail-value" id="detailRate" th:text="${selectedProblem != null ? selectedProblem.acceptanceRate + '%' : '0%'}">0%</div>
-
                         <div class="detail-label">설명</div>
                         <div class="detail-value detail-desc" id="detailDesc" th:text="${selectedProblem != null ? selectedProblem.description : '문제를 등록하면 상세 정보가 표시됩니다.'}">설명</div>
                     </div>
                 </div>
 
                 <div class="detail-right">
-                    <div class="detail-stats">
-                        <div class="stat-row">
-                            <span class="stat-name">제출 수</span>
-                            <span class="stat-value" id="detailSubmission" th:text="${selectedProblem != null ? selectedProblem.submissionCount : 0}">0</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-name">정답 수</span>
-                            <span class="stat-value" id="detailCorrect" th:text="${selectedProblem != null ? selectedProblem.acceptedCount : 0}">0</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-name">정답률</span>
-                            <span class="stat-value" id="detailRateRight" th:text="${selectedProblem != null ? selectedProblem.acceptanceRate + '%' : '0%'}">0%</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-name">내 제출</span>
-                            <span class="stat-value" id="detailMySubmit">-</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-name">내 정답률</span>
-                            <span class="stat-value" id="detailMyRate">-</span>
-                        </div>
-                    </div>
-
                     <div class="detail-actions">
                         <button class="enter-btn" onclick="enterProblem()">문제 풀기</button>
                         <button class="favorite-btn" onclick="downloadPdf()" style="background: #27ae60; color: white; border-color: #27ae60;">PDF 다운로드</button>

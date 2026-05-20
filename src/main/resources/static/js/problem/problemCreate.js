@@ -18,11 +18,9 @@ let suppressBeforeUnload = false;
 
 const titleInput = document.getElementById("title");
 const difficultyInput = document.getElementById("difficulty");
-const acceptRateInput = document.getElementById("acceptRate");
 const previewTitle = document.getElementById("previewTitle");
 const previewText = document.getElementById("previewText");
 const previewDifficulty = document.getElementById("previewDifficulty");
-const previewRate = document.getElementById("previewRate");
 const previewTags = document.getElementById("previewTags");
 const categoryInput = document.getElementById("category");
 const timeLimitInput = document.getElementById("timeLimit");
@@ -42,7 +40,6 @@ function updatePreview() {
     const titleValue = titleInput ? titleInput.value.trim() : "";
     const descValue = descriptionInput ? descriptionInput.value.trim() : "";
     const difficultyValue = difficultyInput ? difficultyInput.value : "EASY";
-    const rateValue = normalizeDecimal(acceptRateInput ? acceptRateInput.value : 0, 0);
 
     if (previewTitle) {
         previewTitle.textContent = titleValue || "문제 제목을 입력해 주세요.";
@@ -54,10 +51,6 @@ function updatePreview() {
         previewDifficulty.textContent = difficultyValue;
         previewDifficulty.className = "preview-difficulty " + difficultyValue.toLowerCase();
     }
-    if (previewRate) {
-        previewRate.textContent = "정답률 " + rateValue + "%";
-    }
-
     renderPreviewTags();
     markDirty();
 }
@@ -190,7 +183,7 @@ function appendCaseBlock(options) {
     block.innerHTML = `
         <div class="sample-head">
             <div class="${options.titleClassName}">${options.titleText}</div>
-            <button type="button" class="sample-delete" onclick="${options.deleteHandler}">삭제</button>
+            <button type="button" class="sample-delete" aria-label="${options.titleText} 삭제" onclick="${options.deleteHandler}">삭제</button>
         </div>
         <div class="sample-grid">
             <div class="form-group">
@@ -331,7 +324,7 @@ function buildPayload(status) {
         timeLimitMs: normalizeNumber(timeLimitInput ? timeLimitInput.value : 0, 0),
         memoryLimitMb: normalizeNumber(memoryLimitInput ? memoryLimitInput.value : 0, 0),
         status: status,
-        acceptanceRate: normalizeDecimal(acceptRateInput ? acceptRateInput.value : 0, 0),
+        acceptanceRate: normalizedInitialProblem && normalizedInitialProblem.acceptanceRate != null ? normalizedInitialProblem.acceptanceRate : null,
         tags: tagList.slice(),
         sampleInputs: collectValues("[data-sample-input]"),
         sampleOutputs: collectValues("[data-sample-output]"),
@@ -416,10 +409,6 @@ function fillForm(problem) {
     if (statusInput) {
         statusInput.value = initialProblem.status || "DRAFT";
     }
-    if (acceptRateInput) {
-        acceptRateInput.value = initialProblem.acceptanceRate != null ? initialProblem.acceptanceRate : 0;
-    }
-
     tagList = Array.isArray(initialProblem.tags) ? initialProblem.tags.slice() : [];
     renderTags();
 
@@ -507,9 +496,6 @@ if (descriptionInput) {
 }
 if (difficultyInput) {
     difficultyInput.addEventListener("change", updatePreview);
-}
-if (acceptRateInput) {
-    acceptRateInput.addEventListener("input", updatePreview);
 }
 if (categoryInput) {
     categoryInput.addEventListener("input", markDirty);
