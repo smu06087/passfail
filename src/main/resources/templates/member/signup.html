@@ -14,9 +14,9 @@
         <div th:if="${param.error}" class="id-msg" style="color: red; text-align: center; margin-bottom: 10px;" th:text="${param.error}"></div>
         <form id="signupForm" th:action="@{/signup}" method="post">
             <div class="form-group">
-                <label for="username">아이디 (7자 이상)</label>
+                <label for="username">아이디 (7자 이상, 영문/숫자)</label>
                 <div class="input-group">
-                    <input type="text" id="username" name="username" required minlength="7">
+                    <input type="text" id="username" name="username" required minlength="7" pattern="^[a-zA-Z0-9]+$" title="영문과 숫자만 사용 가능합니다.">
                     <button type="button" id="checkUsernameBtn" class="btn-check">중복 확인</button>
                 </div>
                 <span id="usernameMsg" class="id-msg"></span>

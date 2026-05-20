@@ -1,20 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <!-- Navbar styles extracted from main.html -->
+    <!-- Unified Global Styles and Navbar Styles -->
     <style th:fragment="navbarStyles">
-        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap');
+        @import url('/css/global.css');
 
         /* Global reset for navbar to ensure consistency across all pages */
         .navbar-global-style {
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif !important;
             font-size: 15px !important; /* Base font size */
-        }
-
-        .navbar-global-style *, 
-        .navbar-global-style *::before, 
-        .navbar-global-style *::after {
-            font-family: 'Pretendard', sans-serif !important;
         }
 
         .navbar-global-style .nav-box {
@@ -44,14 +37,6 @@
         
         .navbar-global-style .bg-green-grad { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
         
-        /* Ensure all text-bearing elements use the unified font and predictable sizes */
-        .navbar-global-style a, 
-        .navbar-global-style span, 
-        .navbar-global-style div,
-        .navbar-global-style input {
-            font-family: 'Pretendard', sans-serif !important;
-        }
-
         .navbar-global-style .logo-text {
             font-size: 32px !important;
             font-weight: 900 !important;

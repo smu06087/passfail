@@ -1,16 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap');
-
 * { box-sizing: border-box; }
 
 body { 
   margin: 0; 
-  font-family: "Pretendard", sans-serif; 
-  background: linear-gradient(135deg, #f8fafc 0%, #f1fdf4 100%);
+  background: var(--bg-gradient);
   display: flex; 
   justify-content: center; 
   align-items: center; 
   height: 100vh; 
-  color: #1e293b;
+  color: var(--text-main);
 }
 
 .wrap { 
@@ -29,16 +26,16 @@ h1 {
     margin-bottom: 32px; 
     font-weight: 900;
     letter-spacing: -0.05em;
-    color: #1e293b;
+    color: var(--secondary-color);
 }
 
 /* 폼 그룹 레이아웃 */
 .form-group { margin-bottom: 20px; }
-.form-group label { display: block; font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #64748b; }
+.form-group label { display: block; font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--text-muted); }
 .form-group input { 
     width: 100%; 
     padding: 14px; 
-    border: 1px solid #e2e8f0; 
+    border: 1px solid var(--border-color); 
     border-radius: 12px; 
     background: #f8fafc;
     font-family: inherit;
@@ -47,7 +44,7 @@ h1 {
 
 .form-group input:focus {
     outline: none;
-    border-color: #22c55e;
+    border-color: var(--primary-color);
     background: white;
     box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
 }
@@ -66,7 +63,7 @@ h1 {
 .btn-check {
   width: auto;        /* 필요한 만큼만 너비 차지 */
   padding: 14px 20px;
-  background: #1e293b;
+  background: var(--secondary-color);
   color: #fff;
   border: none;
   border-radius: 12px;
@@ -83,8 +80,8 @@ h1 {
 }
 
 .btn-check:disabled {
-    background: #e2e8f0;
-    color: #94a3b8;
+    background: var(--border-color);
+    color: var(--text-muted);
     cursor: not-allowed;
     transform: none;
 }
@@ -101,7 +98,7 @@ h1 {
 .btn-join { 
   width: 100%; 
   padding: 16px; 
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
   color: #fff; 
   border: none; 
   border-radius: 12px; 
@@ -119,21 +116,21 @@ h1 {
 }
 
 .btn-join:disabled {
-    background: #e2e8f0;
-    color: #94a3b8;
+    background: var(--border-color);
+    color: var(--text-muted);
     box-shadow: none;
     cursor: not-allowed;
 }
 
-.footer { text-align: center; margin-top: 24px; font-size: 13px; color: #94a3b8; font-weight: 700; }
-.footer a { color: #22c55e; text-decoration: none; margin-left: 4px; }
+.footer { text-align: center; margin-top: 24px; font-size: 13px; color: var(--text-muted); font-weight: 700; }
+.footer a { color: var(--primary-color); text-decoration: none; margin-left: 4px; }
 .footer a:hover { text-decoration: underline; }
 
 .terms-group {
     margin-top: 24px;
     padding: 20px;
     background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     border-radius: 16px;
 }
 .term-item {
@@ -141,14 +138,14 @@ h1 {
     align-items: center;
     font-size: 13px;
     font-weight: 700;
-    color: #64748b;
+    color: var(--text-muted);
 }
 .term-item input {
     width: 18px !important; 
     height: 18px !important;
     margin-right: 12px;
     cursor: pointer;
-    accent-color: #22c55e;
+    accent-color: var(--primary-color);
 }
 .term-item label {
     margin-bottom: 0 !important;
@@ -157,7 +154,8 @@ h1 {
 .view-link {
     margin-left: auto;
     font-size: 11px;
-    color: #94a3b8;
+    color: var(--text-muted);
     text-decoration: none;
 }
 hr { border: 0; border-top: 1px solid #f1f5f9; margin: 12px 0; }
+

@@ -148,7 +148,11 @@ public class MemberService implements UserDetailsService {
      */
     @Transactional
     public void register(MemberJoinRequest request) {
-        // 1. 아이디 중복 확인 (본인 이메일의 기존 아이디가 아니라면 중복 처리)
+        // 1. 아이디 형식 및 중복 확인
+        if (request.getUsername() == null || !request.getUsername().matches("^[a-zA-Z0-9]+$")) {
+            throw new IllegalArgumentException("아이디는 영문과 숫자만 사용 가능합니다.");
+        }
+
         Optional<MemberEntity> existingByUsername = memberRepository.findByUsername(request.getUsername());
         if (existingByUsername.isPresent()) {
             if (!existingByUsername.get().getEmail().equals(request.getEmail())) {

@@ -18,8 +18,15 @@ $(document).ready(function() {
     // 아이디 중복 확인
     $('#checkUsernameBtn').click(function() {
         const username = $('#username').val();
+        const usernameRegex = /^[a-zA-Z0-9]+$/;
+
         if (username.length < 7) {
             $('#usernameMsg').text('아이디는 7자 이상이어야 합니다.').css('color', 'red');
+            return;
+        }
+
+        if (!usernameRegex.test(username)) {
+            $('#usernameMsg').text('아이디는 영어와 숫자만 사용 가능합니다.').css('color', 'red');
             return;
         }
 
