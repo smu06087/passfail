@@ -12,10 +12,23 @@ import java.util.Optional;
 public interface TotalTierRepository extends JpaRepository<TotalTierEntity, Long> {
 
     /**
-     * [기존 방식] 점수 높은 순으로 상위 100명 조회
-     * 문제: N+1 발생 (member 정보 조회마다 추가 쿼리)
+     * [최적화] 점수 높은 순으로 상위 100명 조회
+     * - isActive가 true인 회원만 포함
+     * - 로컬 계정(password 존재)이거나 소셜 연동 계정(social_accounts 존재)인 경우만 포함
      */
-    List<TotalTierEntity> findTop100ByOrderByTotalScoreDesc();
+    @Query("SELECT t FROM TotalTierEntity t " +
+           "JOIN t.member m " +
+           "WHERE m.isActive = true " +
+           "AND (m.password IS NOT NULL OR size(m.social_accounts) > 0) " +
+           "ORDER BY t.totalScore DESC")
+    List<TotalTierEntity> findTop100WithFilter();
+
+    /**
+     * [기존 방식 호환용] 상위 100명 조회 (필터 적용)
+     */
+    default List<TotalTierEntity> findTop100ByOrderByTotalScoreDesc() {
+        return findTop100WithFilter();
+    }
 
     /**
      * [최적화] JPQL로 Member 정보를 JOIN FETCH하여 한 번에 조회
@@ -24,34 +37,42 @@ public interface TotalTierRepository extends JpaRepository<TotalTierEntity, Long
      */
     @Query("SELECT t FROM TotalTierEntity t " +
            "JOIN FETCH t.member m " +
+           "WHERE m.isActive = true " +
+           "AND (m.password IS NOT NULL OR size(m.social_accounts) > 0) " +
            "ORDER BY t.currentRank ASC")
     List<TotalTierEntity> findRankingBoardWithMember(Pageable pageable);
 
     /**
-     * [최적화] DTO로 직접 쿼리하여 필요한 필드만 조회 (가장 효율적)
-     * - username을 MemberEntity에서 직접 긁어옴
-     * - N+1 문제 완전 해결
-     * 
-     * @param pageable 페이지 정보
-     * @return RankingResponseDTO 리스트
+     * [최적화] DTO로 직접 쿼리하여 필요한 필드만 조회
      */
     @Query("SELECT new com.passfail.ranking.dto.RankingResponseDTO(" +
            "m.memberId, m.username, t.totalScore, t.currentRank, t.tier) " +
            "FROM TotalTierEntity t " +
            "JOIN t.member m " +
+           "WHERE m.isActive = true " +
+           "AND (m.password IS NOT NULL OR size(m.social_accounts) > 0) " +
            "ORDER BY t.currentRank ASC")
     List<RankingResponseDTO> findRankingBoardDTO(Pageable pageable);
 
     /**
-     * 배치 업데이트용: 점수순으로 전체 유저 조회
-     * 순위를 재계산하기 위해 내림차순 정렬
+     * 배치 업데이트용: 점수순으로 전체 유저 조회 (필터 적용)
      */
-    List<TotalTierEntity> findAllByOrderByTotalScoreDesc();
+    @Query("SELECT t FROM TotalTierEntity t " +
+           "JOIN t.member m " +
+           "WHERE m.isActive = true " +
+           "AND (m.password IS NOT NULL OR size(m.social_accounts) > 0) " +
+           "ORDER BY t.totalScore DESC")
+    List<TotalTierEntity> findAllActiveWithFilter();
+
+    /**
+     * [기존 방식 호환용] 전체 조회 (필터 적용)
+     */
+    default List<TotalTierEntity> findAllByOrderByTotalScoreDesc() {
+        return findAllActiveWithFilter();
+    }
 
     /**
      * 특정 회원의 랭킹 정보 조회
-     * @param memberId 조회할 회원 ID
-     * @return TotalTierEntity Optional
      */
     Optional<TotalTierEntity> findByMember_MemberId(Long memberId);
 }
