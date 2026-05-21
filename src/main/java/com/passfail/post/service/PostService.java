@@ -99,6 +99,16 @@ public class PostService {
                 // [B] 좋아요 여부 확인 (기존 RedisLikeService 활용)
                 // 서비스 클래스 상단에 RedisLikeService 주입 확인 필요!
                 isLiked = redisLikeService.isLiked(postId, currentMemberId);
+                
+                // ✅ Redis에 없으면 DB에서 확인 후 Redis에 복구
+                if (!isLiked) {
+                    boolean likedInDb = postLikeRepository.existsByPostIdAndMemberId(postId, currentMemberId);
+                    if (likedInDb) {
+                        redisLikeService.addLike(postId, currentMemberId); // Redis 복구
+                        isLiked = true;
+                    }
+                }
+                
             }
         }
 
@@ -169,23 +179,24 @@ public class PostService {
     // ✅ 완전 수정: postId 필드에 직접 값 설정
     @Transactional
     public boolean toggleLike(Long postId, Long memberId) {
-        // 현재 좋아요 상태 확인
         boolean alreadyLiked = postLikeRepository.existsByPostIdAndMemberId(postId, memberId);
 
         if (alreadyLiked) {
-            // ✅ 좋아요 취소
+            // 좋아요 취소: DB 삭제 + Redis 제거
             postLikeRepository.deleteByPostIdAndMemberId(postId, memberId);
             postRepository.decrementLikeCount(postId);
-            return false;  // 취소됨
+            redisLikeService.removeLike(postId, memberId); // ✅ Redis 동기화 추가
+            return false;
         } else {
-            // ✅ 좋아요 추가: postId 필드에 직접 값 설정!
+            // 좋아요 추가: DB 저장 + Redis 저장
             PostLikeEntity like = PostLikeEntity.builder()
-                    .postId(postId)  // ← post 객체 대신 postId 직접 설정
+                    .postId(postId)
                     .memberId(memberId)
                     .build();
             postLikeRepository.save(like);
             postRepository.incrementLikeCount(postId);
-            return true;  // 추가됨
+            redisLikeService.addLike(postId, memberId); // ✅ Redis 동기화 추가
+            return true;
         }
     }
 
