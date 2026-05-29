@@ -5,6 +5,8 @@ import com.passfail.entity.TotalTierEntity;
 import com.passfail.member.repository.MemberRepository;
 import com.passfail.ranking.repository.TotalTierRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import java.util.List;
@@ -16,7 +18,14 @@ public class RankingInitBatchService {
     private final MemberRepository memberRepository;
     private final TotalTierRepository totalTierRepository;
     private final TransactionTemplate transactionTemplate;
-
+    
+    // 🆕 매일 자정 자동 실행
+    @Scheduled(cron = "0 0 0 * * *")
+    public void scheduledInitialize() {
+        System.out.println("🕛 [자동 배치] 자정 초기 데이터 동기화 시작");
+        initializeRankingForAllMembers();
+    }
+    
     public void initializeRankingForAllMembers() {
         List<MemberEntity> allMembers = memberRepository.findAll();
         

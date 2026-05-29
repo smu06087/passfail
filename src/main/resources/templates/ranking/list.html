@@ -92,6 +92,13 @@
                     <i data-lucide="refresh-cw" size="18" class="group-hover:rotate-180 transition-transform duration-500"></i>
                     랭킹 데이터 갱신
                 </button>
+                
+                <!-- 🆕 추가: Init 배치 버튼 -->
+			    <button id="initBatchBtn"
+			        class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-sm hover:border-blue-400 hover:text-blue-500 transition-all shadow-sm flex items-center gap-2 group">
+			        <i data-lucide="database" size="18"></i>
+			        초기 데이터 동기화
+			    </button>
             </div>
         </div>
 
@@ -137,6 +144,36 @@
             loadRankingData();
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
+            }
+            
+         // 🆕 Init 배치 버튼 이벤트
+            const initBatchBtn = document.getElementById('initBatchBtn');
+            if (initBatchBtn) {
+                initBatchBtn.addEventListener('click', function () {
+                    if (!confirm('⚠️ 전체 회원의 랭킹 초기 데이터를 동기화하시겠습니까?\n(기존 데이터가 없는 회원에게만 초기값이 생성됩니다)')) return;
+
+                    const btn = this;
+                    const originalHtml = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = '<div class="w-4 h-4 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin inline-block mr-2"></div> 동기화 중...';
+
+                    fetch('/ranking/init-batch')
+                        .then(res => {
+                            if (!res.ok) throw new Error('권한이 없거나 서버 오류가 발생했습니다.');
+                            return res.text();
+                        })
+                        .then(msg => {
+                            alert('✅ ' + msg);
+                            location.reload();
+                        })
+                        .catch(err => {
+                            alert('❌ 오류: ' + err.message);
+                        })
+                        .finally(() => {
+                            btn.disabled = false;
+                            btn.innerHTML = originalHtml;
+                        });
+                });
             }
 
             // ✅ null 체크: 어드민이 아니면 버튼이 DOM에 없으므로 에러 방지
