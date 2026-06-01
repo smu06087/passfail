@@ -247,6 +247,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 .profileImage(profileImage)
                 .role(Role.ROLE_USER)
                 .isActive(true)
+                .isSocial(true)
+                .isUsernameSet(true)
                 .pointBalance(0)
                 .totalScore(0)
                 .build();

@@ -34,8 +34,7 @@ public class ProblemEntity {
     @Column(nullable = false, length = 200)
     private String title;
 
-    @Lob 
-    @Column(nullable = false)
+    @Column(columnDefinition = "LONGTEXT", nullable = false)
     private String description;
 
     @Enumerated(EnumType.STRING)

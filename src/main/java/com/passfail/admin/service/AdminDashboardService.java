@@ -41,21 +41,26 @@ public class AdminDashboardService {
                 .build();
 
         // 3. 매출 요약 (Payment Summaries)
+        Long successAmount = paymentRepository.sumAmountByStatus(PaymentStatus.SUCCESS);
+        Long refundAmount = paymentRepository.sumAmountByStatus(PaymentStatus.REFUNDED);
+        if (successAmount == null) successAmount = 0L;
+        if (refundAmount == null) refundAmount = 0L;
+
         PaymentSummaryDto success = PaymentSummaryDto.builder()
                 .label("결제 완료")
-                .value(totalRevenue)
+                .value(successAmount)
                 .color("text-green-600")
                 .build();
         
         PaymentSummaryDto refundRequested = PaymentSummaryDto.builder()
                 .label("환불 요청")
-                .value(0) // 환불 관련 로직이 추가되면 연동
+                .value(0) // 현재 즉시 환불 처리되므로 요청 중 상태는 0으로 유지 (향후 필요 시 로직 추가)
                 .color("text-amber-500")
                 .build();
 
         PaymentSummaryDto refunded = PaymentSummaryDto.builder()
                 .label("환불 완료")
-                .value(0) // 환불 관련 로직이 추가되면 연동
+                .value(refundAmount)
                 .color("text-gray-400")
                 .build();
 
@@ -65,7 +70,7 @@ public class AdminDashboardService {
                 .totalRevenue(totalRevenue)
                 .todayVisits(todayVisits)
                 .memberStatus(memberStatus)
-                .paymentSummaries(Arrays.asList(success, refundRequested, refunded))
+                .paymentSummaries(Arrays.asList(success, refunded))
                 .build();
     }
 }

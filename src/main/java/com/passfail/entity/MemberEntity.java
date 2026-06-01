@@ -61,6 +61,14 @@ public class MemberEntity {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isSocial = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isUsernameSet = false;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

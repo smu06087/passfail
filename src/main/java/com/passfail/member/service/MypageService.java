@@ -6,6 +6,7 @@ import com.passfail.entity.SocialAccountEntity;
 import com.passfail.entity.SolvedProblemEntity;
 import com.passfail.entity.SubmissionEntity;
 import com.passfail.enums.Provider;
+import com.passfail.enums.Role;
 import com.passfail.member.dto.MemberInfoResponse;
 import com.passfail.member.repository.MemberRepository;
 import com.passfail.member.repository.SocialAccountRepository;
@@ -25,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 마이페이지 관련 데이터 조회 및 회원 정보 수정을 처리하는 서비스 클래스
@@ -129,7 +131,8 @@ public class MypageService {
 
     /**
      * 소셜 계정 연동 해제 로직
-     * 보조 연동 계정을 원래의 '베이스 멤버'로 되돌리는 방식으로 처리
+     * 연동된 소셜 계정을 기존의 베이스 멤버로 되돌리거나, 
+     * 이미 베이스 멤버인 경우 새로운 독립 계정을 생성하여 분리합니다.
      */
     @Transactional
     public void unlinkSocialAccount(String username, String providerName) {
@@ -140,18 +143,59 @@ public class MypageService {
         SocialAccountEntity socialAccount = socialAccountRepository.findByMembersAndProvider(currentMember, provider)
                 .orElseThrow(() -> new IllegalArgumentException("연동된 계정을 찾을 수 없습니다."));
 
-        // 해당 소셜 계정의 고유 정보(Base Member) 조회
-        SocialAccountEntity originalSocial = socialAccountRepository.findByProviderAndProviderId(provider, socialAccount.getProviderId())
-                .orElseThrow(() -> new IllegalArgumentException("원본 계정 정보를 찾을 수 없어 해제할 수 없습니다."));
-
-        // 현재 멤버가 베이스 멤버가 아닌 경우에만 해제 가능 (연동 이전 상태로 복구)
-        if (!originalSocial.getMemberId().equals(currentMember.getMemberId())) {
-            socialAccount.setMemberId(originalSocial.getMemberId());
-            socialAccount.setMembers(originalSocial.getMembers());
-            socialAccountRepository.saveAndFlush(socialAccount);
+        // 베이스 멤버 이메일 형식 구성 (CustomOAuth2UserService의 로직과 일치)
+        String baseEmail = provider.name().toLowerCase() + "_" + socialAccount.getProviderId() + "@passfail.com";
+        
+        // 1. 기존 베이스 멤버(이 소셜 계정 고유의 메일 주소를 가진 멤버)가 있는지 확인
+        Optional<MemberEntity> baseMemberOpt = memberRepository.findByEmail(baseEmail);
+        
+        MemberEntity targetMember;
+        
+        if (baseMemberOpt.isPresent() && !baseMemberOpt.get().getMemberId().equals(currentMember.getMemberId())) {
+            // 현재 멤버가 아닌 다른 베이스 멤버가 존재하면 그쪽으로 연동 정보를 되돌림 (기존 번호로 수정)
+            targetMember = baseMemberOpt.get();
         } else {
-            throw new IllegalArgumentException("기본 연동 계정은 해제할 수 없습니다.");
+            // 베이스 멤버가 없거나, 현재 멤버가 이미 베이스 멤버인 경우
+            // 연동 해제 시 완전히 새로운 계정을 생성하여 소셜 정보를 격리함 (새 번호 생성)
+            String nickname = provider.name() + "_" + socialAccount.getProviderId().substring(0, Math.min(socialAccount.getProviderId().length(), 5));
+            // 이메일 중복 방지를 위해 고유한 이메일 생성
+            String uniqueEmail = provider.name().toLowerCase() + "_" + System.currentTimeMillis() + "_" + socialAccount.getProviderId() + "@passfail.com";
+            targetMember = createNewBaseMember(nickname, uniqueEmail, currentMember.getProfileImage());
         }
+
+        // social_account 테이블의 member_id를 타겟 멤버로 변경하여 연동 해제 처리
+        socialAccount.setMemberId(targetMember.getMemberId());
+        // Lazy Loading 방지 및 영속성 컨텍스트 동기화를 위해 members 객체도 설정
+        socialAccount.setMembers(targetMember);
+        
+        socialAccountRepository.saveAndFlush(socialAccount);
+    }
+
+    /**
+     * 연동 해제용 신규 독립 멤버 생성
+     */
+    private MemberEntity createNewBaseMember(String nickname, String email, String profileImage) {
+        String uniqueUsername = nickname;
+        int count = 0;
+        // 닉네임 중복 방지
+        while (memberRepository.findByUsername(uniqueUsername).isPresent()) {
+            count++;
+            uniqueUsername = nickname + "_" + count;
+        }
+        
+        MemberEntity newMember = MemberEntity.builder()
+                .username(uniqueUsername)
+                .email(email)
+                .profileImage(profileImage)
+                .role(Role.ROLE_USER)
+                .isActive(true)
+                .isSocial(true)
+                .isUsernameSet(true)
+                .pointBalance(0)
+                .totalScore(0)
+                .build();
+        
+        return memberRepository.saveAndFlush(newMember);
     }
 
     /**

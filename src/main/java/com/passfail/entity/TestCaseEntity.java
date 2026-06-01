@@ -20,12 +20,10 @@ public class TestCaseEntity {
 	@JoinColumn(name = "problem_id", nullable = false)
 	private ProblemEntity problem;
 	
-	@Lob 
-	@Column(nullable = false)
+	@Column(columnDefinition = "LONGTEXT", nullable = false)
 	private String inputData;
 	
-	@Lob 
-	@Column(nullable = false)
+	@Column(columnDefinition = "LONGTEXT", nullable = false)
 	private String expectedOutput;
 
 	@Column(nullable = false)

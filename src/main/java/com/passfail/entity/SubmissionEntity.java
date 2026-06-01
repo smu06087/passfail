@@ -38,8 +38,7 @@ public class SubmissionEntity {
 	@Column(nullable = false, length = 20)
 	private ProgrammingLanguage language;
 
-	@Lob 
-	@Column(nullable = false)
+	@Column(columnDefinition = "LONGTEXT", nullable = false)
 	private String code;
 
 	@Enumerated(EnumType.STRING)

@@ -22,7 +22,24 @@ public class DatabaseConstraintFixer implements CommandLineRunner {
         fixConstraints("PAYMENT_HISTORY", "C");
         fixConstraints("POINT_TRANSACTION", "C");
         fixConstraints("SUBMISSION", "U");
+        
+        log.info("🛠️ [DB 스키마 확장] 컬럼 타입을 LONGTEXT로 확장을 시도합니다.");
+        expandColumnType("submission", "code");
+        expandColumnType("problem", "description");
+        expandColumnType("test_case", "input_data");
+        expandColumnType("test_case", "expected_output");
+        
         log.info("🚀 [DB 제약조건 점검 완료]");
+    }
+
+    private void expandColumnType(String tableName, String columnName) {
+        try {
+            log.info("⚙️ {} 테이블의 {} 컬럼을 LONGTEXT로 변경 중...", tableName, columnName);
+            jdbcTemplate.execute("ALTER TABLE " + tableName + " MODIFY COLUMN " + columnName + " LONGTEXT");
+            log.info("✅ {} 테이블의 {} 컬럼 변경 완료", tableName, columnName);
+        } catch (Exception e) {
+            log.debug("ℹ️ {} 컬럼 변경 건너뜀 (이미 변경되었거나 권한 부족): {}", columnName, e.getMessage());
+        }
     }
 
     private void fixConstraints(String tableName, String constraintType) {

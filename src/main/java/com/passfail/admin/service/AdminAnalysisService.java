@@ -32,10 +32,17 @@ public class AdminAnalysisService {
         for (PaymentHistory ph : historyList) {
             // (A) 월별 합계 로직
             String month = ph.getPaymentDate().format(DateTimeFormatter.ofPattern("yyyy-MM"));
-            monthlyRevenue.put(month, monthlyRevenue.getOrDefault(month, 0L) + ph.getAmount());
+            long amount = ph.getAmount();
+            
+            // 환불(REFUND)인 경우 매출에서 차감 처리
+            if ("REFUND".equalsIgnoreCase(ph.getTxnType())) {
+                amount = -amount;
+            }
+            
+            monthlyRevenue.put(month, monthlyRevenue.getOrDefault(month, 0L) + amount);
 
-            // (B) 사용자별 목록 수집 로직
-            userPaymentsMap.computeIfAbsent(ph.getMemberId(), k -> new ArrayList<>()).add(ph.getAmount());
+            // (B) 사용자별 목록 수집 로직 (평균 계산 시에는 절대값 또는 별도 처리 필요할 수 있으나 여기서는 단순 합산)
+            userPaymentsMap.computeIfAbsent(ph.getMemberId(), k -> new ArrayList<>()).add(amount);
         }
 
         // 4. 사용자별 평균 결제 금액 계산
