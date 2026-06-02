@@ -13,6 +13,7 @@ import com.passfail.enums.AiChatRole;
 import com.passfail.member.repository.MemberRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AiQuestionService {
 
     private static final String BLOCKED_MESSAGE =
@@ -172,7 +174,6 @@ public class AiQuestionService {
             .build();
     }
 
-    @Transactional
     public String chat(String username, Long sessionId, String content, MultipartFile image) {
         if (sessionId == null) {
             throw new IllegalArgumentException("채팅방 정보가 없습니다.");
@@ -192,13 +193,22 @@ public class AiQuestionService {
         resolveSession(username, sessionId);
         saveMessage(sessionId, AiChatRole.USER, buildStoredUserMessage(normalizedContent, hasImage));
 
-        String answer = generateAnswer(sessionId, normalizedContent, image);
+        String answer;
+        try {
+            answer = generateAnswer(sessionId, normalizedContent, image);
+        } catch (Exception ex) {
+            log.error("AI answer generation failed. sessionId={}", sessionId, ex);
+            answer = "AI 응답 생성 중 오류가 발생했습니다.";
+        }
+
         if (HANDOFF_REQUESTED_MESSAGE.equals(answer)) {
             AiChatSessionEntity session = aiChatSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
             session.setHandoffStatus(AiChatHandoffStatus.WAITING);
             session.setAssignedAdminId(null);
+            aiChatSessionRepository.save(session);
         }
+
         saveMessage(sessionId, AiChatRole.ASSISTANT, answer);
         return answer;
     }

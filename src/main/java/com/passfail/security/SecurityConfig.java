@@ -39,10 +39,10 @@ public class SecurityConfig {
             .requestMatchers("/main", "/codingtest/**").permitAll()
             .requestMatchers("/board", "/posts/**").permitAll()
             .requestMatchers("/ranking/**", "/ranking-list").permitAll()
+            .requestMatchers("/ai/**").permitAll()
             .requestMatchers("/api/posts/**").authenticated()
             .requestMatchers(
                 "/ranking/me/**",
-                "/ai/**",
                 "/mypage/**",
                 "/codingtest/run/**",
                 "/codingtest/submit/**",

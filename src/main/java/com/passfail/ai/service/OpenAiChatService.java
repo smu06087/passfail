@@ -24,6 +24,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OpenAiChatService {
 
+    private static final String DEFAULT_API_URL = "https://api.openai.com/v1/chat/completions";
+    private static final String DEFAULT_MODEL = "gpt-4o-mini";
+
     private static final String SYSTEM_PROMPT = """
         당신은 PassFail의 AI 상담 도우미입니다.
         답변은 사용자의 최신 질문 언어와 동일한 언어로 작성하세요.
@@ -81,10 +84,10 @@ public class OpenAiChatService {
     @Value("${openai.api.key:}")
     private String apiKey;
 
-    @Value("${openai.api.url:}")
+    @Value("${openai.api.url:" + DEFAULT_API_URL + "}")
     private String apiUrl;
 
-    @Value("${openai.api.model:}")
+    @Value("${openai.api.model:" + DEFAULT_MODEL + "}")
     private String model;
 
     private final WebClient.Builder webClientBuilder;
@@ -94,19 +97,22 @@ public class OpenAiChatService {
     }
 
     public String ask(List<AiChatMessageEntity> history, String content, MultipartFile image) {
-        if (apiKey == null || apiKey.isBlank() || apiUrl == null || apiUrl.isBlank() || model == null || model.isBlank()) {
+        if (apiKey == null || apiKey.isBlank()) {
             return "AI 채팅 설정이 아직 완료되지 않았습니다.";
         }
 
+        String resolvedApiUrl = resolveApiUrl();
+        String resolvedModel = resolveModel();
+
         try {
             Map<String, Object> requestBody = new LinkedHashMap<>();
-            requestBody.put("model", model);
+            requestBody.put("model", resolvedModel);
             requestBody.put("messages", buildMessages(history, content, image));
             requestBody.put("temperature", 0.4);
 
             WebClient webClient = webClientBuilder.build();
             Map<String, Object> response = webClient.post()
-                .uri(apiUrl)
+                .uri(resolvedApiUrl)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
@@ -116,9 +122,17 @@ public class OpenAiChatService {
 
             return extractAnswer(response);
         } catch (Exception ex) {
-            log.error("OpenAI chat request failed", ex);
+            log.error("OpenAI chat request failed. url={}, model={}", resolvedApiUrl, resolvedModel, ex);
             return "AI 응답 생성 중 오류가 발생했습니다.";
         }
+    }
+
+    private String resolveApiUrl() {
+        return apiUrl == null || apiUrl.isBlank() ? DEFAULT_API_URL : apiUrl.trim();
+    }
+
+    private String resolveModel() {
+        return model == null || model.isBlank() ? DEFAULT_MODEL : model.trim();
     }
 
     private List<Map<String, Object>> buildMessages(List<AiChatMessageEntity> history, String content, MultipartFile image)
