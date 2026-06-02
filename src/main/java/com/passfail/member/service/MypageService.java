@@ -190,7 +190,7 @@ public class MypageService {
                 .role(Role.ROLE_USER)
                 .isActive(true)
                 .isSocial(true)
-                .isUsernameSet(true)
+                .isUsernameSet(false)
                 .pointBalance(0)
                 .totalScore(0)
                 .build();

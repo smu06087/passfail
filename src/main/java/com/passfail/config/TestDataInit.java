@@ -27,6 +27,7 @@ public class TestDataInit implements CommandLineRunner {
                     .email("test@passfail.com")
                     .role(Role.ROLE_USER)
                     .isActive(true)
+                    .isUsernameSet(true)
                     .pointBalance(1000)
                     .totalScore(0)
                     .build();

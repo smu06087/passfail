@@ -157,7 +157,97 @@ public class MemberController {
         }
     }
 
-    
+    /**
+     * 아이디 설정 페이지 이동
+     */
+    @GetMapping("/member/set-username")
+    public String setUsernamePage(Authentication authentication, Model model) {
+        if (authentication == null) return "redirect:/login";
+        
+        MemberEntity member = memberRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        
+        // 이미 설정했다면 메인으로
+        if (Boolean.TRUE.equals(member.getIsUsernameSet())) return "redirect:/main";
+        
+        model.addAttribute("currentUsername", member.getUsername());
+        return "member/set-username";
+    }
+
+    /**
+     * 아이디 설정 처리
+     */
+    @PostMapping("/member/set-username")
+    public String setUsername(Authentication authentication, @RequestParam("username") String newUsername) {
+        if (authentication == null) return "redirect:/login";
+
+        try {
+            // 1. 형식 및 중복 검증
+            if (!newUsername.matches("^[a-zA-Z0-9]{7,}$")) {
+                throw new IllegalArgumentException("아이디는 영문과 숫자 조합으로 7자 이상이어야 합니다.");
+            }
+            if (!memberService.isUsernameAvailable(newUsername)) {
+                throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
+            }
+
+            // 2. DB 업데이트
+            MemberEntity member = memberRepository.findByUsername(authentication.getName())
+                    .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+            
+            member.setUsername(newUsername);
+            member.setIsUsernameSet(true);
+            memberRepository.saveAndFlush(member);
+
+            // 3. 시큐리티 컨텍스트 갱신 (중요: principal의 name을 변경된 username으로 교체)
+            refreshSecurityContext(authentication, member);
+
+            return "redirect:/main?welcome";
+        } catch (Exception e) {
+            String encodedMessage = URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+            return "redirect:/member/set-username?error=" + encodedMessage;
+        }
+    }
+
+    /**
+     * 세션의 인증 정보를 새 아이디로 갱신하는 헬퍼 메서드
+     */
+    private void refreshSecurityContext(Authentication auth, MemberEntity member) {
+        Authentication newAuth = null;
+
+        if (auth instanceof OAuth2AuthenticationToken token) {
+            // 소셜 로그인의 경우 커스텀 OAuth2Member를 다시 생성하여 교체
+            com.passfail.member.dto.OAuth2Member oldPrincipal = (com.passfail.member.dto.OAuth2Member) token.getPrincipal();
+            com.passfail.member.dto.OAuth2Member newPrincipal = new com.passfail.member.dto.OAuth2Member(
+                oldPrincipal.getOriginalUser(),
+                member.getUsername(),
+                member.getRole()
+            );
+            
+            newAuth = new OAuth2AuthenticationToken(
+                newPrincipal,
+                newPrincipal.getAuthorities(),
+                token.getAuthorizedClientRegistrationId()
+            );
+        } else if (auth instanceof org.springframework.security.authentication.UsernamePasswordAuthenticationToken token) {
+            // 로컬 로그인의 경우 (일반적으로는 이미 설정되어 들어오지만 예외 처리)
+            org.springframework.security.core.userdetails.User newUserDetails = (org.springframework.security.core.userdetails.User) org.springframework.security.core.userdetails.User.builder()
+                .username(member.getUsername())
+                .password("") // 비밀번호는 세션 갱신 시 불필요하거나 기존 값 유지
+                .authorities(token.getAuthorities())
+                .build();
+            
+            newAuth = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                newUserDetails,
+                token.getCredentials(),
+                token.getAuthorities()
+            );
+        }
+
+        if (newAuth != null) {
+            org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(newAuth);
+        }
+    }
+
     // OAuth2 제공자별 고유 ID 추출 (내부 헬퍼 메서드)
     private String getProviderId(String provider, OAuth2User oauth2User) {
         if ("kakao".equals(provider)) return oauth2User.getAttribute("id").toString();

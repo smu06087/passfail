@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>아이디 설정 - Passfail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap');
+        
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1fdf4 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #1e293b;
+        }
+
+        .setup-container {
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(14px);
+            padding: 48px;
+            border-radius: 32px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            width: 100%;
+            max-width: 460px;
+            text-align: center;
+        }
+
+        h1 { 
+            color: #1e293b; 
+            margin-bottom: 12px; 
+            font-weight: 900; 
+            font-size: 28px;
+            letter-spacing: -0.05em;
+        }
+
+        p.subtitle {
+            color: #64748b;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 32px;
+        }
+
+        .form-group { margin-bottom: 24px; text-align: left; }
+        label { display: block; margin-bottom: 8px; color: #64748b; font-size: 14px; font-weight: 700; }
+        
+        .input-group {
+            display: flex;
+            gap: 8px;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-sizing: border-box;
+            background: #f8fafc;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #22c55e;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+        }
+
+        .btn-check {
+            padding: 0 20px;
+            background: #1e293b;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 800;
+            margin-top: 8px;
+            box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.2);
+            transition: all 0.2s;
+        }
+
+        .btn-submit:disabled {
+            background: #e2e8f0;
+            color: #94a3b8;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .msg { display: block; font-size: 12px; margin-top: 8px; font-weight: 700; }
+        .error-msg { color: #ef4444; }
+        .success-msg { color: #10b981; }
+        .info-msg { color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <i data-lucide="user-plus" class="mx-auto mb-6 text-green-500" size="48"></i>
+        <h1>아이디 설정</h1>
+        <p class="subtitle">서비스 이용을 위해 사용할 아이디를 설정해주세요.</p>
+        
+        <div th:if="${param.error}" class="msg error-msg mb-4" th:text="${param.error}"></div>
+        
+        <form th:action="@{/member/set-username}" method="post" id="setupForm">
+            <div class="form-group">
+                <label for="username">새 아이디 (7자 이상, 영문/숫자)</label>
+                <div class="input-group">
+                    <input type="text" id="username" name="username" th:value="${currentUsername}" required minlength="7" pattern="^[a-zA-Z0-9]+$">
+                    <button type="button" id="checkBtn" class="btn-check">중복 확인</button>
+                </div>
+                <span id="usernameMsg" class="msg info-msg">사용하실 아이디의 중복 확인이 필요합니다.</span>
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn-submit" disabled>설정 완료</button>
+        </form>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let isChecked = false;
+
+        $('#username').on('input', function() {
+            isChecked = false;
+            $('#usernameMsg').text('아이디 중복 확인이 필요합니다.').removeClass('success-msg error-msg').addClass('info-msg');
+            $('#submitBtn').prop('disabled', true);
+        });
+
+        $('#checkBtn').on('click', function() {
+            const username = $('#username').val();
+            const regex = /^[a-zA-Z0-9]{7,}$/;
+
+            if (!regex.test(username)) {
+                $('#usernameMsg').text('아이디는 영문과 숫자 조합으로 7자 이상이어야 합니다.').removeClass('success-msg info-msg').addClass('error-msg');
+                return;
+            }
+
+            $.ajax({
+                url: '/api/member/check-username',
+                data: { username: username },
+                success: function(data) {
+                    if (data.available) {
+                        $('#usernameMsg').text('사용 가능한 아이디입니다.').removeClass('error-msg info-msg').addClass('success-msg');
+                        isChecked = true;
+                        $('#submitBtn').prop('disabled', false);
+                    } else {
+                        $('#usernameMsg').text('이미 사용 중인 아이디입니다.').removeClass('success-msg info-msg').addClass('error-msg');
+                        isChecked = false;
+                        $('#submitBtn').prop('disabled', true);
+                    }
+                }
+            });
+        });
+
+        $('#setupForm').on('submit', function(e) {
+            if (!isChecked) {
+                e.preventDefault();
+                alert('아이디 중복 확인을 해주세요.');
+            }
+        });
+    </script>
+</body>
+</html>

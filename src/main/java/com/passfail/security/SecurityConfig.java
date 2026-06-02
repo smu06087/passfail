@@ -33,7 +33,8 @@ public class SecurityConfig {
             .requestMatchers("/ranking/update").hasRole("ADMIN")
             .requestMatchers(
                 "/", "/login", "/signup", "/forgot-password", "/reset-password",
-                "/api/member/**", "/api/auth/status", "/api/chat/send", "/ranking", "/ranking/top"
+                "/api/member/**", "/api/auth/status", "/api/chat/send", "/ranking", "/ranking/top",
+                "/member/set-username"
             ).permitAll()
             .requestMatchers("/css/**", "/js/**", "/image/**").permitAll()
             .requestMatchers("/main", "/codingtest/**").permitAll()

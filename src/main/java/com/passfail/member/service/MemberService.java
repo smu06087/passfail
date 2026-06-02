@@ -190,6 +190,7 @@ public class MemberService implements UserDetailsService {
             member.setUsername(request.getUsername());
             member.setPassword(passwordEncoder.encode(request.getPassword()));
             member.setIsActive(true);
+            member.setIsUsernameSet(true);
         } else {
             // 신규 회원인 경우 새로 생성
             member = MemberEntity.builder()
@@ -198,6 +199,7 @@ public class MemberService implements UserDetailsService {
                     .password(passwordEncoder.encode(request.getPassword()))
                     .role(Role.ROLE_USER)
                     .isActive(true)
+                    .isUsernameSet(true)
                     .pointBalance(0)
                     .totalScore(0)
                     .build();
