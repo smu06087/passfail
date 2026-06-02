@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>문제 리스트</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" th:href="@{/css/problem/problemList.css}" href="/css/problem/problemList.css">
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
+</head>
+<body class="flex flex-col">
+<div th:replace="~{fragments/navbar :: mainNavbar(searchInputId='problemSearchInput')}"></div>
+
+<div class="app">
+    <main class="page">
+        <aside class="sidebar">
+            <div class="sidebar-head">
+                <h3>필터</h3>
+                <button class="reset-btn">초기화</button>
+            </div>
+            
+            <div class="search-related mb-6" id="searchRelatedBox" style="display:none;">
+                <span class="search-related-label">연관 검색어</span>
+                <div class="search-related-keywords" id="searchRelatedKeywords"></div>
+            </div>
+
+            <div class="filter-group">
+                <div class="filter-title">난이도</div>
+                <label class="check-item"><input type="checkbox" checked> <span>전체</span></label>
+                <label class="check-item"><input type="checkbox" checked> <span class="difficulty-chip easy">Easy</span></label>
+                <label class="check-item"><input type="checkbox" checked> <span class="difficulty-chip medium">Normal</span></label>
+                <label class="check-item"><input type="checkbox" checked> <span class="difficulty-chip hard">Hard</span></label>
+            </div>
+
+            <div class="filter-group">
+                <div class="filter-title">카테고리</div>
+                <select>
+                    <option>전체</option>
+                    <option>구현</option>
+                    <option>정렬</option>
+                    <option>문자열</option>
+                    <option>그래프</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <div class="filter-title">상태</div>
+                <label class="check-item"><input type="checkbox" checked> <span>전체</span></label>
+                <label class="check-item"><input type="checkbox" checked> <span>미해결</span></label>
+                <label class="check-item"><input type="checkbox" checked> <span>해결</span></label>
+            </div>
+
+            <div class="filter-group">
+                <div class="filter-title">태그 검색</div>
+                <input type="text" placeholder="예: dp, bfs">
+            </div>
+
+            <button class="apply-btn">필터 적용</button>
+        </aside>
+
+        <section class="main detail-floating">
+            <div class="main-top">
+                <div>
+                    <div class="title-block">
+                        <div class="cute-face">P</div>
+                        <div>
+                            <div class="title-row">
+                                <h1 class="page-title">문제 리스트</h1>
+                                <div class="count-badge" id="problemCountBadge" th:text="|총 ${problemCount}개|">총 0개</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tabs-row">
+                        <button class="tab-btn active">전체</button>
+                        <button class="tab-btn">Easy</button>
+                        <button class="tab-btn">Normal</button>
+                        <button class="tab-btn">Hard</button>
+                    </div>
+                </div>
+
+                <div class="main-actions">
+                    <div class="admin-shortcuts" th:if="${isAdmin}">
+                        <a class="admin-link-btn" th:href="@{/problem/problemCreate}" href="/problem/problemCreate">문제 등록</a>
+                        <a class="admin-link-btn secondary" th:if="${selectedProblem != null}" th:href="@{|/problem/problemEdit/${selectedProblem.problemId}|}" href="/problem/problemEdit/1" id="detailEditLink">문제 수정</a>
+                    </div>
+
+                    <button class="random-btn" id="randomProblemButton">랜덤 문제 보기</button>
+
+                    <div class="toolbar">
+                        <select id="problemSortSelect">
+                            <option value="latest">최신순</option>
+                            <option value="number">번호순</option>
+                        </select>
+
+                        <div class="view-switch">
+                            <button class="view-btn active">카드</button>
+                            <button class="view-btn">리스트</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cards-panel">
+                <div class="problem-grid" id="problemGrid">
+                    <div
+                        th:if="${#lists.isEmpty(problems)}"
+                        class="problem-card active"
+                        data-id="-"
+                        data-title="등록된 문제가 없습니다"
+                        data-difficulty="EASY"
+                        data-category="-"
+                        data-time="-"
+                        data-memory="-"
+                        data-solved="false"
+                        data-desc="문제를 등록하면 목록에 표시됩니다.">
+                        <div class="problem-number">-</div>
+                        <div class="card-star-wrap">
+                            <div class="card-star gray">*</div>
+                        </div>
+                        <div class="card-title">등록된 문제가 없습니다</div>
+                        <div class="mini-difficulty easy">EASY</div>
+                    </div>
+
+                    <div
+                        th:each="problem, stat : ${problems}"
+                        class="problem-card"
+                        th:classappend="|${stat.first ? ' active' : ''}${problem.solved ? ' solved' : ''}|"
+                        th:attr="
+                            data-id=${problem.problemId},
+                            data-title=${problem.title},
+                            data-difficulty=${problem.difficulty},
+                            data-category=${problem.category},
+                            data-time=|${problem.timeLimitMs} ms|,
+                            data-memory=|${problem.memoryLimitMb} MB|,
+                            data-created-at=${problem.createdAt},
+                            data-solved=${problem.solved},
+                            data-desc=${problem.description},
+                            data-edit-url=|/problem/problemEdit/${problem.problemId}|"
+                        onclick="selectProblem(this)">
+                        <div class="problem-number" th:text="${problem.problemId}">1</div>
+                        <div class="card-star-wrap">
+                            <div class="card-star gray">*</div>
+                        </div>
+                        <div class="card-title-row">
+                            <div class="card-title" th:text="${problem.title}">문제 제목</div>
+                            <span class="solved-badge" th:if="${problem.solved}">해결</span>
+                        </div>
+                        <div class="mini-difficulty"
+                             th:classappend="${#strings.toLowerCase(problem.difficulty)}"
+                             th:text="${problem.difficulty == 'MEDIUM' ? 'Normal' : problem.difficulty}">EASY</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-arrow">v</div>
+
+            <section class="detail-panel">
+                <div class="detail-left">
+                    <div class="detail-badge">⭐</div>
+                </div>
+
+                <div class="detail-center">
+                    <div class="detail-title-row">
+                        <h2 class="detail-title" id="detailTitle" th:text="${selectedProblem != null ? selectedProblem.title : '등록된 문제가 없습니다'}">문제 제목</h2>
+                        <span
+                            class="difficulty-chip"
+                            id="detailDifficulty"
+                            th:classappend="${selectedProblem != null ? #strings.toLowerCase(selectedProblem.difficulty) : 'easy'}"
+                            th:text="${selectedProblem != null ? (selectedProblem.difficulty == 'MEDIUM' ? 'Normal' : selectedProblem.difficulty) : 'EASY'}">EASY</span>
+                        <span class="detail-id">문제 번호 <span id="detailId" th:text="${selectedProblem != null ? selectedProblem.problemId : '-'}">-</span></span>
+                    </div>
+
+                    <div class="detail-info-grid">
+                        <div class="detail-label">카테고리</div>
+                        <div class="detail-value">
+                            <div class="tag-list" id="detailCategoryTags">
+                                <span class="tag-chip" th:text="${selectedProblem != null ? selectedProblem.category : '-'}">구현</span>
+                            </div>
+                        </div>
+
+                        <div class="detail-label">시간 제한</div>
+                        <div class="detail-value" id="detailTime" th:text="${selectedProblem != null ? selectedProblem.timeLimitMs + ' ms' : '-'}">2000 ms</div>
+
+                        <div class="detail-label">메모리 제한</div>
+                        <div class="detail-value" id="detailMemory" th:text="${selectedProblem != null ? selectedProblem.memoryLimitMb + ' MB' : '-'}">256 MB</div>
+
+                        <div class="detail-label">설명</div>
+                        <div class="detail-value detail-desc" id="detailDesc" th:text="${selectedProblem != null ? selectedProblem.description : '문제를 등록하면 상세 정보가 표시됩니다.'}">설명</div>
+                    </div>
+                </div>
+
+                <div class="detail-right">
+                    <div class="detail-actions">
+                        <button class="enter-btn" onclick="enterProblem()">문제 풀기</button>
+                        <button class="favorite-btn" onclick="downloadPdf()" style="background: #27ae60; color: white; border-color: #27ae60;">PDF 다운로드</button>
+                    </div>
+                </div>
+            </section>
+
+            <div class="bottom-bar">
+                <div class="pagination"></div>
+
+                <div class="page-size">
+                    <select>
+                        <option>16개씩 보기</option>
+                        <option>24개씩 보기</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script th:replace="~{fragments/navbar :: navbarScript}"></script>
+<script th:src="@{/js/problem/problemList.js}" src="/js/problem/problemList.js"></script>
+</body>
+</html>

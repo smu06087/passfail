@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시글 수정 - Passfail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1fdf4 100%);
+            color: #1e293b;
+            min-height: 100vh;
+        }
+        .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        .write-box {
+            background: white;
+            border-radius: 16px;
+            padding: 36px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            border: 1px solid #e2e8f0;
+        }
+        h2 {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #22c55e;
+        }
+        .form-group { margin-bottom: 20px; }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 7px;
+            color: #475569;
+        }
+        select, input[type="text"], textarea {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #f8fafc;
+        }
+        select:focus, input:focus, textarea:focus {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
+            background: white;
+        }
+        textarea { min-height: 300px; resize: vertical; line-height: 1.7; }
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid #f1f5f9;
+        }
+        .btn {
+            padding: 11px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        .btn:hover { opacity: 0.87; transform: translateY(-1px); }
+        .btn-submit {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            box-shadow: 0 4px 12px rgba(34,197,94,0.25);
+        }
+        .btn-cancel { background: #f1f5f9; color: #64748b; }
+    </style>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
+</head>
+<body>
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+    <div class="container">
+        <div class="write-box">
+            <h2>📝 게시글 수정</h2>
+
+            <!-- postId를 JS에서 읽기 위해 hidden input 사용 -->
+            <input type="hidden" id="postId" th:value="${post.postId}">
+
+            <div class="form-group">
+                <label for="title">제목 <span style="color:#ef4444">*</span></label>
+                <input type="text" id="title"
+                       th:value="${post.title}"
+                       maxlength="200"
+                       placeholder="제목을 입력하세요">
+            </div>
+
+            <div class="form-group">
+                <label for="content">내용 <span style="color:#ef4444">*</span></label>
+                <textarea id="content"
+                          maxlength="5000"
+                          placeholder="내용을 입력하세요..."
+                          th:text="${post.content}"></textarea>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-cancel"
+                        th:onclick="|location.href='/posts/${post.postId}/view'|">
+                    취소
+                </button>
+                <button class="btn btn-submit" onclick="updatePost()">수정 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const postId = document.getElementById('postId').value;
+
+        async function updatePost() {
+            const title   = document.getElementById('title').value.trim();
+            const content = document.getElementById('content').value.trim();
+
+            if (!title)   { alert('제목을 입력해주세요.'); return; }
+            if (!content) { alert('내용을 입력해주세요.'); return; }
+
+            try {
+                const response = await fetch(`/posts/${postId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ title, content })
+                });
+
+                if (response.ok) {
+                    alert('수정되었습니다.');
+                    window.location.href = `/posts/${postId}/view`;
+                } else if (response.status === 403) {
+                    alert('수정 권한이 없습니다.');
+                } else if (response.status === 401) {
+                    alert('로그인이 필요합니다.');
+                    window.location.href = '/login';
+                } else {
+                    alert('수정에 실패했습니다.');
+                }
+            } catch (e) {
+                console.error('수정 오류:', e);
+                alert('오류가 발생했습니다.');
+            }
+        }
+    </script>
+    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
+</body>
+</html>

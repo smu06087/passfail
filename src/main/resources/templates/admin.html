@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passfail Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .sidebar-item:hover { color: #22c55e; background-color: #f0fdf4; }
+        .stat-card { transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); }
+        
+        @media (max-width: 1024px) {
+            .admin-sidebar { width: 80px; }
+            .admin-sidebar .sidebar-group-title span, 
+            .admin-sidebar .sidebar-group-title ul,
+            .admin-sidebar h1 span { display: none; }
+            .admin-sidebar .sidebar-group-title { padding: 10px; display: flex; justify-content: center; }
+            .admin-main { margin-left: 80px; }
+        }
+
+        @media (max-width: 640px) {
+            .admin-sidebar { display: none; }
+            .admin-main { margin-left: 0; padding: 20px; }
+        }
+    </style>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
+</head>
+<body class="text-gray-800">
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+
+    <div class="flex">
+        <aside class="admin-sidebar w-64 bg-white border-r border-gray-100 flex flex-col fixed h-full shadow-sm z-40 transition-all">
+            <div class="p-8 border-b border-gray-50">
+                <h1 class="text-2xl font-black text-green-600 tracking-tighter flex items-center gap-2">
+                    <i data-lucide="check-circle"></i> <span>Passfail</span>
+                </h1>
+            </div>
+            <nav id="sidebar-nav" class="flex-1 overflow-y-auto p-4 space-y-8 mt-4"></nav>
+        </aside>
+
+        <main class="admin-main ml-64 flex-1 p-6 md:p-12 min-h-screen transition-all">
+            <header class="flex justify-between items-center mb-12">
+                <div>
+                    <h2 id="current-section-title" class="text-3xl font-black text-gray-900 tracking-tight">대시보드</h2>
+                    <p id="current-section-desc" class="text-sm text-gray-400 mt-1">전체 현황을 모니터링합니다.</p>
+                </div>
+            </header>
+
+            <div id="admin-sections">
+                <section id="section-dashboard" class="admin-section">
+                    <div id="summary-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"></div>
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                        <div class="xl:col-span-2 bg-white/80 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-white shadow-xl glass-card relative">
+                            <h3 class="font-black text-xl text-gray-900 mb-10">회원 상태 분포</h3>
+                            <div class="h-64 md:h-80 flex items-center justify-center relative">
+                                <canvas id="statusChart"></canvas>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Total</p>
+                                    <p id="total-member-count" class="text-4xl font-black text-gray-900">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white/80 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-white shadow-xl glass-card relative">
+                            <h3 class="font-black text-xl text-gray-900 mb-10">매출 요약</h3>
+                            <div id="payment-summary" class="space-y-8"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="section-users" class="admin-section hidden">
+                    <div class="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                        <h3 class="font-black text-xl text-gray-900 mb-8">회원 목록 및 권한 설정</h3>
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-gray-400 font-bold border-b border-gray-50">
+                                <tr>
+                                    <th class="p-4">아이디</th>
+                                    <th class="p-4">이메일</th>
+                                    <th class="p-4">현재권한</th>
+                                    <th class="p-4">권한변경</th>
+                                    <th class="p-4">상태</th>
+                                    <th class="p-4">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="section-problems" class="admin-section hidden">
+                    <div class="grid grid-cols-3 gap-8">
+                        <div class="col-span-2 bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                            <div class="flex justify-between items-center mb-8">
+                                <h3 class="font-black text-xl text-gray-900">문제 라이브러리</h3>
+                                <button class="p-3 px-6 bg-green-600 text-white rounded-2xl text-sm font-black" onclick="location.href='/problem/problemCreate'">새 문제 등록</button>
+                            </div>
+                            <div id="problem-grid" class="grid grid-cols-2 gap-6"></div>
+                        </div>
+                        <div class="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                            <h3 class="font-black text-lg text-gray-900 mb-6">태그 관리</h3>
+                            <div class="flex gap-2 mb-6">
+                                <input type="text" id="new-tag-name" placeholder="새 태그" class="flex-1 p-2 bg-gray-50 border border-gray-100 rounded-xl text-xs outline-none">
+                                <button onclick="addTag()" class="p-2 px-4 bg-gray-900 text-white rounded-xl text-xs font-bold">추가</button>
+                            </div>
+                            <div id="tag-list" class="flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="section-finance" class="admin-section hidden">
+                    <div class="grid grid-cols-3 gap-6 mb-8">
+                        <div class="stat-card bg-white p-6 rounded-3xl border border-gray-50 shadow-sm">
+                            <p class="text-[10px] text-gray-400 mb-1 font-black uppercase">총 매출</p>
+                            <p id="settle-total-revenue" class="text-xl font-black text-gray-900">0</p>
+                        </div>
+                        <div class="stat-card bg-white p-6 rounded-3xl border border-gray-50 shadow-sm">
+                            <p class="text-[10px] text-gray-400 mb-1 font-black uppercase">플랫폼 수수료 (30%)</p>
+                            <p id="settle-platform-fee" class="text-xl font-black text-amber-600">0</p>
+                        </div>
+                        <div class="stat-card bg-white p-6 rounded-3xl border border-gray-100 shadow-md bg-green-50/30">
+                            <p class="text-[10px] text-green-600 mb-1 font-black uppercase">정산 예정 금액</p>
+                            <p id="settle-final-amount" class="text-xl font-black text-green-600">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                        <h3 class="font-black text-xl text-gray-900 mb-8">결제 통계 및 내역</h3>
+                        <div class="h-64 mb-8"><canvas id="revenueChart"></canvas></div>
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-gray-400 font-bold border-b border-gray-50">
+                                <tr><th>거래번호</th><th>사용자</th><th>결제수단</th><th>금액</th><th>상태</th><th>날짜</th></tr>
+                            </thead>
+                            <tbody id="payment-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="section-system" class="admin-section hidden">
+                    <div class="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                        <h3 class="font-black text-xl text-gray-900 mb-8">시스템 로그</h3>
+                        <div class="bg-gray-900 rounded-3xl p-6 font-mono text-xs text-green-400 h-96 overflow-y-auto space-y-2">
+                            <p>[SYSTEM] 2026-05-11 15:10:26 - Server health check: OK</p>
+                            <p>[AUTH] 2026-05-11 15:11:02 - Login success: user 'dongyeop'</p>
+                            <p>[PAYMENT] 2026-05-11 15:12:45 - KakaoPay SUCCESS (TID: T123456789)</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const dashboardData = /*[[${data}]]*/ {};
+        const sidebarData = [
+            { id: 'dashboard', title: "대시보드", icon: "layout", items: ["홈으로"] },
+            { id: 'users', title: "유저 관리", icon: "users", items: ["회원 목록", "권한 설정"] },
+            { id: 'problems', title: "데이터 관리", icon: "database", items: ["문제 라이브러리", "태그 관리"] },
+            { id: 'finance', title: "재무 리포트", icon: "pie-chart", items: ["결제 통계", "정산 관리"] },
+            { id: 'system', title: "시스템 운영", icon: "shield-check", items: ["보안 모니터링", "로그 분석"] }
+        ];
+
+        function switchSection(id) {
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${id}`).classList.remove('hidden');
+            const menu = sidebarData.find(m => m.id === id);
+            document.getElementById('current-section-title').textContent = menu.title;
+            if (id === 'users') loadUserList();
+            if (id === 'problems') { loadProblemList(); loadTagList(); }
+            if (id === 'finance') { loadPaymentList(); loadSettlementData(); }
+        }
+
+        const nav = document.getElementById('sidebar-nav');
+        sidebarData.forEach(menu => {
+            const div = document.createElement('div');
+            div.className = "cursor-pointer group sidebar-group-title p-2 rounded-xl transition-all";
+            div.onclick = () => switchSection(menu.id);
+            div.innerHTML = `
+                <div class="flex items-center gap-3 text-gray-900 font-black text-sm group-hover:text-green-600">
+                    <div class="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-green-600 group-hover:bg-green-50">
+                        <i data-lucide="${menu.icon}" size="16"></i>
+                    </div>
+                    <span>${menu.title}</span>
+                </div>
+                <ul class="ml-11 space-y-3 text-xs font-bold text-gray-400 mt-4 mb-4">
+                    ${menu.items.map(item => `<li class="py-1">${item}</li>`).join('')}
+                </ul>`;
+            nav.appendChild(div);
+        });
+
+        async function loadUserList() {
+            const res = await fetch('/api/admin/members');
+            const members = await res.json();
+            document.getElementById('user-table-body').innerHTML = members.map(m => `
+                <tr class="border-b border-gray-50 hover:bg-gray-50 transition-all">
+                    <td class="p-4 font-black text-gray-900">${m.name}</td>
+                    <td class="p-4 text-gray-500">${m.email}</td>
+                    <td class="p-4"><span class="px-2 py-1 bg-gray-100 rounded text-[10px] font-bold">${m.role}</span></td>
+                    <td class="p-4">
+                        <select onchange="changeRole(${m.id}, this.value)" class="p-1 bg-gray-50 border border-gray-100 rounded text-xs outline-none">
+                            <option value="ROLE_USER" ${m.role === 'ROLE_USER' ? 'selected' : ''}>일반유저</option>
+                            <option value="ROLE_ADMIN" ${m.role === 'ROLE_ADMIN' ? 'selected' : ''}>관리자</option>
+                        </select>
+                    </td>
+                    <td class="p-4"><span class="flex items-center gap-1.5 font-bold ${m.color}"><span class="w-1.5 h-1.5 rounded-full bg-current"></span> ${m.status}</span></td>
+                    <td class="p-4"><button class="text-xs font-black text-blue-600">상세</button></td>
+                </tr>`).join('');
+        }
+
+        async function changeRole(id, role) {
+            if (confirm('권한을 변경하시겠습니까?')) {
+                await fetch(`/api/admin/members/${id}/role?role=${role}`, { method: 'POST' });
+                alert('변경되었습니다.');
+                loadUserList();
+            }
+        }
+
+        async function loadTagList() {
+            const res = await fetch('/api/admin/tags');
+            const tags = await res.json();
+            document.getElementById('tag-list').innerHTML = tags.map(tag => `
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-600">
+                    <span># ${tag}</span>
+                    <i data-lucide="x" size="12" class="text-gray-300 hover:text-red-500 cursor-pointer" onclick="deleteTag('${tag}')"></i>
+                </div>`).join('');
+            lucide.createIcons();
+        }
+
+        async function addTag() {
+            const input = document.getElementById('new-tag-name');
+            if (input.value.trim()) {
+                await fetch(`/api/admin/tags?name=${encodeURIComponent(input.value.trim())}`, { method: 'POST' });
+                input.value = ''; loadTagList();
+            }
+        }
+
+        async function deleteTag(name) {
+            if (confirm(`'${name}' 삭제하시겠습니까?`)) {
+                await fetch(`/api/admin/tags/${encodeURIComponent(name)}`, { method: 'DELETE' });
+                loadTagList();
+            }
+        }
+
+        async function loadSettlementData() {
+            const res = await fetch('/api/admin/settlements');
+            const d = await res.json();
+            document.getElementById('settle-total-revenue').textContent = d.totalRevenue.toLocaleString() + ' KRW';
+            document.getElementById('settle-platform-fee').textContent = d.platformFee.toLocaleString() + ' KRW';
+            document.getElementById('settle-final-amount').textContent = d.settledAmount.toLocaleString() + ' KRW';
+        }
+
+        async function loadProblemList() {
+            const res = await fetch('/api/admin/problems');
+            const probs = await res.json();
+            document.getElementById('problem-grid').innerHTML = probs.map(p => `
+                <div class="p-6 bg-white border border-gray-100 rounded-3xl hover:shadow-lg transition-all">
+                    <div class="flex justify-between mb-4">
+                        <span class="px-3 py-1 bg-gray-50 text-gray-400 rounded-lg text-[10px] font-black">ID: ${p.id}</span>
+                        <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase">${p.difficulty}</span>
+                    </div>
+                    <h4 class="font-black text-gray-900 mb-2 truncate">${p.title}</h4>
+                    <p class="text-xs text-gray-400 mb-6">해결: ${p.solvedCount} | 정답률: ${p.accuracy}%</p>
+                </div>`).join('');
+        }
+
+        async function loadPaymentList() {
+            const res = await fetch('/api/admin/payments');
+            const payments = await res.json();
+            document.getElementById('payment-table-body').innerHTML = payments.map(p => {
+                let statusColor = 'bg-green-50 text-green-600';
+                if (p.status === 'REFUNDED') statusColor = 'bg-red-50 text-red-600';
+                if (p.status === 'FAILED') statusColor = 'bg-gray-50 text-gray-400';
+                if (p.status === 'PENDING') statusColor = 'bg-amber-50 text-amber-600';
+
+                return `
+                <tr class="border-b border-gray-50 hover:bg-gray-50 transition-all">
+                    <td class="p-4 font-bold text-gray-400 truncate max-w-[120px]">${p.tid || 'N/A'}</td>
+                    <td class="p-4 font-black text-gray-900">${p.username}</td>
+                    <td class="p-4 text-gray-500">${p.method}</td>
+                    <td class="p-4 font-black text-green-600">${p.amount.toLocaleString()}</td>
+                    <td class="p-4"><span class="px-3 py-1 ${statusColor} rounded-full text-[10px] font-black">${p.status}</span></td>
+                    <td class="p-4 text-gray-400 font-bold">${p.date}</td>
+                </tr>`;
+            }).join('');
+
+            const analysisRes = await fetch('/api/admin/analysis');
+            const analysis = await analysisRes.json();
+            const monthlyData = analysis.monthlyRevenue;
+            if (revenueChart) revenueChart.destroy();
+            revenueChart = new Chart(document.getElementById('revenueChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: Object.keys(monthlyData),
+                    datasets: [{ label: '매출', data: Object.values(monthlyData), borderColor: '#16a34a', tension: 0.4, fill: true, backgroundColor: 'rgba(22, 163, 74, 0.1)' }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function init() {
+            const summaryData = [
+                { title: "전체 회원", value: dashboardData.totalMembers.toLocaleString(), icon: "users", color: "text-green-600", bg: "bg-green-50" },
+                { title: "문제 세트", value: dashboardData.totalProblems.toLocaleString(), icon: "book-open", color: "text-blue-500", bg: "bg-blue-50" },
+                { title: "결제 매출", value: dashboardData.totalRevenue.toLocaleString(), icon: "dollar-sign", color: "text-emerald-600", bg: "bg-emerald-50" },
+                { title: "오늘 방문", value: dashboardData.todayVisits.toLocaleString(), icon: "eye", color: "text-orange-500", bg: "bg-orange-50" }
+            ];
+            document.getElementById('summary-container').innerHTML = summaryData.map(card => `
+                <div class="stat-card bg-white p-7 rounded-[2rem] border border-gray-50 shadow-sm flex items-center gap-5 cursor-pointer">
+                    <div class="p-4 rounded-2xl ${card.bg}"><i data-lucide="${card.icon}" class="${card.color}" size="24"></i></div>
+                    <div><p class="text-[10px] text-gray-400 mb-1 font-black uppercase tracking-wider">${card.title}</p><p class="text-2xl font-black text-gray-900">${card.value}</p></div>
+                </div>`).join('');
+
+            document.getElementById('payment-summary').innerHTML = dashboardData.paymentSummaries.map((item, idx) => `
+                <div class="flex justify-between items-end ${idx < dashboardData.paymentSummaries.length - 1 ? 'border-b border-gray-50 pb-6' : ''}">
+                    <div><span class="text-gray-400 font-bold text-[10px] uppercase">${item.label}</span><p class="font-black text-2xl ${item.color}">${item.value.toLocaleString()}</p></div>
+                    <div class="text-[10px] font-black text-gray-300">KRW</div>
+                </div>`).join('');
+
+            document.getElementById('total-member-count').textContent = (dashboardData.memberStatus.activeCount + dashboardData.memberStatus.inactiveCount).toLocaleString();
+            new Chart(document.getElementById('statusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['활성', '비활성'],
+                    datasets: [{ data: [dashboardData.memberStatus.activeCount, dashboardData.memberStatus.inactiveCount], backgroundColor: ['#16a34a', '#d1d5db'], borderWidth: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '82%', plugins: { legend: { position: 'right' } } }
+            });
+            lucide.createIcons();
+        }
+        init();
+        /*]]>*/
+    </script>
+    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
+</body>
+</html>

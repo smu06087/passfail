@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>포인트 충전</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            box-sizing: border-box;
+            margin: 20px auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 25px;
+        }
+        .user-greeting {
+            font-size: 16px;
+        }
+        .user-greeting .username {
+            font-weight: bold;
+        }
+        .banana-balance {
+            background-color: #f2f2f2;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+        .section-title {
+            font-size: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .section-title span {
+            font-weight: 900;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+        
+        .price-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .price-btn {
+            background-color: #fff;
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 25px 0;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.1s;
+        }
+        .price-btn.active {
+            border: 2px solid #000;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        .price-btn .banana-amount {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .price-btn .won-amount {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .method-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        .method-btn {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            padding: 12px 0;
+            text-align: center;
+            font-size: 14px;
+            cursor: pointer;
+            color: #000;
+        }
+        .method-btn.active {
+            border: 1px solid #555;
+            font-weight: bold;
+            box-shadow: inset 0 0 0 1px #555;
+        }
+
+        .info-box {
+            background-color: #f2f2f2;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        .info-box p {
+            margin: 8px 0;
+            font-size: 12px;
+            font-weight: bold;
+            color: #000;
+        }
+        .info-box p:first-child { margin-top: 0; }
+        .info-box p:last-child { margin-bottom: 0; }
+
+        .submit-btn {
+            display: block;
+            width: 100%;
+            background-color: #61b118;
+            color: #fff;
+            border: none;
+            border-radius: 15px;
+            padding: 18px 0;
+            font-size: 18px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #4c8a13;
+            transition: all 0.1s;
+        }
+        .submit-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 #4c8a13;
+        }
+    </style>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
+</head>
+<body>
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <div class="user-greeting">
+                <span class="username" th:text="${sid != null ? sid : '사용자'}">사용자</span>님 접속했습니다
+            </div>
+            <div class="banana-balance">
+                보유 바나나 : 5,000
+            </div>
+        </div>
+
+        <!-- 1. 충전 금액 선택 -->
+        <div class="section-title">
+            <span>1.</span> 충전 금액 선택
+        </div>
+        <div class="price-grid" id="price-container">
+            <div class="price-btn active" data-price="5000">
+                <div class="banana-amount">5,000 바나나</div>
+                <div class="won-amount">5,000원</div>
+            </div>
+            <div class="price-btn" data-price="10000">
+                <div class="banana-amount">10,000 바나나</div>
+                <div class="won-amount">10,000원</div>
+            </div>
+            <div class="price-btn" data-price="30000">
+                <div class="banana-amount">30,000 바나나</div>
+                <div class="won-amount">30,000원</div>
+            </div>
+            <div class="price-btn" data-price="50000">
+                <div class="banana-amount">50,000 바나나</div>
+                <div class="won-amount">50,000원</div>
+            </div>
+        </div>
+
+        <!-- 2. 결제 수단 선택 -->
+        <div class="section-title">
+            <span>2</span> 결제 수단 선택
+        </div>
+        <div class="method-grid" id="method-container">
+            <div class="method-btn">삼성페이</div>
+            <div class="method-btn">카카오페이</div>
+            <div class="method-btn">토스</div>
+            <div class="method-btn">통신사 결제</div>
+            <div class="method-btn">PAYCO</div>
+            <div class="method-btn">신용카드</div>
+        </div>
+
+        <!-- 안내 -->
+        <div class="info-box">
+            <p>힌트 보기 : 500 소모</p>
+            <p>AI 코드리뷰 : 2,000 소모</p>
+            <p>문제 다운로드 : 1000 소모</p>
+        </div>
+
+        <!-- 충전하기 버튼 -->
+        <button class="submit-btn" onclick="startPay()">
+            충전하기
+        </button>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script>
+        // 금액 선택 스크립트
+        const priceBtns = document.querySelectorAll('.price-btn');
+        priceBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                priceBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // 결제 수단 선택 스크립트
+        const methodBtns = document.querySelectorAll('.method-btn');
+        methodBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                methodBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // 충전하기 버튼
+        function startPay() {
+            const activePriceBtn = document.querySelector('.price-btn.active');
+            if (activePriceBtn) {
+                const bananaText = activePriceBtn.querySelector('.banana-amount').innerText;
+                const wonText = activePriceBtn.querySelector('.won-amount').innerText;
+                const activeMethod = document.querySelector('.method-btn.active');
+                
+                let methodText = '선택안함';
+                if(activeMethod) {
+                    methodText = activeMethod.innerText;
+                }
+
+                // 카카오페이 결제로 넘어가도록 처리
+                if (methodText === '카카오페이') {
+                    let price = parseInt(activePriceBtn.getAttribute('data-price'));
+                    let data = {
+                        name: bananaText,    
+                        totalPrice: price 
+                    };
+                    
+                    $.ajax({
+                        type: 'POST',
+                        url: '/order/kakaoPayReady',
+                        data: JSON.stringify(data),
+                        contentType: 'application/json',
+                        success: function(response) {
+                            if(response.next_redirect_pc_url) {
+                                location.href = response.next_redirect_pc_url;
+                            } else {
+                                alert("카카오페이 결제 준비에 실패했습니다.");
+                            }
+                        },
+                        error: function() {
+                            alert("결제 요청 중 오류가 발생했습니다.");
+                        }
+                    });
+                } else {
+                    alert(`${bananaText} (${wonText}) - ${methodText} 결제를 진행합니다.`);
+                }
+            }
+        }
+    </script>
+    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Passfail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap');
+        body { font-family: 'Pretendard', sans-serif; }
+    </style>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
+</head>
+<body class="flex flex-col">
+
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+
+    <main class="flex-1 max-w-6xl mx-auto w-full px-6 py-16">
+        <h1 class="text-4xl font-black">Welcome to Passfail</h1>
+        <p class="mt-4">Please use the navigation above to explore.</p>
+    </main>
+
+    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
+</body>
+</html>

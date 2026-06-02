@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passfail - 실시간 랭킹</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap');
+        
+        body { 
+            font-family: 'Pretendard', sans-serif; 
+            background: linear-gradient(135deg, #f8fafc 0%, #f1fdf4 100%);
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 32px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+        }
+
+        .ranking-row {
+            transition: all 0.2s ease;
+            border-radius: 16px;
+        }
+        .ranking-row:hover {
+            background: rgba(34, 197, 94, 0.05);
+            transform: translateX(4px);
+        }
+
+        .rank-badge {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-weight: 900;
+            font-size: 14px;
+        }
+
+        .rank-top-1 { background: #fef3c7; color: #d97706; }
+        .rank-top-2 { background: #f1f5f9; color: #64748b; }
+        .rank-top-3 { background: #fff7ed; color: #9a3412; }
+        .rank-normal { background: #f8fafc; color: #94a3b8; }
+
+        .tier-tag {
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 800;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .tier-BRONZE  { background-color: #CD7F32; }
+        .tier-SILVER  { background-color: #C0C0C0; color: #334155; }
+        .tier-GOLD    { background-color: #FFD700; color: #334155; }
+        .tier-PLATINUM{ background-color: #00CED1; }
+        .tier-DIAMOND { background-color: #B9F2FF; color: #004085; }
+        .tier-RUBY    { background-color: #FF0000; }
+
+        .bg-green-grad { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
+
+    <main class="flex-1 max-w-5xl mx-auto w-full px-6 py-12">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <div>
+                <h1 class="text-4xl font-black tracking-tighter text-slate-800 mb-2">실시간 <span class="text-green-600">랭킹</span></h1>
+                <p class="text-slate-400 font-bold">Passfail에서 활약 중인 최고의 사용자들을 만나보세요.</p>
+            </div>
+            
+            <!-- ✅ 어드민에게만 갱신 버튼 렌더링 -->
+            <div sec:authorize="hasRole('ROLE_ADMIN')">
+                <button id="updateBtn" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-sm hover:border-red-400 hover:text-red-500 transition-all shadow-sm flex items-center gap-2 group">
+                    <i data-lucide="refresh-cw" size="18" class="group-hover:rotate-180 transition-transform duration-500"></i>
+                    랭킹 데이터 갱신
+                </button>
+                
+                <!-- 🆕 추가: Init 배치 버튼 -->
+			    <button id="initBatchBtn"
+			        class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-sm hover:border-blue-400 hover:text-blue-500 transition-all shadow-sm flex items-center gap-2 group">
+			        <i data-lucide="database" size="18"></i>
+			        초기 데이터 동기화
+			    </button>
+            </div>
+        </div>
+
+        <div class="glass-card p-8 min-h-[600px] flex flex-col">
+            <!-- Table Header -->
+            <div class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-slate-100 text-slate-400 font-black text-xs uppercase tracking-wider">
+                <div class="col-span-2 text-center">순위</div>
+                <div class="col-span-5">사용자</div>
+                <div class="col-span-3 text-center">티어</div>
+                <div class="col-span-2 text-right">총 점수</div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingSpinner" class="flex-1 flex flex-col items-center justify-center py-20">
+                <div class="w-12 h-12 border-4 border-green-500/20 border-t-green-500 rounded-full animate-spin mb-4"></div>
+                <p class="text-slate-400 font-bold">랭킹 데이터를 분석 중입니다...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorAlert" class="hidden flex-1 flex flex-col items-center justify-center py-20">
+                <div class="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-4">
+                    <i data-lucide="alert-circle" size="32"></i>
+                </div>
+                <h3 class="text-lg font-black text-slate-800 mb-1">데이터 로드 실패</h3>
+                <p id="errorMsg" class="text-slate-400 font-bold text-sm mb-6"></p>
+                <button onclick="loadRankingData()" class="px-6 py-2 bg-slate-800 text-white rounded-xl font-bold text-sm">다시 시도</button>
+            </div>
+
+            <!-- Ranking List Container -->
+            <div id="rankingBody" class="space-y-2 mt-4 flex-1">
+                <!-- Rows injected via JavaScript -->
+            </div>
+
+            <!-- Footer Note -->
+            <div class="mt-8 pt-8 border-t border-slate-100 text-center">
+                <p class="text-xs text-slate-300 font-bold">랭킹은 사용자의 활동 점수를 기준으로 실시간 집계됩니다.</p>
+            </div>
+        </div>
+    </main>
+
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRankingData();
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            
+         // 🆕 Init 배치 버튼 이벤트
+            const initBatchBtn = document.getElementById('initBatchBtn');
+            if (initBatchBtn) {
+                initBatchBtn.addEventListener('click', function () {
+                    if (!confirm('⚠️ 전체 회원의 랭킹 초기 데이터를 동기화하시겠습니까?\n(기존 데이터가 없는 회원에게만 초기값이 생성됩니다)')) return;
+
+                    const btn = this;
+                    const originalHtml = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = '<div class="w-4 h-4 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin inline-block mr-2"></div> 동기화 중...';
+
+                    fetch('/ranking/init-batch')
+                        .then(res => {
+                            if (!res.ok) throw new Error('권한이 없거나 서버 오류가 발생했습니다.');
+                            return res.text();
+                        })
+                        .then(msg => {
+                            alert('✅ ' + msg);
+                            location.reload();
+                        })
+                        .catch(err => {
+                            alert('❌ 오류: ' + err.message);
+                        })
+                        .finally(() => {
+                            btn.disabled = false;
+                            btn.innerHTML = originalHtml;
+                        });
+                });
+            }
+
+            // ✅ null 체크: 어드민이 아니면 버튼이 DOM에 없으므로 에러 방지
+            const updateBtn = document.getElementById('updateBtn');
+            if (updateBtn) {
+                updateBtn.addEventListener('click', function() {
+                    if (!confirm('⚠️ 랭킹 데이터를 최신 상태로 갱신하시겠습니까?\n(이 작업은 전체 사용자의 순위를 재계산합니다)')) return;
+
+                    const btn = this;
+                    const originalHtml = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = '<div class="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin inline-block mr-2"></div> 처리 중...';
+
+                    fetch('/ranking/update', { method: 'POST' })
+                        .then(res => {
+                            if (res.ok) {
+                                alert('✅ 랭킹 갱신이 완료되었습니다.');
+                                location.reload();
+                            } else {
+                                throw new Error('권한이 없거나 서버 오류가 발생했습니다.');
+                            }
+                        })
+                        .catch(err => {
+                            alert('❌ 오류: ' + err.message);
+                        })
+                        .finally(() => {
+                            btn.disabled = false;
+                            btn.innerHTML = originalHtml;
+                        });
+                });
+            }
+        });
+
+        function loadRankingData() {
+            const container = document.getElementById('rankingBody');
+            const spinner = document.getElementById('loadingSpinner');
+            const errorAlert = document.getElementById('errorAlert');
+
+            spinner.classList.remove('hidden');
+            errorAlert.classList.add('hidden');
+            container.innerHTML = '';
+
+            fetch('/ranking/top')
+                .then(res => {
+                    if (!res.ok) throw new Error('데이터를 가져올 수 없습니다.');
+                    return res.json();
+                })
+                .then(data => {
+                    spinner.classList.add('hidden');
+
+                    if (!data || data.length === 0) {
+                        container.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+                                <i data-lucide="database" size="48" class="mb-4 opacity-20"></i>
+                                <p class="font-bold">아직 집계된 랭킹 데이터가 없습니다.</p>
+                            </div>
+                        `;
+                        lucide.createIcons();
+                        return;
+                    }
+
+                    data.forEach(user => {
+                        let rankClass = 'rank-normal';
+                        if (user.currentRank === 1) rankClass = 'rank-top-1';
+                        else if (user.currentRank === 2) rankClass = 'rank-top-2';
+                        else if (user.currentRank === 3) rankClass = 'rank-top-3';
+
+                        const row = document.createElement('div');
+                        row.className = 'ranking-row grid grid-cols-12 gap-4 px-6 py-4 items-center cursor-pointer';
+                        row.onclick = () => location.href = `/mypage/${encodeURIComponent(user.username)}`;
+                        
+                        row.innerHTML = `
+                            <div class="col-span-2 flex justify-center">
+                                <div class="rank-badge ${rankClass}">
+                                    ${user.currentRank}
+                                </div>
+                            </div>
+                            <div class="col-span-5 flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-sm">
+                                    ${user.username.charAt(0).toUpperCase()}
+                                </div>
+                                <span class="font-black text-slate-700">${escapeHtml(user.username)}</span>
+                            </div>
+                            <div class="col-span-3 flex justify-center">
+                                <span class="tier-tag tier-${user.tier}">
+                                    ${user.tier}
+                                </span>
+                            </div>
+                            <div class="col-span-2 text-right">
+                                <span class="font-black text-green-600">${user.totalScore.toLocaleString()}</span>
+                                <span class="text-[10px] text-slate-400 font-bold ml-1">점</span>
+                            </div>
+                        `;
+                        container.appendChild(row);
+                    });
+                })
+                .catch(err => {
+                    spinner.classList.add('hidden');
+                    document.getElementById('errorMsg').textContent = err.message;
+                    errorAlert.classList.remove('hidden');
+                    lucide.createIcons();
+                });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+    <script th:replace="~{fragments/navbar :: navbarScript}"></script>
+</body>
+</html>

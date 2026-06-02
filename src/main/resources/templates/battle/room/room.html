@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passfail - 대결 대기실</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap');
+        
+        body { 
+            font-family: 'Pretendard', sans-serif; 
+            background: linear-gradient(135deg, #f8fafc 0%, #f1fdf4 100%);
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+        .bg-green-grad { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 24px;
+        }
+
+        .chat-box {
+            height: 400px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #e2e8f0 transparent;
+        }
+        .chat-box::-webkit-scrollbar { width: 6px; }
+        .chat-box::-webkit-scrollbar-track { background: transparent; }
+        .chat-box::-webkit-scrollbar-thumb { background-color: #e2e8f0; border-radius: 20px; }
+
+        .user-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .user-card:hover { transform: translateX(8px); }
+
+        .duo-btn {
+            border-bottom: 5px solid rgba(0,0,0,0.2);
+            transition: all 0.1s ease;
+        }
+        .duo-btn:active { transform: translateY(3px); border-bottom-width: 2px; }
+
+        .item-slot {
+            width: 70px;
+            height: 70px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .item-slot:hover {
+            border-color: #22c55e;
+            transform: scale(1.1);
+            box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.1);
+        }
+    </style>
+</head>
+<body class="flex flex-col">
+
+    <!-- Header -->
+    <nav class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 px-8 py-3 text-slate-800">
+        <div class="w-full mx-auto flex items-center justify-between gap-8">
+            <div class="text-3xl font-black text-green-600 tracking-tighter cursor-pointer" onclick="location.href='/main'">
+                Passfail
+            </div>
+            
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-xl text-sm font-black text-slate-500">
+                    <i data-lucide="hash" size="16"></i>
+                    <span th:text="${roomId}">000</span>
+                </div>
+                <button id="exit-btn" class="bg-red-50 text-red-500 px-5 py-2 rounded-xl font-black text-sm hover:bg-red-100 transition-colors flex items-center gap-2">
+                    <i data-lucide="log-out" size="16"></i> 나가기
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+        <div class="mb-8">
+            <h1 class="text-4xl font-black tracking-tighter text-slate-800 flex items-center gap-4">
+                <span class="bg-green-600 text-white px-3 py-1 rounded-lg text-lg">BATTLE</span>
+                [[${roomName != null ? roomName : '초급 알고리즘 대회'}]]
+            </h1>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left: User Grid & Chat (8 columns) -->
+            <div class="lg:col-span-8 flex flex-col gap-6">
+                
+                <!-- Participant List (Fixed Slots) -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-black text-slate-700 flex items-center gap-2">
+                            <i data-lucide="users" class="text-green-600"></i> 참여 대기인원
+                        </h2>
+                        <span class="text-sm font-bold text-slate-400"><span id="current-count">[[${participants.size()}]]</span> / [[${maxParticipants}]]명 접속 중</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="participant-list">
+                        <!-- Pre-rendered Slots -->
+                        <div th:each="i : ${#numbers.sequence(0, maxParticipants - 1)}" 
+                             th:id="'slot-' + ${i}"
+                             class="glass-card p-4 flex items-center justify-between user-card shadow-md border-2 border-dashed border-slate-200 opacity-50"
+                             data-empty="true">
+                            
+                            <!-- Initial Empty State -->
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center">
+                                    <i data-lucide="user-plus" class="text-slate-300"></i>
+                                </div>
+                                <div class="font-black text-slate-300">대기 중...</div>
+                            </div>
+
+                            <!-- Thymeleaf logic to fill initial participants -->
+                            <th:block th:each="p : ${participants}" th:if="${p.slotIndex == i}">
+                                <script th:inline="javascript">
+                                    document.addEventListener("DOMContentLoaded", () => {
+                                        const pData = {
+                                            memberId: [[${p.memberId}]],
+                                            username: [[${p.member != null ? p.member.username : 'Unknown'}]],
+                                            role: [[${p.member != null ? p.member.role : 'USER'}]],
+                                            status: [[${p.status.name()}]],
+                                            slotIndex: [[${p.slotIndex}]]
+                                        };
+                                        window.renderUser(pData);
+                                    });
+                                </script>
+                            </th:block>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Chat (Below Users) -->
+                <div class="glass-card p-6 shadow-xl flex flex-col flex-1 min-h-[400px]">
+                    <h2 class="text-xl font-black text-slate-700 flex items-center gap-2 mb-6">
+                        <i data-lucide="message-square" class="text-green-600"></i> 실시간 채팅
+                    </h2>
+                    
+                    <div id="chat-box" class="chat-box mb-6 space-y-2 flex-1">
+                        <!-- Chat messages will be appended here -->
+                    </div>
+
+                    <div class="relative">
+                        <input type="text" id="msg" placeholder="메시지를 입력하세요..." class="w-full bg-slate-100 border-2 border-transparent focus:border-green-500 rounded-2xl p-4 pr-16 outline-none transition-all font-bold text-slate-700">
+                        <button id="sendBtn" class="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-green-grad text-white rounded-xl shadow-lg">
+                            <i data-lucide="send" size="18"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Actions & Items (4 columns) -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <!-- Action Card (Moved here) -->
+                <div class="glass-card p-8 shadow-2xl bg-slate-900 border-none sticky top-24">
+                    <div class="flex justify-between items-center mb-8">
+                        <div class="flex gap-3">
+                            <div class="item-slot">💣</div>
+                            <div class="item-slot">🛡️</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs font-black text-slate-500 uppercase tracking-widest">Your Status</div>
+                            <div id="user-status-text" class="text-xl font-black text-white" th:text="${isCompetition ? 'WAITING' : (isHost ? 'HOST' : 'NOT READY')}">NOT READY</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Competition Mode Timer -->
+                    <div th:if="${isCompetition}" class="mb-6 text-center">
+                        <div class="text-xs font-black text-green-500 uppercase tracking-widest mb-2">대회 시작까지</div>
+                        <div id="competition-timer" class="text-4xl font-black text-white tracking-tighter tabular-nums">00:00:00</div>
+                    </div>
+
+                    <!-- Host Start Button -->
+                    <button th:if="${isHost && !isCompetition}" id="start-btn" disabled class="w-full duo-btn bg-slate-800 text-slate-500 py-6 rounded-[2rem] font-black text-3xl tracking-tighter opacity-50 cursor-not-allowed transition-all">
+                        START!
+                    </button>
+
+                    <!-- Participant Ready Button -->
+                    <button th:if="${!isHost && !isCompetition}" id="ready-btn" class="w-full duo-btn bg-blue-600 text-white py-6 rounded-[2rem] font-black text-3xl shadow-2xl shadow-blue-500/40 tracking-tighter hover:scale-[1.02] transition-transform">
+                        READY!
+                    </button>
+                    
+                    <!-- Competition Waiting Button (Disabled) -->
+                    <button th:if="${isCompetition}" disabled class="w-full bg-slate-800 text-slate-500 py-6 rounded-[2rem] font-black text-3xl tracking-tighter opacity-50 cursor-not-allowed">
+                        WAITING...
+                    </button>
+                </div>
+
+                <div class="glass-card p-6 border-slate-200">
+                    <h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">대결 규칙</h3>
+                    <ul class="text-xs font-bold text-slate-500 space-y-3">
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check-circle" size="14" class="text-green-500 mt-0.5"></i>
+                            모든 인원이 준비 완료 시 시작 가능합니다.
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check-circle" size="14" class="text-green-500 mt-0.5"></i>
+                            제한 시간 내에 가장 정확한 코드를 작성하세요.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div style="background:black;color:lime;padding:20px;">
+    <div th:each="p : ${participants}">
+        <div>
+            memberId: <span th:text="${p.memberId}"></span>
+            /
+            slotIndex: <span th:text="${p.slotIndex}"></span>
+            /
+            status: <span th:text="${p.status}"></span>
+            /
+            username:
+            <span th:text="${p.member != null ? p.member.username : 'NULL'}"></span>
+        </div>
+    </div>
+</div>
+    </main>
+
+    <footer class="py-8 text-center text-slate-300 font-black text-xs tracking-widest uppercase">
+        &copy; 2026 Passfail Learning Platform. All rights reserved.
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script type="module">
+        const roomId = Number('[[${roomId}]]'); 
+        const isHost = [[${isHost != null ? isHost : false}]];
+        const isCompetition = [[${isCompetition != null ? isCompetition : false}]];
+        const currentUserId = [[${currentUserId}]];
+        const hostId = [[${hostId}]]; // 방장 ID 추가
+        
+        let isNavigating = false; // 게임 시작 등 정상적인 화면 이동인지 확인하는 플래그
+
+        import SSEManager from '/js/util/connection/sse-manager.js';
+        SSEManager.init();
+
+        import WSManager from '/js/util/connection/websocket-manager.js';
+        WSManager.connect(roomId, currentUserId);
+
+        // 추가: 게임 시작 시 내비게이션 플래그 설정
+        const originalLocationHref = Object.getOwnPropertyDescriptor(window.location, 'href');
+        
+        window.renderUser = function(data) {
+
+            console.log('[[${participants}]]');
+
+
+            const slot = document.getElementById(`slot-${data.slotIndex}`);
+            if (!slot) return;
+
+            // 이미 해당 슬롯에 유저가 있고, 같은 유저라면 상태만 복구
+            if (slot.dataset.memberId == data.memberId) {
+                slot.classList.remove("opacity-0", "scale-95");
+                slot.dataset.leaving = "false";
+                return;
+            }
+
+            const isMe = data.memberId == currentUserId;
+            const isUserHost = data.memberId == hostId;
+            
+            slot.dataset.memberId = data.memberId;
+            slot.dataset.empty = "false";
+            slot.dataset.leaving = "false";
+            
+            // UI 초기화 및 애니메이션 준비
+            slot.classList.remove("border-dashed", "border-slate-200", "opacity-50");
+            slot.classList.add("border-solid", "opacity-100");
+            
+            // 본인 표시 (초록색 테두리)
+            if (isMe) {
+                slot.classList.add("border-green-500", "bg-green-50/30");
+            } else {
+                slot.classList.remove("border-green-500", "bg-green-50/30");
+                slot.classList.add("border-white");
+            }
+
+            slot.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-slate-200 rounded-2xl overflow-hidden border-2 border-white shadow-inner flex items-center justify-center relative">
+                        <i data-lucide="user" class="text-slate-400"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <div class="font-black text-slate-800 text-base">${data.username}</div>
+                            ${isUserHost ? '<i data-lucide="crown" class="text-yellow-500 fill-yellow-500" size="16"></i>' : ''}
+                            ${isMe ? '<span class="bg-green-600 text-white px-1.5 py-0.5 rounded text-[8px] font-black uppercase">ME</span>' : ''}
+                        </div>
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            <span>${data.role}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    ${isCompetition ? '<span class="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black uppercase">WAITING</span>' : 
+                      (data.memberId != hostId ? `
+                        <span class="status-badge px-3 py-1 rounded-full text-[10px] font-black uppercase ${data.status === 'READY' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}">
+                            ${data.status === 'READY' ? 'READY!' : 'WAITING'}
+                        </span>
+                      ` : '<span class="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">HOST</span>')}
+                </div>
+            `;
+            
+            lucide.createIcons(); // 아이콘 렌더링
+            
+            // 인원수 업데이트
+            updateCurrentCount();
+
+            // 등장 애니메이션
+            slot.classList.add("scale-105");
+            setTimeout(() => {
+                slot.classList.remove("scale-105");
+            }, 200);
+        };
+
+        window.updateUserStatus = function(memberId, status) {
+            if (isCompetition) return;
+            // memberId로 슬롯 찾기
+            const slot = document.querySelector(`[data-member-id="${memberId}"]`);
+            if (slot) {
+                const badge = slot.querySelector(".status-badge");
+                if (badge) {
+                    badge.innerText = status;
+                    if (status === "READY!") {
+                        badge.classList.replace("bg-blue-100", "bg-green-100");
+                        badge.classList.replace("text-blue-600", "text-green-600");
+                    } else {
+                        badge.classList.replace("bg-green-100", "bg-blue-100");
+                        badge.classList.replace("text-green-600", "text-blue-600");
+                    }
+                }
+            }
+        };
+
+        window.removeUser = function(memberId) {
+            const slot = document.querySelector(`[data-member-id="${memberId}"]`);
+            if (slot) {
+                slot.dataset.leaving = "true";
+                slot.classList.add("opacity-50", "scale-95");
+                
+                setTimeout(() => {
+                    if (slot.dataset.leaving === "true") {
+                        // 슬롯 초기화 (빈 상태로 변경)
+                        slot.dataset.empty = "true";
+                        delete slot.dataset.memberId;
+                        slot.classList.remove("border-solid", "border-green-500", "bg-green-50/30");
+                        slot.classList.add("border-dashed", "border-slate-200", "opacity-50");
+                        
+                        slot.innerHTML = `
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center">
+                                    <i data-lucide="user-plus" class="text-slate-300"></i>
+                                </div>
+                                <div class="font-black text-slate-300">대기 중...</div>
+                            </div>
+                        `;
+                        lucide.createIcons();
+                        updateCurrentCount();
+                    }
+                }, 300);
+            }
+        };
+
+        function updateCurrentCount() {
+            const countSpan = document.getElementById("current-count");
+            if (countSpan) {
+                const currentCount = document.querySelectorAll('#participant-list > div[data-empty="false"]').length;
+                countSpan.innerText = currentCount;
+            }
+        }
+
+        window.checkStartButton = function() {
+            if (!isHost || isCompetition) return;
+            
+            const participants = document.querySelectorAll('#participant-list > div[data-empty="false"]');
+            const badges = document.querySelectorAll(".status-badge");
+            
+            let allReady = true;
+            badges.forEach(badge => {
+                if (badge.innerText !== "READY!") {
+                    // 방장은 준비 버튼이 없으므로 제외 (HOST 배지인 경우 통과)
+                    if (!badge.closest('div').innerHTML.includes('HOST')) {
+                        allReady = false;
+                    }
+                }
+            });
+
+            const startBtn = document.getElementById("start-btn");
+            if (participants.length >= 2 && allReady) {
+                startBtn.disabled = false;
+                startBtn.classList.replace("bg-slate-800", "bg-green-grad");
+                startBtn.classList.replace("text-slate-500", "text-white");
+                startBtn.classList.remove("opacity-50", "cursor-not-allowed");
+                startBtn.classList.add("shadow-2xl", "shadow-green-500/40");
+            } else {
+                startBtn.disabled = true;
+                startBtn.classList.add("bg-slate-800", "text-slate-500", "opacity-50", "cursor-not-allowed");
+                startBtn.classList.remove("bg-green-grad", "text-white", "shadow-2xl", "shadow-green-500/40");
+            }
+        };
+
+        // Initial check
+        setTimeout(window.checkStartButton, 500);
+        
+        document.getElementById("sendBtn").onclick = () => {
+            const msg = document.getElementById("msg").value;
+            if (msg.trim()) {
+                WSManager.sendChat(roomId, msg, currentUserId);
+                document.getElementById("msg").value = "";
+            }
+        };
+
+        const handleExit = () => {
+            // 게임 시작으로 인한 이동이거나 새로고침인 경우 무시
+            if (isNavigating) return;
+
+            // 새로고침 여부 확인 (Performance API)
+            const navEntries = performance.getEntriesByType('navigation');
+            if (navEntries.length > 0 && navEntries[0].type === 'reload') {
+                return;
+            }
+
+            // navigator.sendBeacon을 사용하여 페이지가 닫혀도 신뢰성 있게 서버에 알림
+            const url = `/battle/room/api/leave?roomId=${roomId}&userId=${currentUserId}`;
+            navigator.sendBeacon(url);
+            WSManager.disconnect();
+        };
+
+        document.getElementById("exit-btn").onclick = () => {
+            if (confirm("정말로 대결 방에서 나가시겠습니까?")) {
+                handleExit();
+                location.href = "/battle/room/lobby";
+            }
+        };
+
+        // 브라우저 뒤로가기 또는 닫기 대응
+        window.addEventListener("pagehide", (event) => {
+            handleExit();
+        });
+
+        // 게임 시작 시 이벤트를 받아서 플래그 설정 후 이동
+        window.addEventListener("gameStart", () => {
+            isNavigating = true;
+        });
+
+        // Enter key for chat
+        document.getElementById("msg").onkeypress = (e) => {
+            if (e.key === 'Enter') document.getElementById("sendBtn").click();
+        };
+
+        const startBtn = document.getElementById("start-btn");
+        if (startBtn) {
+            startBtn.onclick = () => {
+                isNavigating = true; // 방장이 시작 버튼 누를 때
+                WSManager.sendStatus(roomId, "START_GAME", currentUserId);
+            };
+        }
+
+        const readyBtn = document.getElementById("ready-btn");
+        if (readyBtn) {
+            readyBtn.onclick = () => {
+                const currentStatus = document.getElementById("user-status-text");
+                if (currentStatus.innerText === "READY!") {
+                    currentStatus.innerText = "NOT READY";
+                    readyBtn.classList.replace("bg-green-600", "bg-blue-600");
+                    WSManager.sendStatus(roomId, "UNREADY", currentUserId);
+                } else {
+                    currentStatus.innerText = "READY!";
+                    readyBtn.classList.replace("bg-blue-600", "bg-green-600");
+                    WSManager.sendStatus(roomId, "READY", currentUserId);
+                }
+            };
+        }
+
+        // Timer for competition mode
+        if (isCompetition) {
+            let timeLeft = 600; // Example: 10 mins
+            const timerDisplay = document.getElementById("competition-timer");
+            const interval = setInterval(() => {
+                const h = Math.floor(timeLeft / 3600).toString().padStart(2, '0');
+                const m = Math.floor((timeLeft % 3600) / 60).toString().padStart(2, '0');
+                const s = (timeLeft % 60).toString().padStart(2, '0');
+                if (timerDisplay) timerDisplay.innerText = `${h}:${m}:${s}`;
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                }
+                timeLeft--;
+            }, 1000);
+        }
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>

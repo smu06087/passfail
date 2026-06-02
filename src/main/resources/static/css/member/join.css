@@ -1,0 +1,161 @@
+* { box-sizing: border-box; }
+
+body { 
+  margin: 0; 
+  background: var(--bg-gradient);
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  height: 100vh; 
+  color: var(--text-main);
+}
+
+.wrap { 
+  width: 440px; 
+  background: rgba(255, 255, 255, 0.8); 
+  backdrop-filter: blur(14px);
+  padding: 48px; 
+  border: 1px solid rgba(255, 255, 255, 0.8); 
+  border-radius: 32px; 
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+h1 { 
+    text-align: center; 
+    font-size: 28px; 
+    margin-bottom: 32px; 
+    font-weight: 900;
+    letter-spacing: -0.05em;
+    color: var(--secondary-color);
+}
+
+/* 폼 그룹 레이아웃 */
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--text-muted); }
+.form-group input { 
+    width: 100%; 
+    padding: 14px; 
+    border: 1px solid var(--border-color); 
+    border-radius: 12px; 
+    background: #f8fafc;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+}
+
+/* --- 아이디 중복 확인 버튼 가로 배치를 위한 추가 스타일 --- */
+.input-group {
+  display: flex;      /* 가로 배치 */
+  gap: 10px;           /* 입력창과 버튼 사이 간격 */
+  align-items: flex-start; 
+}
+
+.input-group input {
+  flex: 1;            /* 입력창이 왼쪽 공간을 다 차지함 */
+}
+
+.btn-check {
+  width: auto;        /* 필요한 만큼만 너비 차지 */
+  padding: 14px 20px;
+  background: var(--secondary-color);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap; /* 버튼 글자 줄바꿈 방지 */
+  transition: all 0.2s;
+}
+
+.btn-check:hover {
+  background: #0f172a;
+  transform: translateY(-1px);
+}
+
+.btn-check:disabled {
+    background: var(--border-color);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 중복 검사 메시지 스타일 */
+.id-msg {
+  display: block;
+  font-size: 12px;
+  margin-top: 6px;
+  font-weight: 700;
+}
+/* -------------------------------------------------- */
+
+.btn-join { 
+  width: 100%; 
+  padding: 16px; 
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+  color: #fff; 
+  border: none; 
+  border-radius: 12px; 
+  font-weight: 800; 
+  font-size: 16px;
+  cursor: pointer; 
+  margin-top: 24px; 
+  box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.2);
+  transition: all 0.2s;
+}
+
+.btn-join:hover:not(:disabled) { 
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(34, 197, 94, 0.2);
+}
+
+.btn-join:disabled {
+    background: var(--border-color);
+    color: var(--text-muted);
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.footer { text-align: center; margin-top: 24px; font-size: 13px; color: var(--text-muted); font-weight: 700; }
+.footer a { color: var(--primary-color); text-decoration: none; margin-left: 4px; }
+.footer a:hover { text-decoration: underline; }
+
+.terms-group {
+    margin-top: 24px;
+    padding: 20px;
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+}
+.term-item {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.term-item input {
+    width: 18px !important; 
+    height: 18px !important;
+    margin-right: 12px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+.term-item label {
+    margin-bottom: 0 !important;
+    cursor: pointer;
+}
+.view-link {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-decoration: none;
+}
+hr { border: 0; border-top: 1px solid #f1f5f9; margin: 12px 0; }
+
