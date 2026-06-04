@@ -47,7 +47,8 @@ public class AiQuestionService {
         "상담원 연결 요청이 이미 접수되어 있습니다. 추가로 남길 내용이 있으면 이어서 보내주세요.";
     private static final String ADMIN_REPLY_PREFIX = "[상담원 답변] ";
     private static final String ADMIN_NAME_PREFIX = "[상담원:";
-    private static final String ADMIN_CLOSE_MESSAGE = "[상담 종료] 상담이 종료되었습니다.";
+    private static final String ADMIN_CLOSE_MESSAGE = "상담이 종료되었습니다.";
+    private static final String LEGACY_ADMIN_CLOSE_MESSAGE = "[상담 종료] 상담이 종료되었습니다.";
 
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
         "image/png",
@@ -209,7 +210,9 @@ public class AiQuestionService {
             aiChatSessionRepository.save(session);
         }
 
-        saveMessage(sessionId, AiChatRole.ASSISTANT, answer);
+        if (answer != null && !answer.isBlank()) {
+            saveMessage(sessionId, AiChatRole.ASSISTANT, answer);
+        }
         return answer;
     }
 
@@ -355,16 +358,22 @@ public class AiQuestionService {
 
     private String generateAnswer(Long sessionId, String content, MultipartFile image) {
         List<AiChatMessageEntity> messages = aiChatMessageRepository.findBySessionIdOrderBySentAtAsc(sessionId);
-        AiChatHandoffStatus status = resolveHandoffStatus(messages);
+        AiChatSessionEntity session = aiChatSessionRepository.findById(sessionId)
+            .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
+        AiChatHandoffStatus status = resolveStoredHandoffStatus(session, messages);
 
         if (isHandoffRequest(content, status)) {
-            return isVisibleHandoffStatus(status)
-                ? HANDOFF_ALREADY_REQUESTED_MESSAGE
-                : HANDOFF_REQUESTED_MESSAGE;
+            if (isConnectedHandoffStatus(status)) {
+                return HANDOFF_ALREADY_REQUESTED_MESSAGE;
+            }
+            if (isVisibleHandoffStatus(status)) {
+                return null;
+            }
+            return HANDOFF_REQUESTED_MESSAGE;
         }
 
         if (isVisibleHandoffStatus(status)) {
-            return HANDOFF_ALREADY_REQUESTED_MESSAGE;
+            return null;
         }
 
         String effectivePrompt = content == null || content.isBlank() ? IMAGE_ONLY_PROMPT : content;
@@ -513,7 +522,7 @@ public class AiQuestionService {
 
         boolean closed = messages.stream()
             .map(AiChatMessageEntity::getContent)
-            .anyMatch(ADMIN_CLOSE_MESSAGE::equals);
+            .anyMatch(content -> ADMIN_CLOSE_MESSAGE.equals(content) || LEGACY_ADMIN_CLOSE_MESSAGE.equals(content));
         if (closed) {
             return AiChatHandoffStatus.CLOSED;
         }
@@ -548,6 +557,12 @@ public class AiQuestionService {
         return status == AiChatHandoffStatus.REQUESTED
             || status == AiChatHandoffStatus.WAITING
             || status == AiChatHandoffStatus.ASSIGNED
+            || status == AiChatHandoffStatus.IN_PROGRESS
+            || status == AiChatHandoffStatus.HANDLED;
+    }
+
+    private boolean isConnectedHandoffStatus(AiChatHandoffStatus status) {
+        return status == AiChatHandoffStatus.ASSIGNED
             || status == AiChatHandoffStatus.IN_PROGRESS
             || status == AiChatHandoffStatus.HANDLED;
     }

@@ -394,7 +394,7 @@
                 }
 
                 const data = await response.json();
-                renderMessages(Array.isArray(data.messages) ? data.messages : []);
+                renderMessages(Array.isArray(data.messages) ? data.messages : [], true);
                 chatTitle.textContent = "passfail";
                 chatSubtitle.textContent = data.title || TEXT.enterQuestion;
                 input.placeholder = "AI에게 질문을 입력하세요";
@@ -450,7 +450,7 @@
                     ? TEXT.supportMemberPrefix + " · " + current.memberName
                     : TEXT.supportChatTitle;
                 chatSubtitle.textContent = resolveSupportSubtitle(data.handoffStatus);
-                renderMessages(Array.isArray(data.messages) ? data.messages : []);
+                renderMessages(Array.isArray(data.messages) ? data.messages : [], !silent);
                 supportCloseButton.disabled = state.pending || data.handoffStatus === "CLOSED";
                 status.textContent = "";
             } catch (error) {
@@ -493,8 +493,15 @@
             }
 
             state.memberPollId = window.setInterval(async function () {
+                if (!panel.classList.contains("is-open")) {
+                    return;
+                }
+
                 await refreshSessions();
-            }, 15000);
+                if (state.chatMode === "member" && state.activeSessionId) {
+                    await refreshActiveMemberSession(true);
+                }
+            }, 3000);
         }
 
         function startAdminPolling() {
@@ -659,6 +666,12 @@
                 }
 
                 const data = await response.json();
+                if (!data.answer) {
+                    await refreshSessions();
+                    markSessionAsSeen(state.activeSessionId);
+                    status.textContent = "";
+                    return;
+                }
                 appendMessage({
                     role: "ASSISTANT",
                     content: data.answer || "응답을 받지 못했습니다.",
@@ -863,6 +876,19 @@
                         acceptSupportSession(session.sessionId);
                     });
                     card.appendChild(acceptButton);
+                } else if (session.status !== "CLOSED") {
+                    const endButton = document.createElement("button");
+                    endButton.type = "button";
+                    endButton.className = "chatbot-support-accept";
+                    endButton.textContent = "\ub300\ud654 \ub05d\ub0b4\uae30";
+                    endButton.disabled = state.pending;
+                    endButton.addEventListener("click", async function (event) {
+                        event.stopPropagation();
+                        state.activeSupportSessionId = session.sessionId;
+                        state.activeSupportStatus = session.status || null;
+                        await closeSupportSession();
+                    });
+                    card.appendChild(endButton);
                 }
                 container.appendChild(card);
             });
@@ -922,13 +948,34 @@
             throw new Error(data && data.message ? data.message : TEXT.deleteRoomFailed);
         }
 
-        function renderMessages(messages) {
-            messageArea.innerHTML = "";
-            messages.forEach(appendMessage);
-            scrollMessagesToBottom();
+        async function refreshActiveMemberSession(silent) {
+            try {
+                const response = await fetch("/ai/session/" + state.activeSessionId);
+                if (!response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+                renderMessages(Array.isArray(data.messages) ? data.messages : [], !silent);
+                chatSubtitle.textContent = data.title || TEXT.enterQuestion;
+            } catch (error) {
+                return;
+            }
         }
 
-        function appendMessage(message) {
+        function renderMessages(messages, forceScroll) {
+            const shouldScroll = forceScroll || isMessagesNearBottom();
+            messageArea.innerHTML = "";
+            messages.forEach(function (message) {
+                appendMessage(message, false, true);
+            });
+            if (shouldScroll) {
+                scrollMessagesToBottom();
+            }
+        }
+
+        function appendMessage(message, forceScroll, skipScroll) {
+            const shouldScroll = forceScroll || isMessagesNearBottom();
             const role = String(message.role || "").toUpperCase() === "USER" ? "user" : "assistant";
             const supportAgent = role === "assistant" ? parseSupportAgentMessage(message.content) : null;
             const row = document.createElement("article");
@@ -939,7 +986,14 @@
 
             const avatar = document.createElement("span");
             avatar.className = "chatbot-message-avatar";
-            avatar.textContent = role === "assistant" ? "PF" : "ME";
+            if (state.chatMode === "support" && role === "user") {
+                const avatarImage = document.createElement("img");
+                avatarImage.src = "/image/default_profile.png";
+                avatarImage.alt = "";
+                avatar.appendChild(avatarImage);
+            } else {
+                avatar.textContent = role === "assistant" ? "PF" : "ME";
+            }
 
             const bubble = document.createElement("div");
             bubble.className = "chatbot-bubble";
@@ -964,7 +1018,9 @@
             wrap.appendChild(bubble);
             row.appendChild(wrap);
             messageArea.appendChild(row);
-            scrollMessagesToBottom();
+            if (!skipScroll && shouldScroll) {
+                scrollMessagesToBottom();
+            }
         }
 
         function resolveSupportSubtitle(statusValue) {
@@ -1034,6 +1090,15 @@
         if (messageArea) {
             messageArea.scrollTop = messageArea.scrollHeight;
         }
+    }
+
+    function isMessagesNearBottom() {
+        const messageArea = document.getElementById("chatbotMessageArea");
+        if (!messageArea) {
+            return true;
+        }
+
+        return messageArea.scrollHeight - messageArea.scrollTop - messageArea.clientHeight < 80;
     }
 
     function formatTimestamp(value) {
