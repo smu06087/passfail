@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -362,6 +362,11 @@
 			    <a th:href="@{/posts/{id}/edit(id=${post.postId})}" class="btn btn-primary">수정</a>
 			    <button class="btn btn-danger" id="deleteBtn">삭제</button>
 			</div>
+
+            <!-- 관리자 전용 삭제 버튼 -->
+            <div sec:authorize="hasRole('ROLE_ADMIN')" th:if="${post.isAuthor != true}">
+                <button class="btn btn-danger" id="adminDeleteBtn">관리자 권한으로 삭제</button>
+            </div>
         </div>
 
         <!-- ── 게시글 본문 ──────────────────────────────────────────── -->
@@ -469,6 +474,28 @@ document.getElementById('deleteBtn')?.addEventListener('click', async function (
         }
     } catch (error) {
         console.error('삭제 오류:', error);
+        alert('삭제 중 오류가 발생했습니다.');
+    }
+});
+
+// ── 관리자 게시글 삭제 ───────────────────────────────────────────────
+document.getElementById('adminDeleteBtn')?.addEventListener('click', async function () {
+    if (!confirm('관리자 권한으로 정말 이 게시글을 삭제하시겠습니까?')) return;
+    try {
+        const response = await fetch(`/posts/${postId}/admin`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        });
+        if (response.ok) {
+            alert('관리자 권한으로 게시글이 삭제되었습니다.');
+            window.location.href = '/board';
+        } else if (response.status === 403) {
+            alert('삭제 권한이 없습니다.');
+        } else {
+            alert('삭제에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('관리자 삭제 오류:', error);
         alert('삭제 중 오류가 발생했습니다.');
     }
 });
