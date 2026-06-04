@@ -168,4 +168,30 @@ public class PostController {
         log.warn("extractMemberId: unknown principal type = {}", principal.getClass().getSimpleName());
         return null;
     }
+    
+    @DeleteMapping("/{postId}/admin")
+    public ResponseEntity<Void> deletePostByAdmin(
+            @PathVariable(name = "postId") Long postId,
+            Authentication authentication) {
+        
+        // 1. ADMIN 권한 확인
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(auth -> auth.equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            return ResponseEntity.status(403).build();
+        }
+
+        // 2. 관리자 ID 추출
+        Long adminId = extractMemberId(authentication);
+        if (adminId == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        // 3. 삭제 실행
+        postService.deletePostByAdmin(postId, adminId);
+        return ResponseEntity.noContent().build();
+    }
+    
 }

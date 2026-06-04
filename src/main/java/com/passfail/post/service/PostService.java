@@ -244,6 +244,21 @@ public class PostService {
         }
         return false;
     }
+    
+    // ── 게시글 관리자 삭제 ──────────────────────────────────────────────
+    @Transactional
+    public void deletePostByAdmin(Long postId, Long adminMemberId) {
+        // 1. 관리자 권한 확인
+        var admin = memberRepository.findById(adminMemberId)
+                .filter(member -> "ROLE_ADMIN".equals(member.getRole().name()))
+                .orElseThrow(AdminOnlyException::new);
+
+        // 2. 게시글 조회
+        PostEntity post = getActivePost(postId);
+        
+        // 3. 소프트 삭제 실행
+        post.setIsDeleted(true);
+    }
 
     // 불필요한 Redis 메서드들은 제거 (DB 사용하므로)
 }
