@@ -14,7 +14,21 @@
             color: #1e293b;
             min-height: 100vh;
         }
-        .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            width: 100%; /* 너비 100% 확보 */
+        }
+        @media (max-width: 640px) {
+            .container {
+                margin: 20px auto;
+                padding: 0 12px;
+            }
+            .write-box {
+                padding: 24px;
+            }
+        }
         .write-box {
             background: white;
             border-radius: 16px;

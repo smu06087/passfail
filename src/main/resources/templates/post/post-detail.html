@@ -23,6 +23,13 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            width: 100%; /* 너비 100% 확보 */
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
         }
 
         /* ── 헤더 ──────────────────────────────────────────── */
@@ -32,6 +39,15 @@
             border-radius: 8px;
             margin-bottom: 20px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .post-header {
+                padding: 20px;
+            }
+            .post-title {
+                font-size: 22px !important;
+            }
         }
 
         .post-title {
@@ -48,6 +64,13 @@
             color: #666;
             padding-bottom: 15px;
             border-bottom: 1px solid #eee;
+            flex-wrap: wrap; /* 메타 정보 줄바꿈 허용 */
+        }
+
+        @media (max-width: 600px) {
+            .post-meta {
+                gap: 10px 15px;
+            }
         }
 
         .meta-item {
@@ -66,10 +89,10 @@
             font-weight: 600;
         }
 
-        .category-badge.QUESTION { background: #17a2b8; }
+        .category-badge.QNA { background: #17a2b8; }
         .category-badge.FREE { background: #6c757d; }
-        .category-badge.INFO { background: #28a745; }
-        .category-badge.TIP { background: #ffc107; color: #333; }
+        .category-badge.REVIEW { background: #ffc107; color: #333; }
+        .category-badge.NOTICE { background: #dc3545; }
 
         /* ── 본문 ──────────────────────────────────────────── */
         .post-content {
@@ -79,6 +102,7 @@
             margin-bottom: 20px;
             line-height: 1.8;
             word-wrap: break-word;
+            white-space: pre-wrap; /* 줄바꿈 보존 추가 */
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
@@ -317,7 +341,7 @@
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                 <div>
                     <span class="category-badge" th:classappend="${'category-' + post.category}" 
-                          th:text="${post.category}"></span>
+                          th:text="${post.category.label}"></span>
                 </div>
             </div>
 
@@ -672,4 +696,4 @@ document.getElementById('commentList').addEventListener('click', async function 
 </script>
 <script th:replace="~{fragments/navbar :: navbarScript}"></script>
 </body>
-</html>
+</html></html>

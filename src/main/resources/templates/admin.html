@@ -12,18 +12,90 @@
         .stat-card { transition: all 0.3s ease; }
         .stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); }
         
+        /* 사이드바 기본 스타일 */
+        .admin-sidebar {
+            width: 256px;
+            background: white;
+            border-right: 1px solid #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 40;
+            transition: transform 0.3s ease;
+        }
+
+        /* 메인 콘텐츠 기본 스타일 */
+        .admin-main {
+            margin-left: 256px;
+            flex: 1;
+            padding: 24px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* 태블릿 대응 (1024px 이하) */
         @media (max-width: 1024px) {
-            .admin-sidebar { width: 80px; }
+            .admin-sidebar { width: 70px; }
             .admin-sidebar .sidebar-group-title span, 
             .admin-sidebar .sidebar-group-title ul,
             .admin-sidebar h1 span { display: none; }
             .admin-sidebar .sidebar-group-title { padding: 10px; display: flex; justify-content: center; }
-            .admin-main { margin-left: 80px; }
+            .admin-main { margin-left: 70px; }
         }
 
+        /* 모바일 대응 (640px 이하) - 사이드바 숨김 및 슬라이드 방식 */
         @media (max-width: 640px) {
-            .admin-sidebar { display: none; }
-            .admin-main { margin-left: 0; padding: 20px; }
+            .admin-sidebar {
+                transform: translateX(-100%);
+                width: 240px;
+                display: flex !important; /* 항상 flex 유지 */
+            }
+            .admin-sidebar.show {
+                transform: translateX(0);
+                box-shadow: 10px 0 30px rgba(0,0,0,0.1);
+            }
+            .admin-sidebar .sidebar-group-title span, 
+            .admin-sidebar .sidebar-group-title ul,
+            .admin-sidebar h1 span { display: inline !important; } /* 슬라이드 메뉴에서는 다시 보임 */
+            .admin-sidebar .sidebar-group-title { display: block !important; padding: 16px !important; }
+
+            .admin-main { margin-left: 0 !important; padding: 16px !important; }
+            .stat-card { padding: 20px !important; gap: 12px !important; }
+            .stat-card .text-2xl { font-size: 1.25rem !important; }
+            
+            /* 모바일 전용 오버레이 */
+            #sidebar-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.4);
+                backdrop-filter: blur(2px);
+                z-index: 35;
+            }
+            #sidebar-overlay.show { display: block; }
+        }
+
+        /* 사이드바 토글 버튼 (모바일 전용) */
+        #sidebar-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 54px;
+            height: 54px;
+            background: #16a34a;
+            color: white;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+        }
+        @media (max-width: 640px) {
+            #sidebar-toggle { display: flex; }
         }
     </style>
     <div th:replace="~{fragments/navbar :: navbarStyles}"></div>
@@ -31,25 +103,35 @@
 <body class="text-gray-800">
     <div th:replace="~{fragments/navbar :: mainNavbar}"></div>
 
+    <!-- 모바일 사이드바 토글 버튼 및 오버레이 -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()">
+        <i data-lucide="menu"></i>
+    </button>
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <div class="flex">
-        <aside class="admin-sidebar w-64 bg-white border-r border-gray-100 flex flex-col fixed h-full shadow-sm z-40 transition-all">
-            <div class="p-8 border-b border-gray-50">
+        <aside id="admin-sidebar" class="admin-sidebar shadow-sm">
+            <div class="p-8 border-b border-gray-50 flex items-center justify-between">
                 <h1 class="text-2xl font-black text-green-600 tracking-tighter flex items-center gap-2">
                     <i data-lucide="check-circle"></i> <span>Passfail</span>
                 </h1>
+                <!-- 모바일 닫기 버튼 -->
+                <button class="sm:hidden text-gray-400" onclick="toggleSidebar()">
+                    <i data-lucide="x" size="20"></i>
+                </button>
             </div>
             <nav id="sidebar-nav" class="flex-1 overflow-y-auto p-4 space-y-8 mt-4"></nav>
         </aside>
 
-        <main class="admin-main ml-64 flex-1 p-6 md:p-12 min-h-screen transition-all">
-            <header class="flex justify-between items-center mb-12">
+        <main class="admin-main overflow-x-hidden">
+            <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 md:mb-12">
                 <div>
-                    <h2 id="current-section-title" class="text-3xl font-black text-gray-900 tracking-tight">대시보드</h2>
+                    <h2 id="current-section-title" class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">대시보드</h2>
                     <p id="current-section-desc" class="text-sm text-gray-400 mt-1">전체 현황을 모니터링합니다.</p>
                 </div>
             </header>
 
-            <div id="admin-sections">
+            <div id="admin-sections" class="w-full">
                 <section id="section-dashboard" class="admin-section">
                     <div id="summary-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"></div>
                     <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -71,34 +153,36 @@
                 </section>
 
                 <section id="section-users" class="admin-section hidden">
-                    <div class="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                    <div class="bg-white p-6 md:p-8 rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
                         <h3 class="font-black text-xl text-gray-900 mb-8">회원 목록 및 권한 설정</h3>
-                        <table class="w-full text-sm text-left">
-                            <thead class="text-gray-400 font-bold border-b border-gray-50">
-                                <tr>
-                                    <th class="p-4">아이디</th>
-                                    <th class="p-4">이메일</th>
-                                    <th class="p-4">현재권한</th>
-                                    <th class="p-4">권한변경</th>
-                                    <th class="p-4">상태</th>
-                                    <th class="p-4">관리</th>
-                                </tr>
-                            </thead>
-                            <tbody id="user-table-body"></tbody>
-                        </table>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left min-w-[600px]">
+                                <thead class="text-gray-400 font-bold border-b border-gray-50">
+                                    <tr>
+                                        <th class="p-4">아이디</th>
+                                        <th class="p-4">이메일</th>
+                                        <th class="p-4">현재권한</th>
+                                        <th class="p-4">권한변경</th>
+                                        <th class="p-4">상태</th>
+                                        <th class="p-4">관리</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-table-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
                 <section id="section-problems" class="admin-section hidden">
-                    <div class="grid grid-cols-3 gap-8">
-                        <div class="col-span-2 bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
-                            <div class="flex justify-between items-center mb-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-2 bg-white p-6 md:p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                                 <h3 class="font-black text-xl text-gray-900">문제 라이브러리</h3>
-                                <button class="p-3 px-6 bg-green-600 text-white rounded-2xl text-sm font-black" onclick="location.href='/problem/problemCreate'">새 문제 등록</button>
+                                <button class="w-full sm:w-auto p-3 px-6 bg-green-600 text-white rounded-2xl text-sm font-black" onclick="location.href='/problem/problemCreate'">새 문제 등록</button>
                             </div>
-                            <div id="problem-grid" class="grid grid-cols-2 gap-6"></div>
+                            <div id="problem-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-6"></div>
                         </div>
-                        <div class="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                        <div class="bg-white p-6 md:p-8 rounded-[2rem] border border-gray-100 shadow-sm">
                             <h3 class="font-black text-lg text-gray-900 mb-6">태그 관리</h3>
                             <div class="flex gap-2 mb-6">
                                 <input type="text" id="new-tag-name" placeholder="새 태그" class="flex-1 p-2 bg-gray-50 border border-gray-100 rounded-xl text-xs outline-none">
@@ -110,7 +194,7 @@
                 </section>
 
                 <section id="section-finance" class="admin-section hidden">
-                    <div class="grid grid-cols-3 gap-6 mb-8">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                         <div class="stat-card bg-white p-6 rounded-3xl border border-gray-50 shadow-sm">
                             <p class="text-[10px] text-gray-400 mb-1 font-black uppercase">총 매출</p>
                             <p id="settle-total-revenue" class="text-xl font-black text-gray-900">0</p>
@@ -124,15 +208,17 @@
                             <p id="settle-final-amount" class="text-xl font-black text-green-600">0</p>
                         </div>
                     </div>
-                    <div class="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                    <div class="bg-white p-6 md:p-8 rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
                         <h3 class="font-black text-xl text-gray-900 mb-8">결제 통계 및 내역</h3>
                         <div class="h-64 mb-8"><canvas id="revenueChart"></canvas></div>
-                        <table class="w-full text-sm text-left">
-                            <thead class="text-gray-400 font-bold border-b border-gray-50">
-                                <tr><th>거래번호</th><th>사용자</th><th>결제수단</th><th>금액</th><th>상태</th><th>날짜</th></tr>
-                            </thead>
-                            <tbody id="payment-table-body"></tbody>
-                        </table>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left min-w-[600px]">
+                                <thead class="text-gray-400 font-bold border-b border-gray-50">
+                                    <tr><th>거래번호</th><th>사용자</th><th>결제수단</th><th>금액</th><th>상태</th><th>날짜</th></tr>
+                                </thead>
+                                <tbody id="payment-table-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -161,11 +247,25 @@
             { id: 'system', title: "시스템 운영", icon: "shield-check", items: ["보안 모니터링", "로그 분석"] }
         ];
 
+        // 사이드바 토글 (모바일)
+        function toggleSidebar() {
+            const sidebar = document.getElementById('admin-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+
         function switchSection(id) {
             document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
             document.getElementById(`section-${id}`).classList.remove('hidden');
             const menu = sidebarData.find(m => m.id === id);
             document.getElementById('current-section-title').textContent = menu.title;
+            
+            // 모바일에서 메뉴 클릭 시 사이드바 닫기
+            if (window.innerWidth <= 640) {
+                toggleSidebar();
+            }
+
             if (id === 'users') loadUserList();
             if (id === 'problems') { loadProblemList(); loadTagList(); }
             if (id === 'finance') { loadPaymentList(); loadSettlementData(); }
@@ -287,7 +387,7 @@
             const analysisRes = await fetch('/api/admin/analysis');
             const analysis = await analysisRes.json();
             const monthlyData = analysis.monthlyRevenue;
-            if (revenueChart) revenueChart.destroy();
+            if (typeof revenueChart !== 'undefined' && revenueChart) revenueChart.destroy();
             revenueChart = new Chart(document.getElementById('revenueChart').getContext('2d'), {
                 type: 'line',
                 data: {
@@ -328,6 +428,7 @@
             });
             lucide.createIcons();
         }
+        let revenueChart;
         init();
         /*]]>*/
     </script>

@@ -17,6 +17,15 @@
             padding-bottom: 8px !important;
         }
 
+        @media (max-width: 768px) {
+            .navbar-global-style.nav-container {
+                padding-left: 12px !important;
+                padding-right: 12px !important;
+                padding-top: 6px !important;
+                padding-bottom: 6px !important;
+            }
+        }
+
         .navbar-global-style .main-content-wrapper {
             max-width: 1200px !important;
             margin-left: auto !important;
@@ -32,6 +41,108 @@
             margin-bottom: 12px !important;
         }
 
+        @media (max-width: 768px) {
+            .navbar-global-style .top-row {
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                margin-bottom: 8px !important;
+            }
+            .navbar-global-style .logo-wrapper {
+                order: 1 !important;
+                flex: 1 !important;
+                justify-content: flex-start !important;
+            }
+            .navbar-global-style .user-section {
+                order: 2 !important;
+                flex: 1 !important;
+                justify-content: flex-end !important;
+            }
+            .navbar-global-style .search-bar-wrapper {
+                order: 3 !important;
+                width: 100% !important;
+                max-width: none !important;
+                flex: none !important;
+                height: 32px !important; /* 모바일에서 검색창 높이 축소 */
+            }
+        }
+
+        .navbar-global-style .logo-wrapper {
+            flex: 1 !important;
+            display: flex !important;
+            justify-content: flex-start !important;
+        }
+
+        .navbar-global-style .user-section {
+            flex: 1 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            gap: 12px !important;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-global-style .user-section {
+                gap: 8px !important;
+            }
+        }
+
+        .navbar-global-style .user-dropdown-wrapper {
+            position: relative !important;
+        }
+
+        .navbar-global-style .dropdown-menu {
+            position: absolute !important;
+            top: 100% !important;
+            right: 0 !important;
+            margin-top: 8px !important;
+            width: 140px !important;
+            background: white !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 12px !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+            display: none;
+            z-index: 100 !important;
+            overflow: hidden !important;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-global-style .dropdown-menu {
+                width: 120px !important;
+                margin-top: 4px !important;
+            }
+        }
+
+        .navbar-global-style .dropdown-menu.show {
+            display: block !important;
+        }
+
+        .navbar-global-style .dropdown-item {
+            display: block !important;
+            padding: 10px 16px !important;
+            font-size: 11.5px !important;
+            font-weight: 700 !important;
+            color: #475569 !important;
+            text-decoration: none !important;
+            transition: background 0.2s !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-global-style .dropdown-item {
+                padding: 8px 12px !important;
+                font-size: 10.5px !important;
+            }
+        }
+
+        .navbar-global-style .dropdown-item:last-child {
+            border-bottom: none !important;
+        }
+
+        .navbar-global-style .dropdown-item:hover {
+            background: #f8fafc !important;
+            color: #22c55e !important;
+        }
+
         .navbar-global-style .logo-text {
             font-size: 22px !important;
             font-weight: 900 !important;
@@ -40,9 +151,14 @@
             color: #16a34a !important; /* text-green-600 */
         }
 
+        @media (max-width: 768px) {
+            .navbar-global-style .logo-text {
+                font-size: 18px !important;
+            }
+        }
+
         .navbar-global-style .search-bar-wrapper {
-            flex: 1 !important;
-            max-width: 500px !important;
+            flex: 0 1 420px !important;
             border: 1px solid #e2e8f0 !important;
             border-radius: 12px !important;
             display: flex !important;
@@ -63,16 +179,23 @@
             color: #1e293b !important;
         }
 
-        .navbar-global-style .user-section {
-            display: flex !important;
-            align-items: center !important;
-            gap: 12px !important;
+        @media (max-width: 768px) {
+            .navbar-global-style .search-input {
+                font-size: 12px !important;
+            }
         }
 
         .navbar-global-style .nav-loop-wrapper {
             display: flex !important;
             justify-content: center !important;
             gap: 16px !important;
+            flex-wrap: wrap !important;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-global-style .nav-loop-wrapper {
+                gap: 8px !important;
+            }
         }
 
         .navbar-global-style .nav-box {
@@ -91,6 +214,22 @@
             color: #475569 !important;
         }
 
+        @media (max-width: 768px) {
+            .navbar-global-style .nav-box {
+                height: 30px !important;
+                width: 70px !important;
+                font-size: 10px !important;
+                border-radius: 8px !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar-global-style .nav-box {
+                width: 65px !important;
+                font-size: 9.5px !important;
+            }
+        }
+
         .navbar-global-style .nav-box:hover {
             border-color: #22c55e;
             color: #22c55e !important;
@@ -102,22 +241,25 @@
             background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
         }
 
-        .navbar-global-style #login-section a,
-        .navbar-global-style #member-section a {
-            font-size: 11px !important;
+        .navbar-global-style #login-section a {
+            font-size: 12px !important;
             font-weight: 800 !important;
-            white-space: nowrap !important;
-            padding: 6px 16px !important;
+            padding: 8px 18px !important;
         }
         
-        .navbar-global-style #member-section span {
-            font-size: 10.5px !important;
-            font-weight: 700 !important;
+        .navbar-global-style .welcome-text {
+            font-size: 12px !important;
+            font-weight: 800 !important;
             color: #64748b !important;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .navbar-global-style .logout-link {
-            font-size: 10px !important;
+            font-size: 11px !important;
             font-weight: 700 !important;
             color: #94a3b8 !important;
         }
@@ -127,27 +269,42 @@
 
 <nav th:fragment="mainNavbar" th:with="sId=${searchInputId ?: ''}, sPlaceholder=${searchPlaceholder ?: '검색 기능을 이용해보세요'}" class="navbar-global-style nav-container sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 text-slate-800">
     <div class="main-content-wrapper">
-        <!-- 상단 로고 및 검색 바 -->
+        <!-- 상단 로고, 검색 바, 사용자 섹션 -->
         <div class="top-row">
-            <div class="logo-wrapper" style="flex: 1; display: flex; align-items: center;">
+            <!-- 1. 로고 -->
+            <div class="logo-wrapper">
                 <div class="logo-text text-green-600 tracking-tighter cursor-pointer inline-block" onclick="location.href='/main'">
                     Passfail
                 </div>
             </div>
             
+            <!-- 2. 검색 바 (가운데 정렬) -->
             <form action="/search" method="GET" class="search-bar-wrapper shadow-inner">
                 <i data-lucide="search" style="width: 18px; height: 18px;" class="text-slate-400"></i>
                 <input type="text" name="q" th:id="${sId}" th:value="${param.q}" th:placeholder="${sPlaceholder}" class="search-input font-bold text-slate-600">
             </form>
 
-            <div class="user-section" style="flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 12px;">
+            <!-- 3. 사용자 섹션 -->
+            <div class="user-section">
                 <div id="login-section" th:if="${currentUsername == null}">
                     <a href="/login" class="px-6 py-2.5 border border-slate-300 rounded-xl font-black text-sm hover:bg-slate-50 transition-all">로그인</a>
                 </div>
-                <div id="member-section" th:if="${currentUsername != null}">
-                    <span class="font-black text-sm text-slate-500 whitespace-nowrap"><span class="text-green-600" th:text="${currentUsername}">동엽</span>님 접속</span>
-                    <a th:href="@{/mypage/{name}(name=${currentUsername})}" class="px-6 py-2.5 bg-green-grad text-white rounded-xl font-black text-sm shadow-lg shadow-green-500/20 whitespace-nowrap">마이페이지</a>
-                    <a href="/logout" class="logout-link text-xs font-bold text-slate-400 hover:text-slate-600 whitespace-nowrap">로그아웃</a>
+                <div id="member-section" th:if="${currentUsername != null}" class="flex items-center gap-4">
+                    <div class="user-dropdown-wrapper">
+                        <!-- 사용자 이름 (클릭 이벤트) -->
+                        <span class="welcome-text" th:attr="onclick=${isAdmin} ? 'toggleNavbarDropdown(event)' : 'location.href=\'/mypage/' + ${currentUsername} + '\''">
+                            <span class="text-green-600" th:text="${currentUsername}">동엽</span>님 접속
+                            <i th:if="${isAdmin}" data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                        </span>
+                        
+                        <!-- 관리자용 드롭다운 메뉴 -->
+                        <div th:if="${isAdmin}" id="navbar-admin-dropdown" class="dropdown-menu">
+                            <a th:href="@{/mypage/{name}(name=${currentUsername})}" class="dropdown-item">마이페이지</a>
+                            <a href="/admin" class="dropdown-item admin-only-link">관리자 페이지</a>
+                        </div>
+                    </div>
+                    
+                    <a href="/logout" class="logout-link hover:text-slate-600 transition-colors">로그아웃</a>
                 </div>
             </div>
         </div>
@@ -170,10 +327,22 @@
         { title: "랭킹", url: "/ranking" },
         { title: "대회", url: "/battle/room/lobby" }
     ];
- 
-    if (isAdmin) {
-        navItems.push({ title: "관리자", url: "/admin" });
+
+    function toggleNavbarDropdown(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('navbar-admin-dropdown');
+        if (dropdown) {
+            dropdown.classList.toggle('show');
+        }
     }
+
+    // 외부 클릭 시 드롭다운 닫기
+    window.addEventListener('click', function() {
+        const dropdown = document.getElementById('navbar-admin-dropdown');
+        if (dropdown && dropdown.classList.contains('show')) {
+            dropdown.classList.remove('show');
+        }
+    });
 
     function renderNavbar() {
         const navCont = document.getElementById('nav-loop-container');

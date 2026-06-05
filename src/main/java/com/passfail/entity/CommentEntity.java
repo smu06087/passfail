@@ -32,7 +32,7 @@ public class CommentEntity {
 	@JoinColumn(name = "member_id", insertable = false, updatable = false)
 	private MemberEntity member;
 
-	@Column(nullable = false)
+	@Column(nullable = false, length = 1000)
 	private String content;
 
 	@Column(nullable = false)

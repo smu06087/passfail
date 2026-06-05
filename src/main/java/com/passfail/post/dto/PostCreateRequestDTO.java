@@ -20,6 +20,7 @@ public class PostCreateRequestDTO {
 	private String title;
 	
 	@NotBlank(message = "내용은 필수입니다.")
+	@Size(max = 5000, message = "내용은 5000자 이하여야 합니다.")
 	private String content;
 	
 }

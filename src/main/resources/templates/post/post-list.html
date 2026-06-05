@@ -27,6 +27,17 @@
             padding: 0 24px;
         }
 
+        @media (max-width: 768px) {
+            .board-container {
+                margin: 24px auto;
+                padding: 0 16px;
+            }
+            .page-title {
+                font-size: 24px;
+                margin-bottom: 24px;
+            }
+        }
+
         /* ── 페이지 타이틀 ── */
         .page-title {
             font-size: 32px;
@@ -56,6 +67,12 @@
             margin-bottom: 24px;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
         }
+        @media (max-width: 640px) {
+            .toolbar-wrap {
+                padding: 16px;
+                border-radius: 16px;
+            }
+        }
         .category-tabs {
             display: flex;
             gap: 10px;
@@ -73,6 +90,12 @@
             cursor: pointer;
             transition: all 0.2s;
         }
+        @media (max-width: 640px) {
+            .tab-btn {
+                padding: 6px 14px;
+                font-size: 13px;
+            }
+        }
         .tab-btn:hover { border-color: #22c55e; color: #16a34a; }
         .tab-btn.active {
             background: linear-gradient(135deg, #22c55e, #16a34a);
@@ -83,6 +106,11 @@
         .search-row {
             display: flex;
             gap: 12px;
+        }
+        @media (max-width: 640px) {
+            .search-row {
+                flex-direction: column;
+            }
         }
         .search-input-wrap {
             flex: 1;
@@ -130,20 +158,6 @@
             justify-content: flex-end;
             margin-bottom: 12px;
         }
-        .btn-write {
-            display: none; /* 로그인 시 JS로 표시 */
-            padding: 10px 24px;
-            background: #1e293b;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 800;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transition: all 0.2s;
-        }
-        .btn-write:hover { background: #0f172a; transform: translateY(-1px); }
 
         /* ── 게시글 테이블 ── */
         .post-table-wrap {
@@ -153,10 +167,13 @@
             border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            /* 모바일 대응: 가로 스크롤 허용 */
+            overflow-x: auto;
         }
         .post-table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 800px; /* 테이블 최소 너비 확보 */
         }
         .post-table thead { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
         .post-table th {
@@ -221,6 +238,12 @@
         /* 통계 */
         .stat-cell { color: #94a3b8; font-size: 13px; white-space: nowrap; }
         .stat-cell i { vertical-align: middle; margin-right: 3px; }
+
+        @media (max-width: 640px) {
+            .hide-mobile { display: none !important; }
+            .post-table { min-width: unset !important; }
+            .post-table th, .post-table td { padding: 10px 8px !important; font-size: 12px !important; }
+        }
 
         /* ── 빈 상태 / 로딩 ── */
         .state-row td {
@@ -340,9 +363,9 @@
                         <th style="width:100px">카테고리</th>
                         <th>제목</th>
                         <th style="width:110px">작성자</th>
-                        <th style="width:75px">조회</th>
-                        <th style="width:75px">좋아요</th>
-                        <th style="width:75px">댓글</th>
+                        <th class="hide-mobile" style="width:75px">조회</th>
+                        <th class="hide-mobile" style="width:75px">좋아요</th>
+                        <th class="hide-mobile" style="width:75px">댓글</th>
                         <th style="width:115px">작성일</th>
                     </tr>
                 </thead>
@@ -545,9 +568,9 @@
                     ${pinBadge}<span class="title-text">${title}</span>
                 </td>
                 <td style="font-weight:600; color:#475569;">${author}</td>
-                <td class="stat-cell">👁 ${post?.viewCount    ?? 0}</td>
-                <td class="stat-cell">❤️ ${post?.likeCount    ?? 0}</td>
-                <td class="stat-cell">💬 ${post?.commentCount ?? 0}</td>
+                <td class="stat-cell hide-mobile">👁 ${post?.viewCount    ?? 0}</td>
+                <td class="stat-cell hide-mobile">❤️ ${post?.likeCount    ?? 0}</td>
+                <td class="stat-cell hide-mobile">💬 ${post?.commentCount ?? 0}</td>
                 <td class="stat-cell">${date}</td>
             </tr>`;
     }).join('');
