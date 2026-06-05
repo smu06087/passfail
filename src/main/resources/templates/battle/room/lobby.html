@@ -117,10 +117,11 @@
                 </div>
                 
                 <div class="mt-auto pt-6 flex items-center justify-end border-t border-slate-50">
-                    <button th:onclick="'joinRoom(' + ${room.roomId} + ', ' + ${room.hasPassword} + ')'" 
-                            class="px-6 py-2 bg-slate-800 text-white rounded-xl font-black text-sm hover:bg-green-600 transition-colors shadow-lg shadow-slate-900/10">
-                        참여하기
-                    </button>
+                 <button th:data-room-id="${room.roomId}" th:data-has-password="${room.hasPassword}" th:data-status="${room.status.name()}"
+					    onclick="joinRoom(this)"
+					    class="px-6 py-2 bg-slate-800 text-white rounded-xl font-black text-sm hover:bg-green-600 transition-colors shadow-lg shadow-slate-900/10">
+					    참여하기
+					</button>
                 </div>
             </div>
         </div>
@@ -187,9 +188,45 @@
             alert("비밀번호가 틀렸습니다.");
         } else if (error === 'no_match_found') {
             alert("적합한 방을 찾지 못했습니다. 직접 방을 만들어 보세요!");
+        } else if (error === 'already_started') {
+            alert("이미 시작된 방에는 입장할 수 없습니다.");
         }
 
-        function joinRoom(roomId, hasPassword) {
+        async function joinRoom(btn) {
+        	
+        	const roomId = btn.dataset.roomId;
+            const hasPassword = btn.dataset.hasPassword === "true";
+            const status = btn.dataset.status;
+            
+            // 1. 방 상태 확인
+            if (status !== 'WAITING') {
+                // 방에 참여 중인지 확인하기 위해 서버에 체크 요청 (간단히 API 하나 추가하거나 현재 로직 활용)
+                try {
+                    const response = await fetch(`/battle/room/${roomId}/check-participant`);
+                    const data = await response.json();
+                    
+                    if (data.isParticipant) {
+                        if (confirm("이미 진행 중인 대결이 있습니다. 재접속하시겠습니까?")) {
+                            location.href = `/battle/room/join/${roomId}`;
+                            return;
+                        } else {
+                            // 명시적 거절 시 퇴장 처리
+                            if (confirm("대결을 포기하고 퇴장하시겠습니까?")) {
+                                await fetch(`/battle/room/${roomId}/leave-forced`, { method: 'POST' });
+                                location.reload();
+                            }
+                            return;
+                        }
+                    } else {
+                        alert("이미 시작된 방에는 입장할 수 없습니다.");
+                        return;
+                    }
+                } catch (e) {
+                    alert("방 상태 확인 중 오류가 발생했습니다.");
+                    return;
+                }
+            }
+
             if (hasPassword) {
                 const password = prompt("비밀번호를 입력하세요:");
                 if (password) {

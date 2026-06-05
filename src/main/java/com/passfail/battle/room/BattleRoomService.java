@@ -66,8 +66,77 @@ public class BattleRoomService {
 			}
 			battleParticipantRepository.save(p);
 			
+			BattleRoomEntity room = battleRoomRepository.findById(roomId).orElse(null);
+			if (room != null && status == com.passfail.enums.BattleParticipantStatus.FINISHED && room.getBattleMode().isIndividualFinish()) {
+				// 개인 종료 모드인 경우 현재 순위 계산 및 알림
+				List<BattleParticipantEntity> participants = battleParticipantRepository.findByRoomId(roomId);
+				List<BattleParticipantEntity> finished = participants.stream()
+					.filter(bp -> bp.getStatus() == com.passfail.enums.BattleParticipantStatus.FINISHED)
+					.sorted((p1, p2) -> compareParticipants(p1, p2, room.getBattleMode()))
+					.toList();
+				
+				int currentRank = 0;
+				for (int i = 0; i < finished.size(); i++) {
+					if (finished.get(i).getMemberId().equals(memberId)) {
+						currentRank = i + 1;
+						break;
+					}
+				}
+				
+				List<Map<String, Object>> finishers = finished.stream()
+					.map(bp -> Map.<String, Object>of(
+						"username", bp.getMember() != null ? bp.getMember().getUsername() : "Unknown",
+						"score", bp.getScore(),
+						"finishedAt", bp.getFinishedAt()
+					)).toList();
+
+				messagingTemplate.convertAndSend("/topic/room/" + roomId, Map.of(
+					"type", "individual_result",
+					"memberId", memberId,
+					"rank", currentRank,
+					"score", score != null ? score : 0,
+					"finishers", finishers,
+					"totalParticipants", participants.size()
+				));
+			}
+			
 			// 모든 유저가 완료/퇴장했는지 확인하여 정산 트리거
 			checkAndSettle(roomId);
+		});
+	}
+
+	private int compareParticipants(BattleParticipantEntity p1, BattleParticipantEntity p2, com.passfail.enums.BattleMode mode) {
+		if (p1.getScore() == null || p2.getScore() == null) return 0;
+		if (!p1.getScore().equals(p2.getScore())) {
+			if (mode.isHighBetter()) {
+				return p2.getScore().compareTo(p1.getScore()); // 높은게 위로
+			} else {
+				return p1.getScore().compareTo(p2.getScore()); // 낮은게 위로
+			}
+		}
+		// 점수 같으면 빨리 끝낸 사람이 위로
+		if (p1.getFinishedAt() != null && p2.getFinishedAt() != null) {
+			return p1.getFinishedAt().compareTo(p2.getFinishedAt());
+		}
+		return 0;
+	}
+
+	@Transactional
+	public void forceSettle(Long roomId) {
+		battleRoomRepository.findById(roomId).ifPresent(room -> {
+			if (room.getStatus() == BattleRoomStatus.IN_PROGRESS) {
+				List<BattleParticipantEntity> participants = battleParticipantRepository.findByRoomId(roomId);
+				// 미완료자들도 현재 상태로 정산에 포함 (기권/연결끊김 제외)
+				for (BattleParticipantEntity p : participants) {
+					if (p.getStatus() == com.passfail.enums.BattleParticipantStatus.PLAYING) {
+						p.setStatus(com.passfail.enums.BattleParticipantStatus.FINISHED);
+						if (p.getScore() == null) p.setScore(0);
+						p.setFinishedAt(LocalDateTime.now());
+						battleParticipantRepository.save(p);
+					}
+				}
+				settleBattle(room, participants);
+			}
 		});
 	}
 
@@ -79,7 +148,8 @@ public class BattleRoomService {
 			List<BattleParticipantEntity> participants = battleParticipantRepository.findByRoomId(roomId);
 			boolean allDone = participants.stream().allMatch(p -> 
 				p.getStatus() == com.passfail.enums.BattleParticipantStatus.FINISHED || 
-				p.getStatus() == com.passfail.enums.BattleParticipantStatus.EXITED
+				p.getStatus() == com.passfail.enums.BattleParticipantStatus.EXITED ||
+				p.getStatus() == com.passfail.enums.BattleParticipantStatus.DISCONNECTED
 			);
 
 			if (allDone) {
@@ -89,15 +159,11 @@ public class BattleRoomService {
 	}
 
 	private void settleBattle(BattleRoomEntity room, List<BattleParticipantEntity> participants) {
-		// 정산 로직: 1. 점수 낮은 순(코스트), 2. 일찍 푼 순(finishedAt)
+		// 정산 로직: 모드별 점수 방향성 + 시간순
 		List<BattleParticipantEntity> sorted = participants.stream()
 			.filter(p -> p.getStatus() == com.passfail.enums.BattleParticipantStatus.FINISHED)
-			.sorted((p1, p2) -> {
-				if (!p1.getScore().equals(p2.getScore())) {
-					return p1.getScore().compareTo(p2.getScore());
-				}
-				return p1.getFinishedAt().compareTo(p2.getFinishedAt());
-			}).toList();
+			.sorted((p1, p2) -> compareParticipants(p1, p2, room.getBattleMode()))
+			.toList();
 
 		for (int i = 0; i < sorted.size(); i++) {
 			sorted.get(i).setFinalRank(i + 1);
@@ -106,10 +172,18 @@ public class BattleRoomService {
 		room.setStatus(BattleRoomStatus.FINISHED);
 		battleRoomRepository.save(room);
 		
+		List<Map<String, Object>> results = sorted.stream().map(p -> Map.<String, Object>of(
+			"username", p.getMember() != null ? p.getMember().getUsername() : "Unknown",
+			"score", p.getScore(),
+			"rank", p.getFinalRank(),
+			"memberId", p.getMemberId()
+		)).toList();
+
 		// 결과 브로드캐스트
 		messagingTemplate.convertAndSend("/topic/room/" + room.getRoomId(), Map.of(
 			"type", "status",
-			"message", "SETTLED"
+			"message", "SETTLED",
+			"results", results
 		));
 	}
 
@@ -223,8 +297,9 @@ public class BattleRoomService {
 			entity.setBattleSeed((long) (Math.random() * 1000000));
 			entity.setStatus(BattleRoomStatus.STARTING);
 			
-			// ROGUE 모드가 아닌 경우 문제 자동 선택
-			if (entity.getBattleMode() != com.passfail.enums.BattleMode.ROGUE) {
+			// ROGUE 및 LOGIC_MAZE 모드가 아닌 경우 문제 자동 선택
+			if (entity.getBattleMode() != com.passfail.enums.BattleMode.ROGUE &&
+				entity.getBattleMode() != com.passfail.enums.BattleMode.LOGIC_MAZE) {
 				List<com.passfail.entity.ProblemEntity> problems = problemRepository.findByDifficulty(entity.getDifficulty());
 				if (!problems.isEmpty()) {
 					int randomIndex = (int) (Math.random() * problems.size());
@@ -234,6 +309,14 @@ public class BattleRoomService {
 			
 			battleRoomRepository.save(entity);
 			scheduler.schedule(() -> forceStartIfTimeout(roomId), 10, TimeUnit.SECONDS);
+
+			// 종료 시간이 설정된 경우 자동 정산 예약
+			if (entity.getEndAt() != null) {
+				long delaySeconds = java.time.Duration.between(LocalDateTime.now(), entity.getEndAt()).toSeconds();
+				if (delaySeconds > 0) {
+					scheduler.schedule(() -> forceSettle(roomId), delaySeconds, TimeUnit.SECONDS);
+				}
+			}
 		});
 		return battleRoomRepository.findById(roomId).map(BattleRoomEntity::getBattleSeed).orElse(0L);
 	}
@@ -359,6 +442,12 @@ public class BattleRoomService {
 		if (visitedNodesJson != null) prog.setVisitedNodesJson(visitedNodesJson);
 		if (visitedPathsJson != null) prog.setVisitedPathsJson(visitedPathsJson);
 		battleRogueProgressRepository.save(prog);
+
+		// 보스 노드(10층) 클리어 시 전체 배틀 상태를 FINISHED로 변경
+		if (isCleared && nodeId != null && nodeId.startsWith("10-")) {
+			updateParticipantStatus(roomId, userId, com.passfail.enums.BattleParticipantStatus.FINISHED, prog.getCumulativeScore());
+		}
+
 		messagingTemplate.convertAndSend("/topic/room/" + roomId, Map.of("type", "position", "memberId", userId, "nodeId", nodeId != null ? nodeId : "", "isCleared", isCleared, "score", prog.getCumulativeScore(), "slotIndex", battleParticipantRepository.findByRoomIdAndMemberId(roomId, userId).map(BattleParticipantEntity::getSlotIndex).orElse(0)));
 	}
 
