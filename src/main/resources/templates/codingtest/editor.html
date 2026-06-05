@@ -11,7 +11,8 @@
          th:attr="data-desc=${problem.description}, data-id=${problem.problemId}, data-code=${defaultCode}, 
                   data-time=${problem.timeLimitMs}, data-mem=${problem.memoryLimitMb}, data-tc-count=${#lists.size(problem.testCases)},
                   data-is-solved=${isSolved}, data-prev-code=${previousCode}, 
-                  data-is-logged-in=${#authorization.expression('isAuthenticated()')}">
+                  data-is-logged-in=${#authorization.expression('isAuthenticated()')},
+                  data-is-linux=${isLinux}, data-mode='NORMAL'">
     </div>
 
     <div th:replace="~{codingtest/editorCore :: topNav}"></div>
@@ -59,6 +60,7 @@
     </div>
 
     <div th:replace="~{codingtest/editorCore :: scripts}"></div>
+
     <script th:inline="javascript">
         async function showHint() {
             const dataEl = document.getElementById('problem-data');

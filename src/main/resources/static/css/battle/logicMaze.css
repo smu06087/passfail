@@ -1,11 +1,10 @@
 /* Logic Maze 모드 전용 스타일 */
-#maze-container {
-    position: relative;
+.main-container {
+    display: flex;
     width: 100%;
     height: 100%;
-    background: #020617;
-    display: flex;
     overflow: hidden;
+    background: #020617;
 }
 
 #maze-sidebar {
@@ -18,10 +17,12 @@
     gap: 10px;
     z-index: 20;
     flex-shrink: 0;
+    overflow-y: auto;
 }
 
 #maze-view {
-    flex: 1;
+    flex: 1; /* 기본적으로 남은 공간 차지 */
+    min-width: 300px;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -33,6 +34,29 @@
 #maze-canvas {
     display: block;
     background: #020617;
+}
+
+/* Resizer Bar */
+#layout-resizer {
+    width: 6px;
+    background: #1e293b;
+    cursor: col-resize;
+    transition: background 0.2s;
+    z-index: 30;
+    flex-shrink: 0;
+}
+
+#layout-resizer:hover, #layout-resizer.dragging {
+    background: #3b82f6;
+}
+
+/* Editor Panel (Right) */
+.right-panel {
+    flex: 1; /* Maze View와 1:1 비율로 시작 */
+    min-width: 300px;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Speech Bubble */

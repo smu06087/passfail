@@ -9,6 +9,8 @@ import java.util.List;
 
 @Repository
 public interface TestCaseRepository extends JpaRepository<TestCaseEntity, Long> {
+    List<TestCaseEntity> findByProblem_ProblemId(Long problemId);
+
     List<TestCaseEntity> findByProblem_ProblemIdAndIsSampleTrueOrderByOrderNumAsc(Long problemId);
 
     List<TestCaseEntity> findByProblem_ProblemIdAndIsSampleFalseOrderByOrderNumAsc(Long problemId);

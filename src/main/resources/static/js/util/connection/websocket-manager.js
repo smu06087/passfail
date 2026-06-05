@@ -52,8 +52,19 @@ const WSManager = {
                             if (window.updateUserStatus) window.updateUserStatus(content.memberId, "READY!");
                         } else if (content.message === "UNREADY") {
                             if (window.updateUserStatus) window.updateUserStatus(content.memberId, "WAITING");
+                        } else if (content.message === "SETTLED") {
+                            // 전체 결과 정산됨
+                            if (window.BattleResult) {
+                                window.BattleResult.showTotal(content.results);
+                            }
                         }
                         if (window.checkStartButton) window.checkStartButton();
+                        break;
+                    case "individual_result":
+                        // 본인의 개인 결과 수신
+                        if (content.memberId == memberId && window.BattleResult) {
+                            window.BattleResult.showIndividual(content);
+                        }
                         break;
                     case "leave":
                         console.log("퇴장:", content.memberId);
@@ -121,10 +132,10 @@ const WSManager = {
         );
     },
 
-    sendMazeRun(roomId, memberId, code, mapData) {
+    sendMazeRun(roomId, memberId, code, mapData, language) {
         this._send(
             "/app/maze/run",
-            JSON.stringify({ roomId, memberId, code, mapData })
+            JSON.stringify({ roomId, memberId, code, mapData, language: language || "JAVA" })
         );
     },
 

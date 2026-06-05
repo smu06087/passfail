@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="resultModal">
+    <!-- Result Modal Overlay -->
+    <div id="battle-result-modal" class="result-modal-overlay" style="display: none;">
+        <div class="result-modal-content">
+            <div class="result-header">
+                <h2 id="result-title">대결 결과</h2>
+                <button class="close-modal" onclick="BattleResult.hide()">&times;</button>
+            </div>
+            
+            <div id="individual-result-view" style="display: none;">
+                <div class="rank-display">
+                    <span class="rank-label">나의 순위</span>
+                    <span id="my-rank" class="rank-value">1</span>
+                    <span class="total-label">/ <span id="total-count">4</span></span>
+                </div>
+                <div class="score-display">
+                    점수: <span id="my-score">0</span>
+                </div>
+                
+                <div class="finisher-list-container">
+                    <h3>완료자 목록</h3>
+                    <ul id="finisher-list" class="finisher-list">
+                        <!-- List of finishers before me -->
+                    </ul>
+                </div>
+            </div>
+
+            <div id="total-result-view" style="display: none;">
+                <div class="total-rank-table-container">
+                    <table class="total-rank-table">
+                        <thead>
+                            <tr>
+                                <th>순위</th>
+                                <th>참여자</th>
+                                <th>점수</th>
+                            </tr>
+                        </thead>
+                        <tbody id="total-rank-body">
+                            <!-- All participants ranked -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="result-footer">
+                <p class="wait-msg" id="wait-msg">다른 플레이어들이 대결 중입니다. 관전하거나 대기할 수 있습니다.</p>
+                <div class="button-group">
+                    <button id="result-lobby-btn" class="btn-pg btn-outline" onclick="location.href='/battle/room/lobby'">로비로 이동</button>
+                    <button id="result-stay-btn" class="btn-pg btn-blue" onclick="BattleResult.hide()">관전하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .result-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(4px);
+        }
+        .result-modal-content {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            padding: 2rem;
+            position: relative;
+            animation: modalFadeIn 0.3s ease-out;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 1rem;
+        }
+        .result-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #1e293b;
+            font-weight: 800;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #94a3b8;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .close-modal:hover { color: #1e293b; }
+        
+        .rank-display {
+            text-align: center;
+            margin: 2rem 0;
+        }
+        .rank-label { display: block; color: #64748b; font-size: 0.875rem; margin-bottom: 0.5rem; }
+        .rank-value { font-size: 4rem; font-weight: 900; color: #2563eb; }
+        .total-label { font-size: 1.5rem; color: #94a3b8; }
+        .score-display { text-align: center; font-size: 1.125rem; font-weight: 600; color: #475569; margin-bottom: 2rem; }
+        
+        .finisher-list-container h3 { font-size: 1rem; color: #1e293b; margin-bottom: 1rem; }
+        .finisher-list { list-style: none; padding: 0; margin: 0; max-height: 150px; overflow-y: auto; }
+        .finisher-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .finisher-item .f-rank { font-weight: 800; color: #2563eb; width: 30px; }
+        .finisher-item .f-name { flex: 1; font-weight: 600; }
+        .finisher-item .f-score { color: #64748b; }
+
+        .total-rank-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        .total-rank-table th { text-align: left; padding: 0.75rem; border-bottom: 2px solid #e2e8f0; color: #64748b; font-size: 0.75rem; text-transform: uppercase; }
+        .total-rank-table td { padding: 0.75rem; border-bottom: 1px solid #f1f5f9; font-size: 0.875rem; }
+        .total-rank-table tr:nth-child(1) td { background: #eff6ff; font-weight: 800; color: #1d4ed8; }
+
+        .result-footer { margin-top: 2rem; border-top: 2px solid #f1f5f9; padding-top: 1.5rem; text-align: center; }
+        .wait-msg { font-size: 0.875rem; color: #64748b; margin-bottom: 1.5rem; line-height: 1.5; }
+        .button-group { display: flex; gap: 1rem; justify-content: center; }
+    </style>
+</th:block>
+</html>

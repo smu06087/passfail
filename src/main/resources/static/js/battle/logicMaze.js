@@ -15,10 +15,61 @@ export const LogicMazeController = {
             onEditorLoaded: (editor) => {
                 this.engine.draw();
                 this.bindEvents(editor, problemId);
+                this.initResizer();
             }
         });
 
         this.setupWebSocket();
+    },
+
+    initResizer() {
+        const resizer = document.getElementById('layout-resizer');
+        const mazeView = document.getElementById('maze-view');
+        const rightPanel = document.querySelector('.right-panel');
+        
+        if (!resizer || !mazeView || !rightPanel) return;
+
+        let isDragging = false;
+
+        resizer.onmousedown = (e) => {
+            isDragging = true;
+            resizer.classList.add('dragging');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none'; // 드래그 중 텍스트 선택 방지
+        };
+
+        window.onmousemove = (e) => {
+            if (!isDragging) return;
+
+            const container = document.querySelector('.main-container');
+            const containerRect = container.getBoundingClientRect();
+            const sidebarWidth = document.getElementById('maze-sidebar').offsetWidth;
+            
+            // 마우스 위치에서 사이드바 너비를 뺀 값이 새로운 미로 뷰의 너비
+            let newMazeWidth = e.clientX - containerRect.left - sidebarWidth;
+            
+            // 최소/최대 제한
+            const minWidth = 300;
+            const maxWidth = containerRect.width - sidebarWidth - 300;
+            
+            if (newMazeWidth < minWidth) newMazeWidth = minWidth;
+            if (newMazeWidth > maxWidth) newMazeWidth = maxWidth;
+
+            mazeView.style.flex = 'none';
+            mazeView.style.width = `${newMazeWidth}px`;
+            
+            // 에디터 레이아웃 갱신
+            if (EditorCore.editor) EditorCore.editor.layout();
+        };
+
+        window.onmouseup = () => {
+            if (isDragging) {
+                isDragging = false;
+                resizer.classList.remove('dragging');
+                document.body.style.cursor = 'default';
+                document.body.style.userSelect = 'auto';
+            }
+        };
     },
 
     bindEvents(editor, problemId) {
@@ -30,7 +81,7 @@ export const LogicMazeController = {
             this.engine.resetState();
             this.engine.processCommands(() => {
                 const finalCost = this.engine.currentCost;
-                if (confirm(`목적지에 도착했습니다! \\n사용한 에너지 비용: ${finalCost}\\n이 코드로 제출하고 대결을 종료하시겠습니까?`)) {
+                if (confirm(`목적지에 도착했습니다! \n사용한 에너지 비용: ${finalCost}\n이 코드로 제출하고 대결을 종료하시겠습니까?`)) {
                     this.submitScore(finalCost, editor.getValue());
                 } else {
                     this.stopExecution();
@@ -39,7 +90,11 @@ export const LogicMazeController = {
             
             runBtn.style.display = 'none';
             stopBtn.style.display = 'inline-block';
-            WSManager.sendMazeRun(this.roomId, this.memberId, editor.getValue(), this.engine.serializeMap());
+
+            const langSelect = document.getElementById('languageSelect');
+            const language = langSelect ? langSelect.value.toUpperCase() : "JAVA";
+
+            WSManager.sendMazeRun(this.roomId, this.memberId, editor.getValue(), this.engine.serializeMap(), language);
         };
 
         stopBtn.onclick = () => this.stopExecution();

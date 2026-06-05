@@ -11,7 +11,8 @@
          th:attr="data-desc=${problem.description}, data-id=${problem.problemId}, data-code=${defaultCode}, 
                   data-time=${problem.timeLimitMs}, data-mem=${problem.memoryLimitMb}, data-tc-count=${#lists.size(problem.testCases)},
                   data-is-logged-in=${#authorization.expression('isAuthenticated()')},
-                  data-room-id=${roomId}, data-mode=${battleMode}, data-user-id=${currentUserId}">
+                  data-room-id=${roomId}, data-mode=${battleMode}, data-user-id=${currentUserId},
+                  data-is-linux=${isLinux}">
     </div>
 
     <div th:replace="~{codingtest/editorCore :: topNav}"></div>
@@ -21,33 +22,37 @@
     </div>
 
     <div class="main-container">
-        <div id="maze-container">
-            <!-- Sidebar: API Guide & Legend -->
-            <div id="maze-sidebar">
-                <div class="api-section-title">Robot API</div>
-                <div class="api-card"><b>robot.moveForward()</b>1칸 전진</div>
-                <div class="api-card"><b>robot.turnLeft()</b>좌회전</div>
-                <div class="api-card"><b>robot.turnRight()</b>우회전</div>
-                <div class="api-card"><b>robot.useSwitch()</b>스위치 조작</div>
-                <div class="api-card"><b>robot.say(msg)</b>로그 남기기</div>
-                
-                <div class="api-section-title mt-4">Legend</div>
-                <div class="legend-item"><div class="legend-box" style="background: #3b82f6; border: 1px solid white;"></div><span>나의 로봇</span></div>
-                <div class="legend-item"><div class="legend-box" style="background: rgba(148, 163, 184, 0.5);"></div><span>상대 로봇</span></div>
-                <div class="legend-item"><div class="legend-box" style="background: #f59e0b;"></div><span>스위치 (Switch)</span></div>
-                <div class="legend-item"><div class="legend-box" style="background: #ef4444;"></div><span>잠긴 문 (Door)</span></div>
-                <div class="legend-item"><div class="legend-box" style="background: #10b981;"></div><span>출구 (Exit)</span></div>
-            </div>
-
-            <!-- Main Maze View -->
-            <div id="maze-view">
-                <canvas id="maze-canvas"></canvas>
-                <div id="speech-bubble-container" style="position:absolute; inset:0; pointer-events:none;"></div>
-                <div id="debug-console">
-                    <div class="log-entry system">[SYSTEM] 디버그 콘솔이 활성화되었습니다. robot.say() 로 로그를 남기세요.</div>
+        <!-- 1. Left: API Sidebar -->
+        <div id="maze-sidebar">
+            <div class="api-section-title">Robot API</div>
+            <th:block th:each="api : ${logicMazeApi}">
+                <div class="api-card">
+                    <b th:text="'robot.' + ${api.name}">robot.method()</b>
+                    <span th:text="${api.desc}">Description</span>
                 </div>
+            </th:block>
+            
+            <div class="api-section-title mt-4">Legend</div>
+            <div class="legend-item"><div class="legend-box" style="background: #3b82f6; border: 1px solid white;"></div><span>나의 로봇</span></div>
+            <div class="legend-item"><div class="legend-box" style="background: rgba(148, 163, 184, 0.5);"></div><span>상대 로봇</span></div>
+            <div class="legend-item"><div class="legend-box" style="background: #f59e0b;"></div><span>스위치 (Switch)</span></div>
+            <div class="legend-item"><div class="legend-box" style="background: #ef4444;"></div><span>잠긴 문 (Door)</span></div>
+            <div class="legend-item"><div class="legend-box" style="background: #10b981;"></div><span>출구 (Exit)</span></div>
+        </div>
+
+        <!-- 2. Middle: Maze View -->
+        <div id="maze-view">
+            <canvas id="maze-canvas"></canvas>
+            <div id="speech-bubble-container" style="position:absolute; inset:0; pointer-events:none;"></div>
+            <div id="debug-console">
+                <div class="log-entry system">[SYSTEM] 디버그 콘솔이 활성화되었습니다. robot.say() 로 로그를 남기세요.</div>
             </div>
         </div>
+
+        <!-- 3. Resizer Bar -->
+        <div id="layout-resizer"></div>
+
+        <!-- 4. Right: Editor Panel -->
         <div class="right-panel">
             <div id="editor-container"></div>
             <div th:replace="~{codingtest/editorCore :: bottomPanel}"></div>

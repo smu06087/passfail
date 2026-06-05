@@ -158,6 +158,36 @@ public class ProblemService {
             .anyMatch(sp -> sp.getProblemId().equals(problemId));
     }
 
+    /**
+     * 배틀 모드(ROGUE)용 결정론적 문제 선택 로직
+     */
+    @Transactional(readOnly = true)
+    public ProblemResponse getBattleProblem(Long roomId, int floor, Long seed, String nodeId) {
+        Difficulty targetDifficulty;
+        if (floor < 3) targetDifficulty = Difficulty.EASY;
+        else if (floor < 7) targetDifficulty = Difficulty.MEDIUM;
+        else targetDifficulty = Difficulty.HARD;
+
+        List<ProblemEntity> problems = problemRepository.findByDifficulty(targetDifficulty).stream()
+            .filter(p -> p.getStatus() == ProblemStatus.PUBLISHED)
+            .toList();
+
+        if (problems.isEmpty()) {
+            problems = problemRepository.findByStatus(ProblemStatus.PUBLISHED);
+        }
+
+        if (problems.isEmpty()) {
+            throw new EntityNotFoundException("No problems available for battle.");
+        }
+
+        // 시드 기반 결정론적 선택 (모든 참가자가 동일한 문제를 받도록 함)
+        long combinedSeed = seed + roomId + floor + (nodeId != null ? nodeId.hashCode() : 0);
+        com.passfail.battle.util.Mulberry32 random = com.passfail.battle.util.Mulberry32.getInstance(combinedSeed, true);
+        int index = random.getRandomInt(0, problems.size());
+
+        return convertToResponse(problems.get(index));
+    }
+
     private ProblemResponse convertToResponse(ProblemEntity entity) {
         return ProblemResponse.builder()
             .problemId(entity.getProblemId())

@@ -12,5 +12,9 @@
     <style>
         @keyframes pulse-active { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
+
+    <!-- 4. 결과창 모달 포함 -->
+    <th:block th:replace="~{fragments/battleResult :: resultModal}"></th:block>
+    <script type="module" th:src="@{/js/battle/battleResult.js}"></script>
 </th:block>
 </html>

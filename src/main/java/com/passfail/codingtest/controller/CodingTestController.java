@@ -3,14 +3,22 @@ package com.passfail.codingtest.controller;
 import com.passfail.codingtest.dto.ExecutionResult;
 import com.passfail.codingtest.dto.CustomTestCaseRequest;
 import com.passfail.codingtest.service.CodeExecutionService;
+import com.passfail.codingtest.service.CodeExecutionOnDockerService;
+import com.passfail.codingtest.service.JudgeSseService;
+import com.passfail.codingtest.util.JudgeEnvironmentProvider;
+import com.passfail.codingtest.util.DefaultCodeProvider;
+import com.passfail.entity.MemberEntity;
 import com.passfail.enums.ProgrammingLanguage;
 import com.passfail.enums.SubmissionStatus;
+import com.passfail.member.repository.MemberRepository;
 import com.passfail.problem.dto.ProblemResponse;
 import com.passfail.problem.service.ProblemService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.security.Principal;
 import java.util.List;
@@ -18,11 +26,11 @@ import java.util.Map;
 
 /**
  * 코딩 테스트 진행 및 코드 실행/제출을 처리하는 컨트롤러 클래스
- * 온라인 에디터 페이지 제공, 코드 실행, 채점, AI 코드 리뷰 요청 기능을 담당합니다.
  */
 @Controller
 @RequestMapping("/codingtest")
 @RequiredArgsConstructor
+@Slf4j
 public class CodingTestController {
 
     private final ProblemService problemService;
@@ -30,11 +38,52 @@ public class CodingTestController {
     private final com.passfail.ai.service.AiCodeReviewService aiService;
     private final com.passfail.payment.service.PaymentService paymentService;
 
+    // OnDocker: 서비스 및 유틸리티
+    private final CodeExecutionOnDockerService onDockerService;
+    private final JudgeSseService sseService;
+    private final JudgeEnvironmentProvider envProvider;
+    private final DefaultCodeProvider codeProvider;
+    private final MemberRepository memberRepository;
+
+    @ModelAttribute("isLinux")
+    public boolean isLinux() {
+        return envProvider.isLinux();
+    }
+
+    /**
+     * 배틀 모드(ROGUE) 전용 코딩 테스트 페이지
+     */
+    @GetMapping("/battle")
+    public String battleCodingTestPage(@RequestParam("roomId") Long roomId,
+                                       @RequestParam("floor") int floor,
+                                       @RequestParam("nodeId") String nodeId,
+                                       @RequestParam("seed") Long seed,
+                                       Model model, Principal principal) {
+        if (principal == null) return "redirect:/login";
+
+        ProblemResponse problem = problemService.getBattleProblem(roomId, floor, seed, nodeId);
+        MemberEntity member = memberRepository.findByUsername(principal.getName()).orElseThrow();
+
+        model.addAttribute("problem", problem);
+        model.addAttribute("roomId", roomId);
+        model.addAttribute("seed", seed);
+        model.addAttribute("nodeId", nodeId);
+        model.addAttribute("currentUserId", member.getMemberId());
+
+        // 기본 정보 (코딩테스트 에디터 공통)
+        model.addAttribute("defaultCode", codeProvider.getDefaultCode(ProgrammingLanguage.JAVA));
+        boolean isSolved = problemService.isSolved(principal.getName(), problem.getProblemId());
+        model.addAttribute("isSolved", isSolved);
+        if (isSolved) {
+            String previousCode = problemService.getPreviousSolution(principal.getName(), problem.getProblemId());
+            model.addAttribute("previousCode", previousCode);
+        }
+
+        return "codingtest/rogueModeEditor";
+    }
+
     /**
      * 작성한 코드에 대해 AI 코드 리뷰를 요청하는 API
-     * @param problemId 문제 ID
-     * @param payload 작성한 코드 및 실행 결과 데이터를 포함한 맵
-     * @return AI가 생성한 리뷰 텍스트
      */
     @PostMapping("/{problemId}/ai-review")
     @ResponseBody
@@ -46,10 +95,8 @@ public class CodingTestController {
         }
 
         try {
-            // 1. 포인트 소모 (2000 바나나)
             paymentService.useReviewPoints(principal.getName());
             
-            // 2. 리뷰 생성 로직 시작
             String code = (String) payload.get("code");
             Object resultsObj = payload.get("results");
             
@@ -70,7 +117,6 @@ public class CodingTestController {
                         .toList();
             }
 
-            // AI 서비스를 통해 리뷰 메시지 생성
             String review = aiService.generateReview(code, results);
             return Map.of("review", review);
         } catch (RuntimeException e) {
@@ -80,50 +126,61 @@ public class CodingTestController {
 
     /**
      * 코딩 테스트 에디터 페이지로 이동
-     * @param problemId 문제 ID
-     * @param model 뷰에 전달할 데이터 모델
-     * @param principal 현재 로그인한 사용자 정보
      */
     @GetMapping("/{problemId}")
     public String codingTestPage(@PathVariable("problemId") Long problemId, Model model, Principal principal) {
         ProblemResponse problem = problemService.getProblemResponse(problemId);
         model.addAttribute("problem", problem);
         
-        // 에디터 초기 코드 설정
-        String defaultCode = "import java.util.*;\n\npublic class Solution {\n" +
-                             "    public static void main(String[] args) {\n" +
-                             "        Scanner sc = new Scanner(System.in);\n" +
-                             "        // 코드를 작성하세요\n" +
-                             "    }\n" +
-                             "}";
+        // OnDocker: DefaultCodeProvider를 통한 다국어 템플릿 제공
+        model.addAttribute("defaultCode", codeProvider.getDefaultCode(ProgrammingLanguage.JAVA));
         
         if (principal != null) {
             String username = principal.getName();
-            // 문제 해결 여부 확인
             boolean isSolved = problemService.isSolved(username, problemId);
             model.addAttribute("isSolved", isSolved);
-            // 이미 해결한 경우 이전에 제출했던 코드 로드
             if (isSolved) {
                 String previousCode = problemService.getPreviousSolution(username, problemId);
                 model.addAttribute("previousCode", previousCode);
             }
         }
 
-        model.addAttribute("defaultCode", defaultCode);
         return "codingtest/editor";
     }
 
     /**
-     * 작성한 코드를 테스트 케이스와 함께 실행하는 API
-     * 공식 테스트 케이스 및 사용자가 추가한 커스텀 테스트 케이스를 모두 실행합니다.
+     * 코드 실행 API (Run)
      */
     @PostMapping("/{problemId}/run")
     @ResponseBody
-    public List<ExecutionResult> runCode(@PathVariable("problemId") Long problemId, 
-                                         @RequestBody Map<String, Object> payload) {
-        String code = (String) payload.get("code");
-        List<Map<String, String>> customCasesRaw = (List<Map<String, String>>) payload.get("customTestCases");
+    public Object runCode(@PathVariable("problemId") Long problemId, 
+                          @RequestBody Map<String, Object> payload,
+                          Principal principal,
+                          @RequestParam(value = "mode", required = false) String mode) {
         
+        String langStr = (String) payload.getOrDefault("language", "JAVA");
+        ProgrammingLanguage language = ProgrammingLanguage.valueOf(langStr.toUpperCase());
+        String code = (String) payload.get("code");
+
+        // LogicMaze 모드일 경우 서버측 구현부 주입
+        if ("LOGIC_MAZE".equals(mode)) {
+            code += codeProvider.getLogicMazeImplementation(language);
+        }
+
+        if (envProvider.isLinux()) {
+            try {
+                List<Map<String, String>> customCasesRaw = (List<Map<String, String>>) payload.get("customTestCases");
+                List<CustomTestCaseRequest> customTestCases = customCasesRaw != null ? 
+                    customCasesRaw.stream().map(m -> new CustomTestCaseRequest(m.get("input"), m.get("expected"))).toList() : null;
+                
+                String id = onDockerService.prepareRun(problemId, code, customTestCases, language);
+                return Map.of("id", id);
+            } catch (Exception e) {
+                return Map.of("error", e.getMessage());
+            }
+        }
+
+        List<Map<String, String>> customCasesRaw = (List<Map<String, String>>) payload.get("customTestCases");
         List<CustomTestCaseRequest> customTestCases = null;
         if (customCasesRaw != null) {
             customTestCases = customCasesRaw.stream()
@@ -132,36 +189,49 @@ public class CodingTestController {
         }
 
         ProblemResponse problem = problemService.getProblemResponse(problemId);
-        // Java 코드를 컴파일 및 실행하여 결과 반환
-        return executionService.executeJava(problem, code, customTestCases);
+        return executionService.execute(problem, code, customTestCases, language);
     }
 
     /**
-     * 최종 코드 제출 API
-     * 공식 테스트 케이스로만 채점을 진행하며, 모든 케이스 통과 시 정답 처리합니다.
+     * 최종 코드 제출 API (Submit)
      */
     @PostMapping("/{problemId}/submit")
     @ResponseBody
     public Map<String, Object> submitCode(@PathVariable("problemId") Long problemId, 
-                                          @RequestBody Map<String, String> payload, 
-                                          Principal principal) {
+                                          @RequestBody Map<String, Object> payload, 
+                                          Principal principal,
+                                          @RequestParam(value = "mode", required = false) String mode) {
+
+        String langStr = (String) payload.getOrDefault("language", "JAVA");
+        ProgrammingLanguage language = ProgrammingLanguage.valueOf(langStr.toUpperCase());
+        String code = (String) payload.get("code");
+
+        // LogicMaze 모드일 경우 서버측 구현부 주입
+        if ("LOGIC_MAZE".equals(mode)) {
+            code += codeProvider.getLogicMazeImplementation(language);
+        }
+
+        if (envProvider.isLinux()) {
+            try {
+                String id = onDockerService.prepareSubmit(problemId, code, principal.getName(), language);
+                return Map.of("id", id);
+            } catch (Exception e) {
+                return Map.of("error", e.getMessage());
+            }
+        }
+
         try {
-            String code = payload.get("code");
             String username = principal.getName();
             
             ProblemResponse problem = problemService.getProblemResponse(problemId);
-            // 제출 시에는 커스텀 테스트 케이스 없이 공식 케이스로만 채점
-            List<ExecutionResult> results = executionService.executeJava(problem, code, null);
+            List<ExecutionResult> results = executionService.execute(problem, code, null, language);
             
-            // 모든 테스트 케이스가 정답(CORRECT)인지 확인
             boolean allCorrect = results.stream().allMatch(r -> "CORRECT".equals(r.getStatus()));
             
-            // 제출 상태 결정
             SubmissionStatus status;
             if (allCorrect) {
                 status = SubmissionStatus.ACCEPTED;
             } else {
-                // 첫 번째 실패한 케이스의 상태를 대표 상태로 설정
                 status = results.stream()
                         .filter(r -> !"CORRECT".equals(r.getStatus()))
                         .map(r -> switch (r.getStatus()) {
@@ -175,12 +245,41 @@ public class CodingTestController {
                         .orElse(SubmissionStatus.WRONG_ANSWER);
             }
 
-            // 문제 해결 정보 기록 (성공/실패 여부 상관없이 기록됨)
-            problemService.recordSubmission(username, problemId, code, ProgrammingLanguage.JAVA, status);
+            problemService.recordSubmission(username, problemId, code, language, status);
             
             return Map.of("allCorrect", allCorrect, "results", results);
         } catch (Exception e) {
             return Map.of("allCorrect", false, "error", e.getMessage() != null ? e.getMessage() : "Unknown Error");
         }
+    }
+
+    /**
+     * 언어 및 모드별 기본 템플릿 코드를 가져오는 API
+     */
+    @GetMapping("/template")
+    @ResponseBody
+    public Map<String, String> getTemplate(@RequestParam("lang") String lang,
+                                           @RequestParam(value = "mode", required = false) String mode) {
+        try {
+            ProgrammingLanguage language = ProgrammingLanguage.valueOf(lang.toUpperCase());
+            String template;
+            if ("LOGIC_MAZE".equals(mode)) {
+                template = codeProvider.getLogicMazeCode(language);
+            } else {
+                template = codeProvider.getDefaultCode(language);
+            }
+            return Map.of("template", template);
+        } catch (Exception e) {
+            return Map.of("template", "");
+        }
+    }
+
+    @GetMapping(value = "/subscribe/{id}", produces = "text/event-stream")
+    @ResponseBody
+    public SseEmitter subscribe(@PathVariable String id) {
+        if (!envProvider.isLinux()) {
+            log.warn("OnDocker: SSE is optimized for Linux. Current OS: {}", envProvider.getOsInfo());
+        }
+        return sseService.subscribe(id);
     }
 }

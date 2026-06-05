@@ -181,7 +181,24 @@ public class BattleRoomController {
 			return "redirect:/battle/room/lobby";
 		}
 		
-		// 입장 시 참여자가 아니면 자동으로 참여 시킴 (직접 주소 입력 대응)
+		// 1. 이미 시작된 방인 경우, 참여자 여부에 따라 분기
+		if (room.getStatus() == BattleRoomStatus.IN_PROGRESS || room.getStatus() == BattleRoomStatus.STARTING) {
+			boolean isAlreadyParticipant = battleParticipantRepository.findByRoomIdAndMemberId(roomId, member.getMemberId()).isPresent();
+			if (isAlreadyParticipant) {
+				// 재접속: 바로 대결 화면으로 유도
+				Long seed = room.getBattleSeed();
+				if (room.getBattleMode() == com.passfail.enums.BattleMode.ROGUE) {
+					return "redirect:/battle/mode/rogueMap?roomId=" + roomId + "&seed=" + seed;
+				} else {
+					return "redirect:/battle/mode/editor?roomId=" + roomId + "&seed=" + seed;
+				}
+			} else {
+				// 참여자가 아닌데 들어온 경우 (lobby에서 막았지만 URL 직접 입력 대응)
+				return "redirect:/battle/room/lobby?error=already_started";
+			}
+		}
+
+		// 2. 대기 중인 방 입장 로직 (기존)
 		List<BattleParticipantEntity> participants = battleParticipantRepository.findByRoomIdWithMember(roomId);
 		boolean isParticipant = participants.stream().anyMatch(p -> p.getMemberId().equals(member.getMemberId()));
 		if (!isParticipant) {
@@ -336,8 +353,10 @@ public class BattleRoomController {
         Long memberId = Long.valueOf(payload.get("memberId").toString());
         String code = (String) payload.get("code");
         String mapData = (String) payload.get("mapData");
+        String langStr = (String) payload.getOrDefault("language", "JAVA");
+        com.passfail.enums.ProgrammingLanguage language = com.passfail.enums.ProgrammingLanguage.valueOf(langStr.toUpperCase());
         
-        interactiveMazeService.startExecution(roomId, memberId, code, mapData);
+        interactiveMazeService.startExecution(roomId, memberId, code, mapData, language);
     }
 
     @MessageMapping("/maze/control")
@@ -353,6 +372,28 @@ public class BattleRoomController {
     @ResponseBody
     public List<Map<String, Object>> getPositions(@PathVariable("roomId") Long roomId) {
         return battleRoomService.getAllParticipantPositions(roomId);
+    }
+
+    @GetMapping("/{roomId}/check-participant")
+    @ResponseBody
+    public Map<String, Object> checkParticipant(@PathVariable("roomId") Long roomId, Principal principal) {
+        if (principal == null) return Map.of("isParticipant", false);
+        MemberEntity member = memberRepository.findByUsername(principal.getName()).orElse(null);
+        if (member == null) return Map.of("isParticipant", false);
+        
+        boolean isParticipant = battleParticipantRepository.findByRoomIdAndMemberId(roomId, member.getMemberId()).isPresent();
+        return Map.of("isParticipant", isParticipant);
+    }
+
+    @PostMapping("/{roomId}/leave-forced")
+    @ResponseBody
+    public Map<String, Object> leaveForced(@PathVariable("roomId") Long roomId, Principal principal) {
+        if (principal == null) return Map.of("success", false);
+        MemberEntity member = memberRepository.findByUsername(principal.getName()).orElse(null);
+        if (member == null) return Map.of("success", false);
+        
+        battleRoomService.leaveRoom(roomId, member.getMemberId());
+        return Map.of("success", true);
     }
 
     @PostMapping("/{roomId}/rogue-update")

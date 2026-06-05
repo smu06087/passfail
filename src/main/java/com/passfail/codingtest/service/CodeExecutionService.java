@@ -2,6 +2,7 @@ package com.passfail.codingtest.service;
 
 import com.passfail.codingtest.dto.ExecutionResult;
 import com.passfail.codingtest.dto.CustomTestCaseRequest;
+import com.passfail.enums.ProgrammingLanguage;
 import com.passfail.problem.dto.ProblemResponse;
 import com.passfail.problem.dto.TestCaseResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -12,143 +13,156 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 사용자가 작성한 코드를 실제로 실행하고 결과를 채점하는 서비스 클래스
- * 로컬 파일 시스템에 임시 디렉토리를 생성하여 컴파일 및 실행을 수행합니다.
+ * 로컬 OS 환경에서 프로세스를 직접 생성하여 코드를 실행하는 서비스 (V1)
+ * Windows 개발 환경에서 Docker 없이 Java, Python, C++ 실행을 지원합니다.
  */
 @Service
 @Slf4j
 public class CodeExecutionService {
 
     /**
-     * Java 코드를 컴파일하고 실행함
-     * @param problem 문제 정보 (시간/메모리 제한 포함)
-     * @param code 실행할 Java 소스 코드
-     * @param customTestCases 사용자가 추가한 커스텀 테스트 케이스 목록
-     * @return 각 테스트 케이스별 실행 결과 목록
+     * 통합 코드 실행 메서드
      */
-    public List<ExecutionResult> executeJava(ProblemResponse problem, String code, List<CustomTestCaseRequest> customTestCases) {
+    public List<ExecutionResult> execute(ProblemResponse problem, String code, List<CustomTestCaseRequest> customTestCases, ProgrammingLanguage language) {
         List<ExecutionResult> results = new ArrayList<>();
         Path tempDir = null;
+
         try {
-            // 1. 임시 디렉토리 생성 및 소스 파일 저장
-            tempDir = Files.createTempDirectory("codingtest_");
-            Path sourcePath = tempDir.resolve("Solution.java");
-            Files.writeString(sourcePath, code);
+            tempDir = Files.createTempDirectory("passfail_v1_" + UUID.randomUUID());
+            
+            // 1. 소스 코드 저장
+            saveCode(tempDir, code, language);
 
-            // 2. 컴파일 단계 (javac 실행)
-            ProcessBuilder compileBuilder = new ProcessBuilder("javac", "Solution.java");
-            compileBuilder.directory(tempDir.toFile());
-            Process compileProcess = compileBuilder.start();
-            boolean compiled = compileProcess.waitFor(10, TimeUnit.SECONDS);
-
-            // 컴파일 실패 처리
-            if (!compiled || compileProcess.exitValue() != 0) {
-                String error = new String(compileProcess.getErrorStream().readAllBytes());
-                results.add(ExecutionResult.builder()
-                        .success(false)
-                        .status("COMPILE_ERROR")
-                        .error(error)
-                        .build());
-                return results;
+            // 2. 컴파일 (컴파일 언어인 경우)
+            if (language == ProgrammingLanguage.JAVA || language == ProgrammingLanguage.CPP) {
+                String compileError = compile(tempDir, language);
+                if (compileError != null) {
+                    results.add(ExecutionResult.builder().success(false).status("COMPILE_ERROR").error(compileError).build());
+                    return results;
+                }
             }
 
-            // 3. 기본 테스트 케이스 실행
-            if (problem.getTestCases() != null) {
-                for (TestCaseResponse tc : problem.getTestCases()) {
-                    results.add(runTestCase(tempDir, tc.getInputData(), tc.getExpectedOutput(), problem.getTimeLimitMs(), problem.getMemoryLimitMb()));
-                }
+            // 3. 공식 테스트 케이스 실행
+            for (TestCaseResponse tc : problem.getTestCases()) {
+                results.add(runSingleTest(tempDir, tc.getInputData(), tc.getExpectedOutput(), problem.getTimeLimitMs(), language));
             }
 
             // 4. 커스텀 테스트 케이스 실행
             if (customTestCases != null) {
                 for (CustomTestCaseRequest ctc : customTestCases) {
-                    results.add(runTestCase(tempDir, ctc.getInput(), ctc.getExpected(), problem.getTimeLimitMs(), problem.getMemoryLimitMb()));
+                    results.add(runSingleTest(tempDir, ctc.getInput(), ctc.getExpected(), problem.getTimeLimitMs(), language));
                 }
             }
 
-            if (results.isEmpty()) {
-                results.add(ExecutionResult.builder()
-                        .success(false)
-                        .status("SYSTEM_ERROR")
-                        .error("실행할 테스트 케이스가 없습니다.")
-                        .build());
-            }
-
         } catch (Exception e) {
-            log.error("Execution error", e);
-            results.add(ExecutionResult.builder()
-                    .success(false)
-                    .status("SYSTEM_ERROR")
-                    .error(e.getMessage())
-                    .build());
+            log.error("V1 Execution error", e);
+            results.add(ExecutionResult.builder().success(false).status("SYSTEM_ERROR").error(e.getMessage()).build());
         } finally {
-            // 5. 임시 디렉토리 및 파일 삭제 (정리)
-            if (tempDir != null) {
-                try {
-                    Files.walk(tempDir).sorted((a, b) -> b.compareTo(a)).forEach(p -> {
-                        try { Files.delete(p); } catch (IOException ignored) {}
-                    });
-                } catch (IOException ignored) {}
-            }
+            deleteDirectory(tempDir);
         }
+
         return results;
     }
 
-    /**
-     * 개별 테스트 케이스를 실행함
-     * @param dir 실행 디렉토리 (Solution.class가 있는 곳)
-     * @param input 입력 데이터
-     * @param expected 기대하는 출력값
-     * @param timeLimitMs 시간 제한 (ms)
-     * @param memoryLimitMb 메모리 제한 (MB)
-     * @return 실행 결과 DTO
-     */
-    private ExecutionResult runTestCase(Path dir, String input, String expected, int timeLimitMs, int memoryLimitMb) {
-        long startTime = System.currentTimeMillis();
-        try {
-            // JVM 옵션을 통해 메모리 제한 설정 (-Xmx)
-            ProcessBuilder runBuilder = new ProcessBuilder("java", "-Xmx" + memoryLimitMb + "m", "Solution");
-            runBuilder.directory(dir.toFile());
-            Process process = runBuilder.start();
+    private void saveCode(Path dir, String code, ProgrammingLanguage lang) throws IOException {
+        String fileName = switch (lang) {
+            case JAVA -> "Solution.java";
+            case PYTHON -> "main.py";
+            case CPP -> "main.cpp";
+            default -> "code.txt";
+        };
+        Files.writeString(dir.resolve(fileName), code);
+    }
 
-            // 표준 입력을 통해 데이터 전달
-            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()))) {
-                writer.write(input);
-                writer.newLine();
-                writer.flush();
+    private String compile(Path dir, ProgrammingLanguage lang) throws Exception {
+        ProcessBuilder pb = switch (lang) {
+            case JAVA -> new ProcessBuilder("javac", "Solution.java");
+            case CPP -> new ProcessBuilder("g++", "-O2", "main.cpp", "-o", "main.exe");
+            default -> null;
+        };
+
+        if (pb == null) return null;
+        
+        pb.directory(dir.toFile());
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+        
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            StringBuilder errorOutput = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) errorOutput.append(line).append("\n");
+            
+            int exitCode = process.waitFor();
+            return (exitCode == 0) ? null : errorOutput.toString();
+        }
+    }
+
+    private ExecutionResult runSingleTest(Path dir, String input, String expected, int timeoutMs, ProgrammingLanguage lang) {
+        ProcessBuilder pb = switch (lang) {
+            case JAVA -> new ProcessBuilder("java", "-cp", ".", "Solution");
+            case PYTHON -> new ProcessBuilder("py", "main.py"); // 윈도우에서는 py 런처가 더 정확함
+            case CPP -> new ProcessBuilder("./main.exe");
+            default -> throw new RuntimeException("Unsupported language");
+        };
+
+        pb.directory(dir.toFile());
+        pb.redirectErrorStream(true); // 표준 에러를 표준 출력으로 통합
+        long startTime = System.currentTimeMillis();
+
+        try {
+            Process process = pb.start();
+
+            // 입력 전달
+            if (input != null && !input.isEmpty()) {
+                try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()))) {
+                    writer.write(input);
+                    writer.flush();
+                } catch (IOException e) {
+                    // 프로세스가 입력을 읽지 않고 일찍 종료된 경우 (예: 문법 오류, 즉시 런타임 에러) 
+                    // "파이프가 닫히는 중입니다" 에러 발생 가능. 무시하고 결과 확인 진행.
+                    log.warn("입력 전달 중 에러 발생 (프로세스가 일찍 종료되었을 수 있음): {}", e.getMessage());
+                }
             }
 
-            // 시간 제한 내에 종료되는지 대기
-            boolean finished = process.waitFor(timeLimitMs, TimeUnit.MILLISECONDS);
+            boolean finished = process.waitFor(timeoutMs + 500, TimeUnit.MILLISECONDS);
             long executionTime = System.currentTimeMillis() - startTime;
 
             if (!finished) {
-                process.destroyForcibly(); // 시간 초과 시 강제 종료
+                process.destroyForcibly();
                 return ExecutionResult.builder().success(false).status("TIMEOUT").executionTime(executionTime).build();
             }
 
-            // 런타임 에러 체크
-            if (process.exitValue() != 0) {
-                String error = new String(process.getErrorStream().readAllBytes());
-                return ExecutionResult.builder().success(false).status("RUNTIME_ERROR").error(error).executionTime(executionTime).build();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                StringBuilder output = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) output.append(line).append("\n");
+                
+                String actualOutput = output.toString().trim();
+                boolean success = actualOutput.equals(expected != null ? expected.trim() : "");
+                
+                return ExecutionResult.builder()
+                        .success(success)
+                        .status(success ? "CORRECT" : "WRONG")
+                        .output(actualOutput)
+                        .executionTime(executionTime)
+                        .build();
             }
 
-            // 표준 출력 결과 읽기 및 정답 비교
-            String output = new String(process.getInputStream().readAllBytes()).trim();
-            boolean isCorrect = output.equals(expected != null ? expected.trim() : "");
-
-            return ExecutionResult.builder()
-                    .success(isCorrect)
-                    .status(isCorrect ? "CORRECT" : "WRONG")
-                    .output(output)
-                    .executionTime(executionTime)
-                    .build();
-
         } catch (Exception e) {
-            return ExecutionResult.builder().success(false).status("SYSTEM_ERROR").error(e.getMessage()).build();
+            return ExecutionResult.builder().success(false).status("RUNTIME_ERROR").error(e.getMessage()).build();
         }
+    }
+
+    private void deleteDirectory(Path dir) {
+        if (dir == null) return;
+        try {
+            Files.walk(dir).sorted((a, b) -> b.compareTo(a)).forEach(p -> {
+                try { Files.deleteIfExists(p); } catch (Exception ignored) {}
+            });
+        } catch (Exception ignored) {}
     }
 }
