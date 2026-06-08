@@ -11,6 +11,7 @@
     
     <th:block th:replace="${extraHead}"></th:block>
     
+    <script th:src="@{/js/util/problem-utils.js}" src="/js/util/problem-utils.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
     <style>
         :root { --pg-navy: #0f172a; --pg-green: #22c55e; --pg-bg: #f8fafc; --pg-border: #e2e8f0; --pg-text: #1e293b; --pg-gray: #64748b; --white: #ffffff; --nav-text: #ffffff; }
@@ -112,6 +113,10 @@
                 },
 
                 openAiReview() {
+                    if (!confirm('AI 코드리뷰를 요청하시겠습니까? (2,000 바나나 소모)')) {
+                        return;
+                    }
+
                     const aiModal = document.getElementById('aiModal');
                     const aiContent = document.getElementById('ai-content');
                     if (!aiModal || !aiContent) return;
@@ -135,6 +140,14 @@
                     .catch(err => {
                         aiContent.innerHTML = `<div style="color:red; text-align:center; padding:20px;">분석 중 오류가 발생했습니다: ${err.message}</div>`;
                     });
+                },
+
+                async downloadPdf() {
+                    const dataEl = document.getElementById('problem-data');
+                    const problemId = dataEl.getAttribute('data-id');
+                    const isLoggedIn = dataEl.getAttribute('data-is-logged-in') === 'true';
+                    
+                    await ProblemUtils.downloadPdf(problemId, isLoggedIn);
                 },
                 
                 changeLanguage(lang) {
