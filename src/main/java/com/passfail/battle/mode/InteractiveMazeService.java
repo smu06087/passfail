@@ -187,10 +187,10 @@ public class InteractiveMazeService {
         return new ProcessBuilder(cmd);
     }
 
-    private ProcessBuilder createDockerCompileProcess(ProgrammingLanguage lang, Path dir) throws IOException {
+    private Process createDockerCompileProcess(ProgrammingLanguage lang, Path dir) throws IOException {
         String compileCmd = (lang == ProgrammingLanguage.JAVA) ? "javac -encoding UTF-8 Solution.java" : "g++ -O2 main.cpp -o main";
         List<String> cmd = List.of("docker", "run", "--rm", "-v", dir.toAbsolutePath() + ":/workspace", "--workdir=/workspace", "judge-sandbox", "/bin/bash", "-c", compileCmd);
-        return new ProcessBuilder(cmd);
+        return new ProcessBuilder(cmd).start();
     }
 
     public void handleControl(Long roomId, Long memberId, String action) {
