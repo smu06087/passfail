@@ -8,6 +8,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -59,7 +60,7 @@ public class InteractiveMazeService {
                     case CPP -> "main.cpp";
                     default -> "code.txt";
                 };
-                Files.writeString(tempDir.resolve(fileName), fullCode);
+                Files.writeString(tempDir.resolve(fileName), fullCode, StandardCharsets.UTF_8);
 
                 // 3. 환경 준비 및 컴파일
                 ProcessBuilder pb = envProvider.isUsingDocker() ? createDockerProcessBuilder(language, tempDir) : createLocalProcessBuilder(language, tempDir);
@@ -69,7 +70,7 @@ public class InteractiveMazeService {
                     if (compileProcess != null) {
 
                         StringBuilder compileErrorLog = new StringBuilder();
-                        try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(compileProcess.getErrorStream()))) {
+                        try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(compileProcess.getErrorStream(), StandardCharsets.UTF_8))) {
                             String errLine;
                             while ((errLine = errorReader.readLine()) != null) {
                                 compileErrorLog.append(errLine).append("\n");
@@ -166,7 +167,7 @@ public class InteractiveMazeService {
 
     private Process createCompileProcess(ProgrammingLanguage lang, Path dir) throws IOException {
         ProcessBuilder pb = switch (lang) {
-            case JAVA -> new ProcessBuilder("javac", "Solution.java");
+            case JAVA -> new ProcessBuilder("javac", "-encoding", "UTF-8", "Solution.java");
             case CPP -> new ProcessBuilder("g++", "-O2", "main.cpp", "-o", "main.exe");
             default -> null;
         };
@@ -186,10 +187,10 @@ public class InteractiveMazeService {
         return new ProcessBuilder(cmd);
     }
 
-    private Process createDockerCompileProcess(ProgrammingLanguage lang, Path dir) throws IOException {
-        String compileCmd = (lang == ProgrammingLanguage.JAVA) ? "javac Solution.java" : "g++ -O2 main.cpp -o main";
+    private ProcessBuilder createDockerCompileProcess(ProgrammingLanguage lang, Path dir) throws IOException {
+        String compileCmd = (lang == ProgrammingLanguage.JAVA) ? "javac -encoding UTF-8 Solution.java" : "g++ -O2 main.cpp -o main";
         List<String> cmd = List.of("docker", "run", "--rm", "-v", dir.toAbsolutePath() + ":/workspace", "--workdir=/workspace", "judge-sandbox", "/bin/bash", "-c", compileCmd);
-        return new ProcessBuilder(cmd).start();
+        return new ProcessBuilder(cmd);
     }
 
     public void handleControl(Long roomId, Long memberId, String action) {
