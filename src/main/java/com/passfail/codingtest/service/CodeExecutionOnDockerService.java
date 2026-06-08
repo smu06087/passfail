@@ -22,6 +22,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -125,19 +126,16 @@ public class CodeExecutionOnDockerService {
     /**
      * 레거시 단순 ID 요청 처리
      */
-    @Transactional
     public void processLegacySubmit(Long submissionId) {
         submissionRepository.findById(submissionId).ifPresent(s -> {
             judgeAsync(s.getSubmissionId().toString(), s.getProblemId(), s.getCode(), s.getLanguage());
         });
     }
 
-    @Transactional
     public void judgeAsync(String id, Long problemId, String code, ProgrammingLanguage language) {
         processInternal(id, problemId, code, null, true, language);
     }
 
-    @Transactional
     public void runAsync(String id, Long problemId, String code, List<CustomTestCaseRequest> customTestCases, ProgrammingLanguage language) {
         processInternal(id, problemId, code, customTestCases, false, language);
     }
@@ -277,7 +275,7 @@ public class CodeExecutionOnDockerService {
     	String safeLabel = label.replaceAll("\\s+", "");
         String inputFileName = "input_" + safeLabel + ".txt";
     	
-        Files.writeString(workDir.resolve(inputFileName), input);
+        Files.writeString(workDir.resolve(inputFileName), input, StandardCharsets.UTF_8);
         String runCmd = buildCommand(lang, inputFileName);
         
         List<String> cmd = List.of(
@@ -368,7 +366,7 @@ public class CodeExecutionOnDockerService {
             case CPP -> dir.resolve("Main.cpp");
             default -> throw new RuntimeException("Unsupported language: " + lang);
         };
-        Files.writeString(file, code);
+        Files.writeString(file, code, StandardCharsets.UTF_8);
     }
 
     private long parseTime(String raw) {
