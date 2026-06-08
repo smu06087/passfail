@@ -77,22 +77,52 @@ public class ProblemService {
 
     @Transactional
     public SubmissionEntity recordSubmission(String username, Long problemId, String code, ProgrammingLanguage language, SubmissionStatus status) {
+        return recordSubmission(username, problemId, code, language, status, 0, 0);
+    }
+
+    @Transactional
+    public SubmissionEntity recordSubmission(String username, Long problemId, String code, ProgrammingLanguage language, SubmissionStatus status, Integer timeMs, Integer memoryKb) {
         MemberEntity member = memberRepository.findByUsername(username)
             .orElseThrow(() -> new EntityNotFoundException("Member not found."));
-        ProblemEntity problem = getProblemEntity(problemId);
-
-        // 모든 제출을 기록으로 남기기 위해 항상 새로운 객체 생성 (기존 unique 제약 조건 제거됨)
+        
         SubmissionEntity submission = SubmissionEntity.builder()
                 .memberId(member.getMemberId())
-                .problemId(problem.getProblemId())
+                .problemId(problemId)
                 .code(code)
                 .language(language)
                 .status(status)
-                .executionTimeMs(0) 
-                .memoryUsedKb(0)    
+                .executionTimeMs(timeMs != null ? timeMs : 0)
+                .memoryUsedKb(memoryKb != null ? memoryKb : 0)
                 .build();
 
         submission = submissionRepository.save(submission);
+        
+        finalizeSubmission(submission, status);
+        
+        return submission;
+    }
+
+    /**
+     * OnDocker: 이미 저장된 SubmissionEntity의 결과를 업데이트하고 관련 통계/점수를 처리합니다.
+     */
+    @Transactional
+    public void recordSubmissionResult(Long submissionId, SubmissionStatus status, int timeMs, int memoryKb) {
+        SubmissionEntity submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new EntityNotFoundException("Submission not found: " + submissionId));
+
+        submission.setStatus(status);
+        submission.setExecutionTimeMs(timeMs);
+        submission.setMemoryUsedKb(memoryKb);
+        submissionRepository.save(submission);
+
+        finalizeSubmission(submission, status);
+    }
+
+    private void finalizeSubmission(SubmissionEntity submission, SubmissionStatus status) {
+        ProblemEntity problem = problemRepository.findById(submission.getProblemId())
+                .orElseThrow(() -> new EntityNotFoundException("Problem not found."));
+        MemberEntity member = memberRepository.findById(submission.getMemberId())
+                .orElseThrow(() -> new EntityNotFoundException("Member not found."));
 
         // 문제의 총 제출 수 증가 (성공/실패 여부 상관없이)
         problem.setSubmissionCount((problem.getSubmissionCount() != null ? problem.getSubmissionCount() : 0) + 1);
@@ -100,7 +130,7 @@ public class ProblemService {
         if (status == SubmissionStatus.ACCEPTED) {
             // 정답인 경우에만 해결 문제로 기록 및 점수 부여
             solvedProblemRepository.findByMemberId(member.getMemberId()).stream()
-                .filter(sp -> sp.getProblemId().equals(problemId))
+                .filter(sp -> sp.getProblemId().equals(problem.getProblemId()))
                 .findFirst()
                 .ifPresentOrElse(
                     sp -> sp.setTryCount(sp.getTryCount() + 1),
@@ -108,7 +138,7 @@ public class ProblemService {
                         int score = 100;
                         SolvedProblemEntity solvedProblem = SolvedProblemEntity.builder()
                             .memberId(member.getMemberId())
-                            .problemId(problemId)
+                            .problemId(problem.getProblemId())
                             .scoreEarned(score)
                             .tryCount(1)
                             .build();
@@ -123,9 +153,9 @@ public class ProblemService {
 
             problem.setAcceptedCount((problem.getAcceptedCount() != null ? problem.getAcceptedCount() : 0) + 1);
         } else {
-            // 틀린 경우에도 시도 횟수는 증가시킴 (기존에 해결 기록이 있는 경우 포함)
+            // 틀린 경우에도 시도 횟수는 증가시킴
             solvedProblemRepository.findByMemberId(member.getMemberId()).stream()
-                .filter(sp -> sp.getProblemId().equals(problemId))
+                .filter(sp -> sp.getProblemId().equals(problem.getProblemId()))
                 .findFirst()
                 .ifPresent(sp -> sp.setTryCount(sp.getTryCount() + 1));
         }
@@ -135,17 +165,14 @@ public class ProblemService {
         double accCount = problem.getAcceptedCount() != null ? problem.getAcceptedCount() : 0;
         problem.setAcceptanceRate(subCount > 0 ? (accCount / subCount * 100.0) : 0.0);
         problemRepository.save(problem);
-
-        return submission;
     }
 
     @Transactional(readOnly = true)
-    public String getPreviousSolution(String username, Long problemId) {
+    public SubmissionEntity getPreviousSolution(String username, Long problemId) {
         MemberEntity member = memberRepository.findByUsername(username).orElse(null);
         if (member == null) return null;
 
         return submissionRepository.findFirstByMemberIdAndProblemIdOrderBySubmittedAtDesc(member.getMemberId(), problemId)
-            .map(SubmissionEntity::getCode)
             .orElse(null);
     }
 

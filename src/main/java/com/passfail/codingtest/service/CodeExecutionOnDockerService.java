@@ -14,6 +14,7 @@ import com.passfail.member.repository.MemberRepository;
 import com.passfail.problem.repository.ProblemRepository;
 import com.passfail.problem.repository.SubmissionRepository;
 import com.passfail.problem.repository.TestCaseRepository;
+import com.passfail.problem.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -45,6 +46,7 @@ public class CodeExecutionOnDockerService {
     private final ProblemRepository problemRepository;
     private final TestCaseRepository testCaseRepository;
     private final MemberRepository memberRepository;
+    private final ProblemService problemService;
     private final DockerRunner dockerRunner;
     private final JudgeSseService sseService;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -58,6 +60,7 @@ public class CodeExecutionOnDockerService {
             ProblemRepository problemRepository,
             TestCaseRepository testCaseRepository,
             MemberRepository memberRepository,
+            ProblemService problemService,
             DockerRunner dockerRunner,
             JudgeSseService sseService,
             @Qualifier("stringRedisTemplateCustom") RedisTemplate<String, String> stringRedisTemplateCustom) {
@@ -65,6 +68,7 @@ public class CodeExecutionOnDockerService {
         this.problemRepository = problemRepository;
         this.testCaseRepository = testCaseRepository;
         this.memberRepository = memberRepository;
+        this.problemService = problemService;
         this.dockerRunner = dockerRunner;
         this.sseService = sseService;
         this.stringRedisTemplateCustom = stringRedisTemplateCustom;
@@ -224,13 +228,8 @@ public class CodeExecutionOnDockerService {
         if (!isSubmit) return;
         try {
             Long submissionId = Long.parseLong(id);
-            submissionRepository.findById(submissionId).ifPresent(s -> {
-                s.setStatus(status);
-                s.setExecutionTimeMs(timeMs);
-                s.setMemoryUsedKb(memoryKb);
-                submissionRepository.save(s);
-                log.info("OnDocker: updated submission id: {} to status: {}", submissionId, status);
-            });
+            problemService.recordSubmissionResult(submissionId, status, timeMs, memoryKb);
+            log.info("OnDocker: updated submission id: {} to status: {} via problemService", submissionId, status);
         } catch (Exception e) {
             log.error("Failed to update submission status", e);
         }

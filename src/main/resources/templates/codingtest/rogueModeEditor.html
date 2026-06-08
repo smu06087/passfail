@@ -12,7 +12,7 @@
     <div id="problem-data" style="display:none;" 
          th:attr="data-desc=${problem.description}, data-id=${problem.problemId}, data-code=${defaultCode}, 
                   data-time=${problem.timeLimitMs}, data-mem=${problem.memoryLimitMb}, data-tc-count=${#lists.size(problem.testCases)},
-                  data-is-solved=${isSolved}, data-prev-code=${previousCode}, 
+                  data-is-solved=${isSolved}, data-prev-code=${previousCode}, data-prev-lang=${previousLanguage},
                   data-is-logged-in=${#authorization.expression('isAuthenticated()')}">
     </div>
 

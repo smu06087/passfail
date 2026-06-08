@@ -47,7 +47,7 @@ public class CodingTestController {
 
     @ModelAttribute("isLinux")
     public boolean isLinux() {
-        return envProvider.isLinux();
+        return envProvider.isUsingDocker();
     }
 
     /**
@@ -75,8 +75,11 @@ public class CodingTestController {
         boolean isSolved = problemService.isSolved(principal.getName(), problem.getProblemId());
         model.addAttribute("isSolved", isSolved);
         if (isSolved) {
-            String previousCode = problemService.getPreviousSolution(principal.getName(), problem.getProblemId());
-            model.addAttribute("previousCode", previousCode);
+            com.passfail.entity.SubmissionEntity prevSubmission = problemService.getPreviousSolution(principal.getName(), problem.getProblemId());
+            if (prevSubmission != null) {
+                model.addAttribute("previousCode", prevSubmission.getCode());
+                model.addAttribute("previousLanguage", prevSubmission.getLanguage().name().toLowerCase());
+            }
         }
 
         return "codingtest/rogueModeEditor";
@@ -140,8 +143,11 @@ public class CodingTestController {
             boolean isSolved = problemService.isSolved(username, problemId);
             model.addAttribute("isSolved", isSolved);
             if (isSolved) {
-                String previousCode = problemService.getPreviousSolution(username, problemId);
-                model.addAttribute("previousCode", previousCode);
+                com.passfail.entity.SubmissionEntity prevSubmission = problemService.getPreviousSolution(username, problemId);
+                if (prevSubmission != null) {
+                    model.addAttribute("previousCode", prevSubmission.getCode());
+                    model.addAttribute("previousLanguage", prevSubmission.getLanguage().name().toLowerCase());
+                }
             }
         }
 
@@ -167,7 +173,7 @@ public class CodingTestController {
             code += codeProvider.getLogicMazeImplementation(language);
         }
 
-        if (envProvider.isLinux()) {
+        if (envProvider.isUsingDocker()) {
             try {
                 List<Map<String, String>> customCasesRaw = (List<Map<String, String>>) payload.get("customTestCases");
                 List<CustomTestCaseRequest> customTestCases = customCasesRaw != null ? 
@@ -211,7 +217,7 @@ public class CodingTestController {
             code += codeProvider.getLogicMazeImplementation(language);
         }
 
-        if (envProvider.isLinux()) {
+        if (envProvider.isUsingDocker()) {
             try {
                 String id = onDockerService.prepareSubmit(problemId, code, principal.getName(), language);
                 return Map.of("id", id);
@@ -245,7 +251,11 @@ public class CodingTestController {
                         .orElse(SubmissionStatus.WRONG_ANSWER);
             }
 
-            problemService.recordSubmission(username, problemId, code, language, status);
+            // 최대 실행 시간 및 메모리 사용량 계산
+            long maxTime = results.stream().mapToLong(ExecutionResult::getExecutionTime).max().orElse(0);
+            int maxMemoryKb = (int) (results.stream().mapToLong(ExecutionResult::getMemoryUsed).max().orElse(0));
+
+            problemService.recordSubmission(username, problemId, code, language, status, (int) maxTime, maxMemoryKb);
             
             return Map.of("allCorrect", allCorrect, "results", results);
         } catch (Exception e) {
@@ -277,7 +287,7 @@ public class CodingTestController {
     @GetMapping(value = "/subscribe/{id}", produces = "text/event-stream")
     @ResponseBody
     public SseEmitter subscribe(@PathVariable String id) {
-        if (!envProvider.isLinux()) {
+        if (!envProvider.isUsingDocker()) {
             log.warn("OnDocker: SSE is optimized for Linux. Current OS: {}", envProvider.getOsInfo());
         }
         return sseService.subscribe(id);

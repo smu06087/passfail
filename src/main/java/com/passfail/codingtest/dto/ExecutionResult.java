@@ -16,6 +16,6 @@ public class ExecutionResult {
     private String output;        // 실제 출력값
     private String error;         // 에러 발생 시 에러 메시지
     private long executionTime;   // 실행 시간 (ms)
-    private long memoryUsed;      // 사용 메모리 (bytes)
+    private long memoryUsed;      // 사용 메모리 (KB)
     private String status;        // 실행 상태 (CORRECT, WRONG, TIMEOUT, MEMORY_LIMIT_EXCEEDED, RUNTIME_ERROR, COMPILE_ERROR)
 }

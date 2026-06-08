@@ -62,10 +62,10 @@ public class InteractiveMazeService {
                 Files.writeString(tempDir.resolve(fileName), fullCode);
 
                 // 3. 환경 준비 및 컴파일
-                ProcessBuilder pb = envProvider.isLinux() ? createDockerProcessBuilder(language, tempDir) : createLocalProcessBuilder(language, tempDir);
+                ProcessBuilder pb = envProvider.isUsingDocker() ? createDockerProcessBuilder(language, tempDir) : createLocalProcessBuilder(language, tempDir);
 
                 if (language == ProgrammingLanguage.JAVA || language == ProgrammingLanguage.CPP) {
-                    Process compileProcess = envProvider.isLinux() ? createDockerCompileProcess(language, tempDir) : createCompileProcess(language, tempDir);
+                    Process compileProcess = envProvider.isUsingDocker() ? createDockerCompileProcess(language, tempDir) : createCompileProcess(language, tempDir);
                     if (compileProcess != null) {
 
                         StringBuilder compileErrorLog = new StringBuilder();

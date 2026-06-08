@@ -42,7 +42,7 @@ public class BattleModeController {
 
     @ModelAttribute("isLinux")
     public boolean isLinux() {
-        return envProvider.isLinux();
+        return envProvider.isUsingDocker();
     }
 
 	// 맵 페이지
