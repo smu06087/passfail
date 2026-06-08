@@ -88,4 +88,20 @@ public class ProblemEntity {
     @Builder.Default
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProblemTagEntity> tags = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SolvedProblemEntity> solvedProblems = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SubmissionEntity> submissions = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AiChatSessionEntity> aiChatSessions = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RebalanceLogEntity> rebalanceLogs = new ArrayList<>();
 }

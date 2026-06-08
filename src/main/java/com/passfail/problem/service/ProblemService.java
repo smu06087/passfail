@@ -256,8 +256,6 @@ public class ProblemService {
         ProblemEntity problem = problemRepository.findById(problemId)
             .orElseThrow(() -> new EntityNotFoundException("Problem not found. id=" + problemId));
 
-        problemTagRepository.deleteByProblemId(problemId);
-        testCaseRepository.deleteByProblem_ProblemId(problemId);
         problemRepository.delete(problem);
     }
 
