@@ -155,6 +155,8 @@
                             <option value="ALL">모든 모드</option>
                             <option value="QUICK">빨리 풀기</option>
                             <option value="MANY">많이 풀기</option>
+                            <option value="ROGUE">로그 모드</option>
+                            <option value="LOGIC_MAZE">로직 메이즈</option>
                         </select>
                     </div>
                     
@@ -285,8 +287,10 @@
     </script>
     <script th:replace="~{fragments/navbar :: navbarScript}"></script>
     <script type="module">
+        /*
         import SSEManager from '/js/util/connection/sse-manager.js';
         SSEManager.init();
+        */
         
         lucide.createIcons();
     </script>

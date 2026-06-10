@@ -213,22 +213,8 @@
                         </li>
                     </ul>
                 </div>
-            </div>
-        </div>
-        <div style="background:black;color:lime;padding:20px;">
-    <div th:each="p : ${participants}">
-        <div>
-            memberId: <span th:text="${p.memberId}"></span>
-            /
-            slotIndex: <span th:text="${p.slotIndex}"></span>
-            /
-            status: <span th:text="${p.status}"></span>
-            /
-            username:
-            <span th:text="${p.member != null ? p.member.username : 'NULL'}"></span>
-        </div>
-    </div>
-</div>
+            </main>
+
     </main>
 
     <footer class="py-8 text-center text-slate-300 font-black text-xs tracking-widest uppercase">
